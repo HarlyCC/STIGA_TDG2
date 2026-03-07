@@ -1,5 +1,3 @@
-import numpy as np
-
 class DataCleaner:
     @staticmethod
     def clean_gender(val):
@@ -14,12 +12,11 @@ class DataCleaner:
         """Unifica etiquetas. Devuelve None si el valor es inválido."""
         raw = str(val).lower().strip()
         mapping = {
-            'yellow': 0, 'green': 0, '0': 0, '0.0': 0,
-            'orange': 1, '1': 1, '1.0': 1,
-            'red': 2, '2': 2, '2.0': 2,
-            'critical': 3, '3': 3, '3.0': 3
+            'green':    0, '0': 0, '0.0': 0,
+            'yellow':   1, '1': 1, '1.0': 1,
+            'orange':   2, '2': 2, '2.0': 2,
+            'red':      3, 'critical': 3, '3': 3, '3.0': 3,
         }
-        # Si no está en el mapa, devolvemos None para limpieza posterior
         return mapping.get(raw, None)
 
     @staticmethod
@@ -34,7 +31,7 @@ class DataCleaner:
 
     @staticmethod
     def validate_vitals(val, min_val, max_val):
-        #Valida si un signo vital está en un rango humano posible.
+        """Valida si un signo vital está en un rango humano posible."""
         num = DataCleaner.clean_numeric(val)
         if num is None: return None
         if min_val <= num <= max_val:
