@@ -3,7 +3,6 @@ import joblib
 import logging
 import numpy as np
 import pandas as pd
-
 from config.paths import MODELS_DIR
 
 logger = logging.getLogger("stiga.predictor")
@@ -14,11 +13,12 @@ FEATURES = ['age', 'gender', 'heart_rate', 'systolic_bp',
             'o2_sat', 'body_temp', 'glucose', 'cholesterol']
 
 TRIAGE_LABELS = {
-    0: {"nivel": 0, "color": "Verde",    "urgencia": "No urgente",          "accion": "Puede esperar consulta regular."},
-    1: {"nivel": 1, "color": "Amarillo", "urgencia": "Urgencia moderada",   "accion": "Atención en las próximas 1-2 horas."},
-    2: {"nivel": 2, "color": "Naranja",  "urgencia": "Urgencia alta",       "accion": "Atención inmediata requerida."},
-    3: {"nivel": 3, "color": "Rojo",     "urgencia": "Emergencia crítica",  "accion": "TRASLADO URGENTE. Activar protocolo de emergencias."},
+    0: {"nivel": 0, "color": "Verde",    "urgencia": "No urgente",         "accion": "Puede esperar consulta regular."},
+    1: {"nivel": 1, "color": "Amarillo", "urgencia": "Urgencia moderada",  "accion": "Atención en las próximas 1-2 horas."},
+    2: {"nivel": 2, "color": "Naranja",  "urgencia": "Urgencia alta",      "accion": "Atención inmediata requerida."},
+    3: {"nivel": 3, "color": "Rojo",     "urgencia": "Emergencia crítica", "accion": "TRASLADO URGENTE. Activar protocolo de emergencias."},
 }
+
 
 class Predictor:
     """
@@ -42,13 +42,8 @@ class Predictor:
     def predict(self, patient_data: dict) -> dict:
         """
         Ejecuta inferencia para un paciente.
-
-        Args:
-            patient_data: Dict con datos clínicos extraídos por GemmaService.
-                          Los valores faltantes se imputarán por el Pipeline.
-
-        Returns:
-            Dict con nivel de triaje, etiqueta, confianza y probabilidades.
+        El Random Forest clasifica con signos vitales.
+        El post-procesamiento escala el nivel con symptom_severity de Gemma.
         """
         # Construir DataFrame con el orden exacto de features
         row = {feat: patient_data.get(feat, np.nan) for feat in FEATURES}
@@ -57,20 +52,36 @@ class Predictor:
         level = int(self.model.predict(X)[0])
         proba = self.model.predict_proba(X)[0]
 
+        # ── Post-procesamiento con symptom_severity de Gemma ──
+        severity       = float(patient_data.get("symptom_severity") or 0)
+        original_level = level
+
+        if severity >= 9 and level < 3:
+            level = 3
+        elif severity >= 8 and level < 2:
+            level = 2
+
+        if level != original_level:
+            logger.info(
+                f"Nivel escalado {original_level}→{level} "
+                f"por symptom_severity={severity}"
+            )
+
         result = {
             **TRIAGE_LABELS[level],
-            "confianza":      round(float(proba[level]), 4),
-            "probabilidades": {
+            "confianza":       round(float(proba[original_level]), 4),
+            "escalado":        level != original_level,
+            "probabilidades":  {
                 TRIAGE_LABELS[i]["color"]: round(float(p), 4)
                 for i, p in enumerate(proba)
             },
-            "datos_usados":   {k: v for k, v in row.items() if v is not np.nan},
-            "datos_imputados": [k for k, v in row.items() if v is np.nan],
+            "datos_usados":    {k: v for k, v in row.items() if not pd.isna(v)},
+            "datos_imputados": [k for k, v in row.items() if pd.isna(v)],
         }
 
         logger.info(
             f"Predicción: Nivel {level} ({TRIAGE_LABELS[level]['color']}) "
             f"| Confianza: {result['confianza']:.1%} "
-            f"| Imputados: {result['datos_imputados']}"
+            f"| Escalado: {result['escalado']}"
         )
         return result

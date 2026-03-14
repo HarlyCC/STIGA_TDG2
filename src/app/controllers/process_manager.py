@@ -1,8 +1,6 @@
 import logging
-
 from app.data.data_merger import DataMerger
 from app.services.trainer import train_stiga_model
-
 logger = logging.getLogger("stiga.process_manager")
 
 

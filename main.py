@@ -1,14 +1,19 @@
 # main.py
 import sys
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
+
+ROOT = Path(__file__).resolve().parent
+sys.path.insert(0, str(ROOT))         
+sys.path.insert(0, str(ROOT / "src")) 
+
+from dotenv import load_dotenv
+load_dotenv()
 
 import uvicorn
 from config.logger_config import setup_logger
-from src.app.controllers.process_manager                                                                                                                                 import ProcessManager
+from src.app.controllers.process_manager import ProcessManager
 
 if __name__ == "__main__":
-    import sys
     setup_logger()
 
     if "--train" in sys.argv:
