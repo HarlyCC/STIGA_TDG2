@@ -28,14 +28,14 @@ app.add_middleware(
 )
 
 gemma_service = GemmaService(api_key=os.getenv("GOOGLE_API_KEY"))
-predictor     = Predictor()
+predictor = Predictor()
 
 class MessageRequest(BaseModel):
     session_id: str
-    message:    str
+    message: str
 
 class SyncRequest(BaseModel):
-    session_id:    str
+    session_id: str
     patient_data:  dict
     triage_result: dict
 

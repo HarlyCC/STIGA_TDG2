@@ -9,9 +9,9 @@ logger = logging.getLogger("stiga.data_merger")
 
 class DataMerger:
     def __init__(self):
-        self.db_path     = DB_PATH
+        self.db_path  = DB_PATH
         self.dataset_dir = DATA_DIR
-        self.cleaner     = DataCleaner()
+        self.cleaner = DataCleaner()
         logger.info(f"DataMerger inicializado | DB: {self.db_path}")
 
     def merge_all(self):

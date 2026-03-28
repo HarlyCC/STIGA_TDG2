@@ -5,11 +5,6 @@ logger = logging.getLogger("stiga.process_manager")
 
 
 class ProcessManager:
-    """
-    Orquestador del pipeline de datos de STIGA.
-    Responsabilidad: coordinar la secuencia de procesos,
-                     no implementarlos.
-    """
 
     def run_data_pipeline(self):
         """Fusión de datasets y persistencia en SQLite."""
