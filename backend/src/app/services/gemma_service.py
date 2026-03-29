@@ -10,7 +10,12 @@ logger = logging.getLogger("stiga.gemma_service")
 GEMMA_MODEL = "gemma-3-12b-it"
 
 SYSTEM_PROMPT = """Eres STIGA, un asistente médico de triaje para zonas rurales de Ecuador.
-Tu rol es recopilar información clínica del paciente de forma conversacional, empática y en español simple.
+Tu rol es recopilar información clínica, personal y logística del paciente de forma conversacional, empática y en español simple.
+
+ORDEN DE RECOPILACIÓN:
+1. Primero recoge los datos personales (nombre, cédula, teléfono, dirección, EPS).
+2. Luego recoge los síntomas y datos clínicos.
+3. Finalmente recoge los datos logísticos (ubicación, transporte, ambulancia).
 
 REGLAS ESTRICTAS:
 1. Haz UNA sola pregunta a la vez, nunca varias juntas.
@@ -21,6 +26,11 @@ REGLAS ESTRICTAS:
 {
   "status": "complete",
   "data": {
+    "nombre": null,
+    "cedula": null,
+    "telefono": null,
+    "direccion": null,
+    "eps": null,
     "age": null,
     "gender": null,
     "heart_rate": null,
@@ -29,7 +39,11 @@ REGLAS ESTRICTAS:
     "body_temp": null,
     "glucose": null,
     "cholesterol": null,
-    "symptoms": null
+    "symptoms": null,
+    "symptom_severity": null,
+    "ciudad": null,
+    "tiene_transporte": null,
+    "necesita_ambulancia": null
   }
 }
 
@@ -43,17 +57,22 @@ REGLAS ESTRICTAS:
 7. gender: 0=Femenino, 1=Masculino, 2=Desconocido.
 8. Los valores numéricos deben ser estrictamente números (ej: 36.5, no '36.5 grados').
    Si el usuario dice '75 años', guarda solo 75. Si dice '38 grados', guarda solo 38.
-9. Nunca inventes ni asumas valores clínicos.
+9. symptom_severity: evalúa del 1 al 10 la gravedad de los síntomas descritos.
+   1=muy leve, 5=moderado, 10=crítico. Basate en lo que el paciente describe.
+10. tiene_transporte: true si tiene vehículo propio, false si no tiene.
+11. necesita_ambulancia: true si no tiene transporte Y los síntomas son graves, false en caso contrario.
+12. Nunca inventes ni asumas valores clínicos.
 """
 
 VITAL_RANGES = {
-    "age":         (0,   120),
-    "heart_rate":  (30,  250),
-    "systolic_bp": (50,  300),
-    "o2_sat":      (50,  100),
-    "body_temp":   (34,  44),
-    "glucose":     (20,  600),
-    "cholesterol": (50,  700),
+    "age":              (0,   120),
+    "heart_rate":       (30,  250),
+    "systolic_bp":      (50,  300),
+    "o2_sat":           (50,  100),
+    "body_temp":        (34,  44),
+    "glucose":          (20,  600),
+    "cholesterol":      (50,  700),
+    "symptom_severity": (1,   10),
 }
 
 MINIMUM_FEATURES = ["age", "symptoms"]
@@ -71,8 +90,6 @@ class ConversationSession:
         self.history.append({"role": role, "content": content})
 
     def get_history_for_api(self) -> list:
-        # Gemma no soporta system_instruction
-        # Se inyecta el prompt como primer turno del historial
         system_turn = [
             {
                 "role": "user",
@@ -92,7 +109,7 @@ class ConversationSession:
 class GemmaService:
     """
     Responsabilidad: gestionar la conversación con Gemma 3
-    para extraer datos clínicos estructurados por paciente.
+    para extraer datos clínicos, personales y logísticos por paciente.
     """
 
     def __init__(self, api_key: str):
@@ -119,8 +136,8 @@ class GemmaService:
     def start_conversation(self, session_id: str) -> dict:
         opening = (
             "Hola, soy STIGA, su asistente de salud. "
-            "Voy a hacerle algunas preguntas para evaluar su estado. "
-            "¿Cuál es su nombre y cuántos años tiene?"
+            "Voy a hacerle algunas preguntas para atenderle mejor. "
+            "¿Podría decirme su nombre completo?"
         )
         session = self.get_or_create_session(session_id)
         session.add_message("model", opening)
@@ -162,7 +179,7 @@ class GemmaService:
                 is_last = attempt == MAX_RETRIES - 1
 
                 if is_503 and not is_last:
-                    wait = (attempt + 1) * 10  # 10s → 20s → 30s
+                    wait = (attempt + 1) * 10
                     logger.warning(
                         f"Servidor ocupado [{session_id}] | "
                         f"intento {attempt + 1}/{MAX_RETRIES} | "
@@ -203,7 +220,7 @@ class GemmaService:
             )
 
         except json.JSONDecodeError:
-            logger.warning(f"Respuesta no JSON de Gemma, guardando como síntoma: {raw[:80]}")
+            logger.warning(f"Respuesta no JSON de Gemma: {raw[:80]}")
             if not session.patient_data.get("symptoms"):
                 session.patient_data["symptoms"] = raw
             return self._build_response("collecting", raw, session)
@@ -211,12 +228,21 @@ class GemmaService:
     # ── Validaciones ─────────────────────────
 
     def _sanitize_data(self, data: dict) -> dict:
+        text_fields    = {"nombre", "cedula", "telefono", "direccion",
+                          "eps", "symptoms", "ciudad"}
+        boolean_fields = {"tiene_transporte", "necesita_ambulancia"}
+
         sanitized = {}
         for key, val in data.items():
             if val is None or val == "null":
                 sanitized[key] = None
-            elif key == "symptoms":
-                sanitized[key] = str(val) if val else None
+            elif key in text_fields:
+                sanitized[key] = str(val).strip() if val else None
+            elif key in boolean_fields:
+                if isinstance(val, bool):
+                    sanitized[key] = val
+                else:
+                    sanitized[key] = str(val).lower() in ("true", "sí", "si", "1")
             elif key == "gender":
                 sanitized[key] = self.cleaner.clean_gender(val)
             else:
@@ -230,7 +256,7 @@ class GemmaService:
                 result = self.cleaner.validate_vitals(validated[field], min_val, max_val)
                 if result is None:
                     logger.warning(
-                        f"Valor fisiológicamente inválido descartado | "
+                        f"Valor inválido descartado | "
                         f"{field}: {validated[field]} (rango: {min_val}-{max_val})"
                     )
                 validated[field] = result
