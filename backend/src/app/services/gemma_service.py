@@ -1,6 +1,7 @@
 import logging
 import json
 import time
+from datetime import date
 from google import genai
 from google.genai import types
 from app.data.data_cleaner import DataCleaner
@@ -9,23 +10,32 @@ logger = logging.getLogger("stiga.gemma_service")
 
 GEMMA_MODEL = "gemma-3-12b-it"
 
-SYSTEM_PROMPT = """Eres STIGA, un asistente médico de triaje para zonas rurales de Ecuador.
-Tu rol es recopilar información clínica, personal y logística del paciente de forma conversacional, empática y en español simple.
+# Las llaves del JSON dentro del prompt deben estar escapadas ({{ }})
+# para que .format() no las interprete como variables.
+SYSTEM_PROMPT_BASE = """\
+Eres STIGA, un asistente médico de triaje para zonas rurales de Colombia.
+Tu rol es recopilar información clínica y logística del paciente de forma conversacional, empática y en español simple.
+
+DATOS PERSONALES YA REGISTRADOS (NO volver a preguntar por estos):
+{personal_data_summary}
 
 ORDEN DE RECOPILACIÓN:
-1. Primero recoge los datos personales (nombre, cédula, teléfono, dirección, EPS).
-2. Luego recoge los síntomas y datos clínicos.
-3. Finalmente recoge los datos logísticos (ubicación, transporte, ambulancia).
+1. Primero pregunta qué síntomas tiene hoy.
+2. Luego recoge los signos vitales disponibles: frecuencia cardíaca, presión arterial sistólica,
+   saturación de oxígeno, temperatura corporal, glucosa y colesterol.
+   Si el paciente no dispone de algún aparato, acepta y continúa.
+3. Finalmente recoge los datos logísticos: si tiene transporte propio y si necesita ambulancia.
 
 REGLAS ESTRICTAS:
 1. Haz UNA sola pregunta a la vez, nunca varias juntas.
 2. Usa lenguaje simple, nunca términos médicos complejos.
 3. Si el usuario no sabe un dato, acepta la respuesta y continúa.
-4. Cuando tengas suficiente información, responde ÚNICAMENTE con un JSON con este formato exacto:
+4. Cuando tengas suficiente información clínica (al menos síntomas), responde ÚNICAMENTE con
+   un JSON con este formato exacto — incluye los datos personales ya registrados:
 
-{
+{{
   "status": "complete",
-  "data": {
+  "data": {{
     "nombre": null,
     "cedula": null,
     "telefono": null,
@@ -44,25 +54,26 @@ REGLAS ESTRICTAS:
     "ciudad": null,
     "tiene_transporte": null,
     "necesita_ambulancia": null
-  }
-}
+  }}
+}}
 
 5. Mientras recopilas datos, responde ÚNICAMENTE con:
-{
+{{
   "status": "collecting",
   "message": "tu pregunta o respuesta aquí"
-}
+}}
 
 6. Los valores que no se pudieron obtener deben ser null.
 7. gender: 0=Femenino, 1=Masculino, 2=Desconocido.
 8. Los valores numéricos deben ser estrictamente números (ej: 36.5, no '36.5 grados').
-   Si el usuario dice '75 años', guarda solo 75. Si dice '38 grados', guarda solo 38.
 9. symptom_severity: evalúa del 1 al 10 la gravedad de los síntomas descritos.
    1=muy leve, 5=moderado, 10=crítico. Basate en lo que el paciente describe.
 10. tiene_transporte: true si tiene vehículo propio, false si no tiene.
 11. necesita_ambulancia: true si no tiene transporte Y los síntomas son graves, false en caso contrario.
 12. Nunca inventes ni asumas valores clínicos.
 """
+
+GENDER_LABELS = {0: "Femenino", 1: "Masculino", 2: "Desconocido"}
 
 VITAL_RANGES = {
     "age":              (0,   120),
@@ -78,13 +89,53 @@ VITAL_RANGES = {
 MINIMUM_FEATURES = ["age", "symptoms"]
 MAX_RETRIES      = 3
 
+# Campos que llegan del formulario y no debe preguntar Gemma
+PERSONAL_FIELDS = {"nombre", "cedula", "telefono", "direccion", "eps", "ciudad", "age", "gender"}
+
+
+def _calculate_age(fecha_nacimiento: str) -> int:
+    """
+    Calcula la edad en años a partir de una fecha 'YYYY-MM-DD'.
+    El formato ya fue validado por Pydantic en el controlador,
+    por lo que cualquier excepción aquí es un error inesperado.
+    """
+    born  = date.fromisoformat(fecha_nacimiento)
+    today = date.today()
+    return today.year - born.year - ((today.month, today.day) < (born.month, born.day))
+
+
+def _build_personal_summary(prefilled: dict) -> str:
+    """Genera el bloque de texto que le indica a Gemma qué datos ya están disponibles."""
+    label_map = {
+        "nombre":    "Nombre",
+        "cedula":    "Cédula",
+        "telefono":  "Teléfono",
+        "direccion": "Dirección",
+        "eps":       "EPS",
+        "ciudad":    "Ciudad",
+        "age":       "Edad",
+        "gender":    "Sexo",
+    }
+    lines = []
+    for field, label in label_map.items():
+        val = prefilled.get(field)
+        if val is not None:
+            display = GENDER_LABELS.get(val, val) if field == "gender" else val
+            display = f"{display} años" if field == "age" else display
+            lines.append(f"- {label}: {display}")
+
+    if not lines:
+        return "Ninguno. Debes recopilar también los datos personales básicos."
+    return "\n".join(lines)
+
 
 class ConversationSession:
-    def __init__(self, session_id: str):
-        self.session_id   = session_id
-        self.history      = []
-        self.patient_data = {}
-        self.is_complete  = False
+    def __init__(self, session_id: str, system_prompt: str):
+        self.session_id    = session_id
+        self.system_prompt = system_prompt
+        self.history       = []
+        self.patient_data  = {}
+        self.is_complete   = False
 
     def add_message(self, role: str, content: str):
         self.history.append({"role": role, "content": content})
@@ -93,7 +144,7 @@ class ConversationSession:
         system_turn = [
             {
                 "role": "user",
-                "parts": [{"text": SYSTEM_PROMPT}]
+                "parts": [{"text": self.system_prompt}]
             },
             {
                 "role": "model",
@@ -109,7 +160,8 @@ class ConversationSession:
 class GemmaService:
     """
     Responsabilidad: gestionar la conversación con Gemma 3
-    para extraer datos clínicos, personales y logísticos por paciente.
+    para extraer datos clínicos y logísticos por paciente.
+    Los datos personales se reciben precargados desde el formulario de registro.
     """
 
     def __init__(self, api_key: str):
@@ -120,10 +172,18 @@ class GemmaService:
 
     # ── Gestión de sesiones ──────────────────
 
+    def _create_session(self, session_id: str, system_prompt: str) -> ConversationSession:
+        session = ConversationSession(session_id, system_prompt)
+        self.sessions[session_id] = session
+        logger.info(f"Nueva sesión creada: {session_id}")
+        return session
+
     def get_or_create_session(self, session_id: str) -> ConversationSession:
         if session_id not in self.sessions:
-            self.sessions[session_id] = ConversationSession(session_id)
-            logger.info(f"Nueva sesión creada: {session_id}")
+            fallback_prompt = SYSTEM_PROMPT_BASE.format(
+                personal_data_summary="Ninguno. Debes recopilar también los datos personales básicos."
+            )
+            return self._create_session(session_id, fallback_prompt)
         return self.sessions[session_id]
 
     def close_session(self, session_id: str):
@@ -133,13 +193,48 @@ class GemmaService:
 
     # ── Conversación ─────────────────────────
 
-    def start_conversation(self, session_id: str) -> dict:
-        opening = (
-            "Hola, soy STIGA, su asistente de salud. "
-            "Voy a hacerle algunas preguntas para atenderle mejor. "
-            "¿Podría decirme su nombre completo?"
-        )
-        session = self.get_or_create_session(session_id)
+    def start_conversation(self, session_id: str, prefilled_data: dict | None = None) -> dict:
+        """
+        Inicia la sesión de triaje.
+
+        prefilled_data puede incluir:
+          nombre, cedula, telefono, direccion, eps, ciudad, gender (int)
+          y fecha_nacimiento (str 'YYYY-MM-DD') — de la que se calcula age.
+
+        Con datos precargados, Gemma omite las preguntas personales e inicia
+        directamente con síntomas.
+        """
+        prefilled = dict(prefilled_data or {})
+
+        # Calcular age desde fecha_nacimiento si se proporcionó
+        if "fecha_nacimiento" in prefilled:
+            age = _calculate_age(prefilled.pop("fecha_nacimiento"))
+            if age is not None:
+                prefilled["age"] = age
+
+        summary = _build_personal_summary(prefilled)
+        prompt  = SYSTEM_PROMPT_BASE.format(personal_data_summary=summary)
+        session = self._create_session(session_id, prompt)
+
+        # Inyectar datos personales directamente en patient_data
+        for field in PERSONAL_FIELDS:
+            if prefilled.get(field) is not None:
+                session.patient_data[field] = prefilled[field]
+
+        if prefilled:
+            nombre  = prefilled.get("nombre", "")
+            opening = (
+                f"Hola{', ' + nombre if nombre else ''}. Soy STIGA, su asistente de salud. "
+                "Ya tengo registrados sus datos personales. "
+                "Cuénteme: ¿qué síntomas o molestias tiene hoy?"
+            )
+        else:
+            opening = (
+                "Hola, soy STIGA, su asistente de salud. "
+                "Voy a hacerle algunas preguntas para atenderle mejor. "
+                "¿Podría decirme su nombre completo?"
+            )
+
         session.add_message("model", opening)
         return self._build_response("collecting", opening, session)
 
@@ -150,7 +245,7 @@ class GemmaService:
         Returns dict con:
             status          : "collecting" | "complete" | "error"
             message         : pregunta o respuesta de Gemma
-            patient_data    : datos clínicos recopilados hasta ahora
+            patient_data    : datos recopilados hasta ahora
             ready_for_model : True cuando puede predecir
         """
         session = self.get_or_create_session(session_id)
@@ -202,11 +297,16 @@ class GemmaService:
             parsed = json.loads(clean)
 
             if parsed.get("status") == "complete":
-                data = self._sanitize_data(parsed.get("data", {}))
-                data = self._validate_vitals(data)
-                session.patient_data = data
+                gemma_data = self._sanitize_data(parsed.get("data", {}))
+                gemma_data = self._validate_vitals(gemma_data)
+                # Los datos personales precargados tienen prioridad sobre lo que Gemma devuelva
+                merged = {**gemma_data, **{
+                    k: v for k, v in session.patient_data.items()
+                    if k in PERSONAL_FIELDS and v is not None
+                }}
+                session.patient_data = merged
                 session.is_complete  = True
-                logger.info(f"Sesión {session.session_id} completada | {data}")
+                logger.info(f"Sesión {session.session_id} completada | {merged}")
                 return self._build_response(
                     "complete",
                     "Gracias, ya tengo toda la información necesaria.",
