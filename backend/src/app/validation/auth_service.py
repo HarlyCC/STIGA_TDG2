@@ -1,25 +1,16 @@
 import logging
 import random
-import sqlite3
 from datetime import datetime, timedelta, timezone
 
 from fastapi import HTTPException, status
 
-from config.paths import DB_PATH
-from validation.dependencies import hash_password, verify_password, create_jwt
-from validation.email_service import send_verification_email
+from app.data.database import get_conn
+from app.validation.dependencies import hash_password, verify_password, create_jwt
+from app.validation.email_service import send_verification_email
 
 logger = logging.getLogger("stiga.auth_service")
 
 CODE_EXPIRE_MINUTES = 15
-
-# ── Conexión ─────────────────────────────────────────────────────────────────
-
-def get_conn() -> sqlite3.Connection:
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
-
 
 # ── Utilidades internas ──────────────────────────────────────────────────────
 

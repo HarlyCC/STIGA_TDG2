@@ -1,7 +1,6 @@
 import logging
-import sqlite3
 
-from config.paths import DB_PATH
+from app.data.database import get_conn
 
 logger = logging.getLogger("stiga.db")
 
@@ -77,9 +76,8 @@ def init_db():
     Se ejecuta una sola vez al arrancar el servidor.
     Los registros existentes se conservan intactos.
     """
-    with sqlite3.connect(DB_PATH) as conn:
+    with get_conn() as conn:
         conn.execute(_CREATE_USERS)
         conn.execute(_CREATE_TRIAGE_RECORDS)
         conn.execute(_CREATE_MEDICO_HORARIOS)
-        conn.commit()
     logger.info("Base de datos inicializada | tablas: users, triage_records, medico_horarios")

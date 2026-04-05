@@ -1,13 +1,9 @@
 import logging
-import sqlite3
 from typing import Optional
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
-
-from app.validation.auth_service import get_conn
+from app.data.database import get_conn
 from app.validation.dependencies import get_current_user
-from config.paths import DB_PATH
 
 logger = logging.getLogger("stiga.medico")
 
@@ -53,8 +49,7 @@ def listar_pacientes(
 
     query += " ORDER BY timestamp DESC"
 
-    with sqlite3.connect(DB_PATH) as conn:
-        conn.row_factory = sqlite3.Row
+    with get_conn() as conn:
         rows = conn.execute(query, params).fetchall()
 
     return [dict(r) for r in rows]
@@ -81,8 +76,7 @@ def detalle_paciente(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail="Paciente no encontrado.")
 
-    with sqlite3.connect(DB_PATH) as conn:
-        conn.row_factory = sqlite3.Row
+    with get_conn() as conn:
         triajes = conn.execute(
             "SELECT * FROM triage_records WHERE cedula = ? ORDER BY timestamp DESC",
             (cedula,),
@@ -111,8 +105,7 @@ def mis_triajes(current_user: dict = Depends(get_current_user)):
     if not user or not user["cedula"]:
         return []
 
-    with sqlite3.connect(DB_PATH) as conn:
-        conn.row_factory = sqlite3.Row
+    with get_conn() as conn:
         rows = conn.execute(
             "SELECT * FROM triage_records WHERE cedula = ? ORDER BY timestamp DESC",
             (user["cedula"],),
@@ -126,8 +119,7 @@ def mis_triajes(current_user: dict = Depends(get_current_user)):
 @router.get("/horarios")
 def get_horarios(medico: dict = Depends(require_medico)):
     """Retorna la franja horaria configurada por el médico autenticado."""
-    with sqlite3.connect(DB_PATH) as conn:
-        conn.row_factory = sqlite3.Row
+    with get_conn() as conn:
         rows = conn.execute(
             "SELECT dia_semana, hora_inicio, hora_fin FROM medico_horarios WHERE medico_email = ? ORDER BY dia_semana",
             (medico["email"],),
@@ -149,7 +141,7 @@ def set_horario(
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                             detail="dia_semana debe ser 0 (Lunes) a 6 (Domingo).")
 
-    with sqlite3.connect(DB_PATH) as conn:
+    with get_conn() as conn:
         conn.execute(
             """INSERT INTO medico_horarios (medico_email, dia_semana, hora_inicio, hora_fin)
                VALUES (?, ?, ?, ?)
@@ -169,7 +161,7 @@ def delete_horario(
     medico:     dict = Depends(require_medico),
 ):
     """Elimina la disponibilidad del médico para un día específico."""
-    with sqlite3.connect(DB_PATH) as conn:
+    with get_conn() as conn:
         conn.execute(
             "DELETE FROM medico_horarios WHERE medico_email = ? AND dia_semana = ?",
             (medico["email"], dia_semana),

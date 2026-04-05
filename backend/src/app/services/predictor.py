@@ -9,8 +9,10 @@ logger = logging.getLogger("stiga.predictor")
 
 MODEL_PATH = MODELS_DIR / "stiga_triage_model.pkl"
 
-FEATURES = ['age', 'gender', 'heart_rate', 'systolic_bp',
-            'o2_sat', 'body_temp', 'glucose', 'cholesterol']
+FEATURES = [
+    'age', 'gender', 'heart_rate', 'systolic_bp',
+    'o2_sat', 'body_temp', 'glucose', 'cholesterol',
+]
 
 TRIAGE_LABELS = {
     0: {"nivel": 0, "color": "Verde",    "urgencia": "No urgente",         "accion": "Puede esperar consulta regular."},
@@ -46,8 +48,10 @@ class Predictor:
         El post-procesamiento escala el nivel con symptom_severity de Gemma.
         """
         # Construir DataFrame con el orden exacto de features
-        row = {feat: patient_data.get(feat, np.nan) for feat in FEATURES}
-        X   = pd.DataFrame([row])
+        row             = {feat: patient_data.get(feat, np.nan) for feat in FEATURES}
+        X               = pd.DataFrame([row])
+        features_reales = sum(1 for v in row.values() if not pd.isna(v))
+        calidad_datos   = round(features_reales / len(FEATURES), 4)
 
         level = int(self.model.predict(X)[0])
         proba = self.model.predict_proba(X)[0]
@@ -55,23 +59,36 @@ class Predictor:
         # ── Post-procesamiento con symptom_severity de Gemma ──
         severity       = float(patient_data.get("symptom_severity") or 0)
         original_level = level
+        escalado       = False
 
         if severity >= 9 and level < 3:
-            level = 3
+            level    = 3
+            escalado = True
         elif severity >= 8 and level < 2:
-            level = 2
+            level    = 2
+            escalado = True
 
-        if level != original_level:
+        if escalado:
             logger.info(
                 f"Nivel escalado {original_level}→{level} "
                 f"por symptom_severity={severity}"
             )
 
+        # ── Confianza ──
+        # Si el nivel fue escalado por Gemma, la confianza del RF en ese nivel
+        # no es representativa. Se reporta la confianza del RF en su predicción
+        # original y se indica que la decisión final fue por escalado clínico.
+        confianza_rf     = round(float(proba[original_level]), 4)
+        confianza_final  = confianza_rf if not escalado else round(float(proba[original_level]), 4)
+
         result = {
             **TRIAGE_LABELS[level],
-            "confianza":       round(float(proba[original_level]), 4),
-            "escalado":        level != original_level,
-            "probabilidades":  {
+            "confianza":        confianza_final,
+            "confianza_fuente": "modelo" if not escalado else "escalado_clinico",
+            "escalado":         escalado,
+            "calidad_datos":    calidad_datos,
+            "features_reales":  features_reales,
+            "probabilidades":   {
                 TRIAGE_LABELS[i]["color"]: round(float(p), 4)
                 for i, p in enumerate(proba)
             },
@@ -81,7 +98,8 @@ class Predictor:
 
         logger.info(
             f"Predicción: Nivel {level} ({TRIAGE_LABELS[level]['color']}) "
-            f"| Confianza: {result['confianza']:.1%} "
-            f"| Escalado: {result['escalado']}"
+            f"| Confianza RF: {confianza_rf:.1%} "
+            f"| Escalado: {escalado} "
+            f"| Calidad datos: {calidad_datos:.0%} ({features_reales}/{len(FEATURES)} features)"
         )
         return result

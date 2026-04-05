@@ -2,7 +2,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, status
 from pydantic import BaseModel, EmailStr, field_validator
 
-from validation.auth_service import (
+from app.validation.auth_service import (
     get_profile,
     login_user,
     register_user,
@@ -10,7 +10,7 @@ from validation.auth_service import (
     update_profile,
     verify_user,
 )
-from validation.dependencies import get_current_user, validate_fecha_nacimiento
+from app.validation.dependencies import get_current_user, validate_fecha_nacimiento
 
 router = APIRouter(prefix="/auth", tags=["Autenticación"])
 
