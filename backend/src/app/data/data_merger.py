@@ -67,49 +67,6 @@ class DataMerger:
             "triage_level":     df["triage_level"].apply(self.cleaner.clean_triage_label),
         })
 
-    def _load_healthcare(self) -> pd.DataFrame:
-        """
-        Dataset de 25,000 pacientes con diagnóstico y síntomas.
-        triage_level se infiere desde la columna Disease usando
-        un mapeo clínico de urgencia estándar.
-        Aporta: age, gender — variables clave que los otros datasets
-        tienen de forma incompleta.
-        """
-        DISEASE_TRIAGE = {
-            # Verde (0) — no urgente
-            "Allergy":          0, "Common Cold":   0, "Sinusitis":    0,
-            "Anxiety":          0, "Depression":    0, "Dermatitis":   0,
-            "IBS":              0, "Obesity":       0, "Thyroid Disorder": 0,
-            # Amarillo (1) — urgencia moderada
-            "Arthritis":        1, "Bronchitis":    1, "Gastritis":    1,
-            "Influenza":        1, "Anemia":        1, "Diabetes":     1,
-            "Hypertension":     1, "Ulcer":         1, "Food Poisoning": 1,
-            "Migraine":         1,
-            # Naranja (2) — urgencia alta
-            "Asthma":           2, "COVID-19":      2, "Chronic Kidney Disease": 2,
-            "Liver Disease":    2, "Pneumonia":     2, "Tuberculosis": 2,
-            "Epilepsy":         2, "Dementia":      2, "Parkinson's":  2,
-            # Rojo (3) — emergencia crítica
-            "Heart Disease":    3, "Stroke":        3,
-        }
-
-        df = pd.read_csv(self.dataset_dir / "Healthcare.csv", sep=";")
-        df["triage_level"] = df["Disease"].map(DISEASE_TRIAGE)
-        df = df.dropna(subset=["triage_level"])
-
-        return pd.DataFrame({
-            "age":              df["Age"].apply(self.cleaner.clean_numeric),
-            "gender":           df["Gender"].apply(self.cleaner.clean_gender),
-            "heart_rate":       np.nan,
-            "systolic_bp":      np.nan,
-            "o2_sat":           np.nan,
-            "body_temp":        np.nan,
-            "glucose":          np.nan,
-            "cholesterol":      np.nan,
-            "symptom_severity": np.nan,
-            "triage_level":     df["triage_level"].astype(int),
-        })
-
     def _load_patient_priority(self) -> pd.DataFrame:
         """
         Dataset de prioridad de pacientes con signos vitales y etiquetas de triaje.
