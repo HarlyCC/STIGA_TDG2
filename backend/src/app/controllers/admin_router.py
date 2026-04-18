@@ -1,10 +1,9 @@
 import logging
 from typing import Optional
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, EmailStr, field_validator
-
 from app.data.database import get_conn
+from datetime import datetime, timezone
 from app.validation.auth_service import CODE_EXPIRE_MINUTES
 from app.validation.dependencies import (
     get_current_user,
@@ -87,7 +86,6 @@ def create_user(
             detail="La contraseña debe tener al menos 6 caracteres.",
         )
 
-    from datetime import datetime, timezone
     hashed_pw = hash_password(body.password)
     now       = datetime.now(timezone.utc).isoformat()
 
@@ -240,3 +238,76 @@ def estadisticas(admin: dict = Depends(require_admin)):
             "por_color":   {r["triage_color"]: r["total"] for r in triajes_por_color},
         },
     }
+
+
+# ── Gestión de horarios de médicos ───────────────────────────────────────────
+
+class HorarioRequest(BaseModel):
+    dia_semana:  int   # 0=Lunes … 6=Domingo
+    hora_inicio: str   # HH:MM
+    hora_fin:    str   # HH:MM
+
+
+@router.get("/medicos/{email}/horarios")
+def get_horarios_medico(
+    email: str,
+    admin: dict = Depends(require_admin),
+):
+    """Retorna los horarios configurados para un médico específico."""
+    with get_conn() as conn:
+        rows = conn.execute(
+            "SELECT dia_semana, hora_inicio, hora_fin FROM medico_horarios WHERE medico_email = ? ORDER BY dia_semana",
+            (email,),
+        ).fetchall()
+
+    return [dict(r) for r in rows]
+
+
+@router.put("/medicos/{email}/horarios")
+def set_horario_medico(
+    email: str,
+    body:  HorarioRequest,
+    admin: dict = Depends(require_admin),
+):
+    """Crea o actualiza la disponibilidad de un médico para un día específico."""
+    if body.dia_semana < 0 or body.dia_semana > 6:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                            detail="dia_semana debe ser 0 (Lunes) a 6 (Domingo).")
+
+    with get_conn() as conn:
+        medico = conn.execute(
+            "SELECT id FROM users WHERE email = ? AND role = 'medico'", (email,)
+        ).fetchone()
+
+        if not medico:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail="Médico no encontrado.")
+
+        conn.execute(
+            """INSERT INTO medico_horarios (medico_email, dia_semana, hora_inicio, hora_fin)
+               VALUES (?, ?, ?, ?)
+               ON CONFLICT(medico_email, dia_semana)
+               DO UPDATE SET hora_inicio = excluded.hora_inicio,
+                             hora_fin    = excluded.hora_fin""",
+            (email, body.dia_semana, body.hora_inicio, body.hora_fin),
+        )
+
+    logger.info(f"Horario asignado por admin | médico: {email} | día {body.dia_semana} | por: {admin['email']}")
+    return {"message": "Horario guardado correctamente."}
+
+
+@router.delete("/medicos/{email}/horarios/{dia_semana}")
+def delete_horario_medico(
+    email:      str,
+    dia_semana: int,
+    admin:      dict = Depends(require_admin),
+):
+    """Elimina la disponibilidad de un médico para un día específico."""
+    with get_conn() as conn:
+        conn.execute(
+            "DELETE FROM medico_horarios WHERE medico_email = ? AND dia_semana = ?",
+            (email, dia_semana),
+        )
+
+    logger.info(f"Horario eliminado por admin | médico: {email} | día {dia_semana} | por: {admin['email']}")
+    return {"message": "Horario eliminado correctamente."}

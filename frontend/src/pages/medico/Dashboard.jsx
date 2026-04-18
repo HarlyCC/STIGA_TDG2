@@ -4,6 +4,38 @@ import { useAuth } from '../../context/AuthContext'
 import { useTeleconsulta } from '../../hooks/useTeleconsulta'
 import JitsiMeeting from '../../components/shared/JitsiMeeting'
 import AccessibilityMenu from '../../components/shared/AccessibilityMenu'
+import client from '../../api/api'
+
+const COLOR_CONFIG = {
+  Rojo:     { color: '#dc2626', bg: '#fef2f2', dot: '#ef4444' },
+  Naranja:  { color: '#c2410c', bg: '#fff7ed', dot: '#f97316' },
+  Amarillo: { color: '#d97706', bg: '#fefce8', dot: '#f59e0b' },
+  Verde:    { color: '#15803d', bg: '#f0fdf4', dot: '#22c55e' },
+}
+
+function formatHora(timestamp) {
+  if (!timestamp) return '—'
+  const diff = Math.floor((Date.now() - new Date(timestamp).getTime()) / 60000)
+  if (diff < 1) return 'Ahora'
+  if (diff < 60) return `Hace ${diff} min`
+  const h = Math.floor(diff / 60)
+  return `Hace ${h} hora${h > 1 ? 's' : ''}`
+}
+
+function mapRecord(r) {
+  const cfg = COLOR_CONFIG[r.triage_color] || COLOR_CONFIG['Verde']
+  return {
+    id:         r.id ?? r.session_id,
+    nombre:     r.nombre || 'Sin nombre',
+    edad:       r.age ?? '—',
+    municipio:  r.ciudad || '—',
+    hora:       formatHora(r.timestamp),
+    nivel:      { label: r.triage_color || 'Verde', ...cfg },
+    sintomas:   r.symptoms || '—',
+    severidad:  r.symptom_severity ?? 0,
+    transporte: !!r.tiene_transporte,
+  }
+}
 
 export default function MedicoDashboard() {
   const { user, logout } = useAuth()
@@ -14,52 +46,43 @@ export default function MedicoDashboard() {
   const [loadingId, setLoadingId] = useState(null)
   const [transitPaciente, setTransitPaciente] = useState(null)
   const [activePaciente, setActivePaciente] = useState(null)
+  const [pacientes, setPacientes] = useState([])
+  const [loadingData, setLoadingData] = useState(true)
   const { meeting, crearSala, cerrarSala } = useTeleconsulta()
 
-  useEffect(() => { setTimeout(() => setMounted(true), 100) }, [])
+  useEffect(() => {
+    setTimeout(() => setMounted(true), 100)
+    client.get('/medico/pacientes')
+      .then(({ data }) => setPacientes(data.map(mapRecord)))
+      .catch(() => {})
+      .finally(() => setLoadingData(false))
+  }, [])
 
   const handleLogout = () => { logout(); navigate('/login') }
 
   const handleIniciarConsulta = (e, paciente) => {
     e.stopPropagation()
-    // Si ya hay una reunión activa, solo mostrarla
-    if (showMeeting || meeting?.roomId) {
-      setShowMeeting(true)
-      return
-    }
-    // Evitar doble clic
+    if (showMeeting || meeting?.roomId) { setShowMeeting(true); return }
     if (loadingId) return
-
     setLoadingId(paciente.id)
     setTimeout(() => {
       crearSala(paciente.nombre, user?.name)
       setActivePaciente(paciente)
       setLoadingId(null)
       setTransitPaciente(paciente)
-      setTimeout(() => {
-        setTransitPaciente(null)
-        setShowMeeting(true)
-      }, 2000)
+      setTimeout(() => { setTransitPaciente(null); setShowMeeting(true) }, 2000)
     }, 1500)
   }
-
-  const pacientes = [
-    { id: 1, nombre: 'Carlos Restrepo',  edad: 58, municipio: 'Buriticá',    hora: 'Hace 5 min',  nivel: { label: 'Rojo',     color: '#dc2626', bg: '#fef2f2', dot: '#ef4444' }, sintomas: 'Dolor pecho, dificultad respirar',  severidad: 9,  transporte: false },
-    { id: 2, nombre: 'María Zapata',      edad: 42, municipio: 'Liborina',    hora: 'Hace 12 min', nivel: { label: 'Naranja',  color: '#c2410c', bg: '#fff7ed', dot: '#f97316' }, sintomas: 'Dolor abdominal severo, náuseas',  severidad: 7,  transporte: false },
-    { id: 3, nombre: 'Juan Pérez',        edad: 40, municipio: 'Olinto',      hora: 'Hace 28 min', nivel: { label: 'Amarillo', color: '#d97706', bg: '#fefce8', dot: '#f59e0b' }, sintomas: 'Fiebre 38°C, dolor de cabeza',      severidad: 5,  transporte: true  },
-    { id: 4, nombre: 'Rosa Gutiérrez',    edad: 67, municipio: 'Sabanalarga', hora: 'Hace 45 min', nivel: { label: 'Amarillo', color: '#d97706', bg: '#fefce8', dot: '#f59e0b' }, sintomas: 'Mareo, presión arterial alta',       severidad: 6,  transporte: false },
-    { id: 5, nombre: 'Pedro Saldarriaga', edad: 29, municipio: 'Buriticá',   hora: 'Hace 1 hora', nivel: { label: 'Verde',    color: '#15803d', bg: '#f0fdf4', dot: '#22c55e' }, sintomas: 'Tos leve, malestar general',        severidad: 2,  transporte: true  },
-  ]
 
   const filtrados = filtro === 'todos'
     ? pacientes
     : pacientes.filter(p => p.nivel.label.toLowerCase() === filtro)
 
   const stats = [
-    { label: 'Total hoy',    value: pacientes.length,                                           color: '#1a3a2e' },
-    { label: 'Críticos',     value: pacientes.filter(p => p.nivel.label === 'Rojo').length,     color: '#dc2626' },
-    { label: 'Sin transporte', value: pacientes.filter(p => !p.transporte).length,              color: '#d97706' },
-    { label: 'Atendidos',    value: 8,                                                           color: '#15803d' },
+    { label: 'Total',          value: pacientes.length,                                          color: '#1a3a2e' },
+    { label: 'Críticos',       value: pacientes.filter(p => p.nivel.label === 'Rojo').length,    color: '#dc2626' },
+    { label: 'Sin transporte', value: pacientes.filter(p => !p.transporte).length,               color: '#d97706' },
+    { label: 'Con ambulancia', value: pacientes.filter(p => !p.transporte && p.severidad >= 7).length, color: '#15803d' },
   ]
 
   return (
@@ -348,7 +371,12 @@ export default function MedicoDashboard() {
           display: 'flex', flexDirection: 'column', gap: '0.75rem',
           animation: mounted ? 'fadeInUp 0.5s ease 0.25s both' : 'none'
         }}>
-          {filtrados.map((p, i) => (
+          {loadingData && (
+            <div style={{ textAlign: 'center', padding: '2rem', color: '#aabcb0', fontSize: '0.9rem' }}>
+              Cargando pacientes...
+            </div>
+          )}
+          {!loadingData && filtrados.map((p, i) => (
             <div
               key={p.id}
               className="paciente-card"
@@ -448,7 +476,7 @@ export default function MedicoDashboard() {
             </div>
           ))}
 
-          {filtrados.length === 0 && (
+          {!loadingData && filtrados.length === 0 && (
             <div style={{
               textAlign: 'center', padding: '3rem',
               background: 'white', borderRadius: '14px',

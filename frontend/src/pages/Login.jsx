@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { login as loginApi } from '../api/api'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -15,30 +16,23 @@ export default function Login() {
 
   useEffect(() => { setTimeout(() => setMounted(true), 100) }, [])
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
     setLoading(true)
-
-    const users = {
-      'paciente@stiga.co': { name: 'Juan Pérez',       role: 'paciente' },
-      'medico@stiga.co':   { name: 'Dra. María López', role: 'medico'   },
-      'admin@stiga.co':    { name: 'Administrador',    role: 'admin'    },
-    }
-
-    setTimeout(() => {
-      const user = users[email]
-      if (!user || password !== '1234') {
-        setError('Correo o contraseña incorrectos')
-        setLoading(false)
-        return
-      }
-      login(user, 'token-demo-' + user.role)
-      setLoading(false)
-      setTransitionRole(user.role)
+    try {
+      const { data } = await loginApi(email, password)
+      const userData = { name: data.user.nombre, role: data.user.role, email: data.user.email }
+      login(userData, data.access_token)
+      setTransitionRole(data.user.role)
       setTransitioning(true)
-      setTimeout(() => navigate('/' + user.role), 2400)
-    }, 800)
+      setTimeout(() => navigate('/' + data.user.role), 2400)
+    } catch (err) {
+      const detail = err.response?.data?.detail
+      setError(detail || 'Correo o contraseña incorrectos')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const roleLabel = {
@@ -346,6 +340,23 @@ export default function Login() {
                 </>
               ) : 'Ingresar'}
             </button>
+
+            <p style={{ textAlign: 'center', marginTop: '1.1rem', fontSize: '0.85rem', color: '#7a9080' }}>
+              ¿No tienes cuenta?{' '}
+              <button
+                type="button"
+                onClick={() => navigate('/register')}
+                style={{
+                  background: 'none', border: 'none',
+                  color: '#2e8fc0', fontWeight: '600',
+                  cursor: 'pointer', padding: 0,
+                  fontSize: '0.85rem', textDecoration: 'underline',
+                  fontFamily: 'inherit'
+                }}
+              >
+                Regístrate aquí
+              </button>
+            </p>
           </form>
 
           {/* Divisor */}

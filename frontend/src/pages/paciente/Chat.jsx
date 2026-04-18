@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import AccessibilityMenu from '../../components/shared/AccessibilityMenu'
+import { startChat, sendMessage, syncForward, closeSession } from '../../api/api'
 
 export default function PacienteChat() {
   const { user, logout } = useAuth()
@@ -12,28 +13,9 @@ export default function PacienteChat() {
   const [mounted, setMounted] = useState(false)
   const [sessionDone, setSessionDone] = useState(false)
   const [result, setResult] = useState(null)
+  const [apiError, setApiError] = useState('')
   const bottomRef = useRef(null)
-
-  const stigaFlow = [
-    { from: 'stiga', text: `Hola, soy STIGA, su asistente de salud. Voy a hacerle algunas preguntas para evaluar su estado. ¿Cuál es su nombre completo?` },
-    { from: 'stiga', text: '¿Cuántos años tiene?' },
-    { from: 'stiga', text: '¿Es hombre o mujer?' },
-    { from: 'stiga', text: '¿Qué síntomas tiene hoy? Descríbalos con sus propias palabras.' },
-    { from: 'stiga', text: '¿Tiene fiebre? Si la ha medido, ¿cuánto marca el termómetro?' },
-    { from: 'stiga', text: '¿Tiene oxímetro o tensiómetro disponible? Si es así, ¿qué valores marca?' },
-    { from: 'stiga', text: '¿En qué municipio o vereda se encuentra ahora mismo?' },
-    { from: 'stiga', text: '¿Tiene algún medio de transporte para llegar a un centro de salud?' },
-  ]
-
-  const mockResult = {
-    nivel: 1,
-    color: 'Amarillo',
-    urgencia: 'Urgencia moderada',
-    accion: 'Atención en las próximas 1-2 horas.',
-    confianza: 0.78,
-    sintomas: 'Dolor de cabeza, fiebre 38°C',
-    escalado: false,
-  }
+  const sessionIdRef = useRef(null)
 
   const levelConfig = {
     Verde:    { color: '#15803d', bg: '#f0fdf4', border: '#bbf7d0', dot: '#22c55e' },
@@ -43,54 +25,55 @@ export default function PacienteChat() {
   }
 
   useEffect(() => {
+    if (!user?.email) { navigate('/login'); return }
+
+    sessionIdRef.current = `${user.email}_${Date.now()}`
+    const sessionId = sessionIdRef.current
+
     setTimeout(() => setMounted(true), 100)
-    // Primer mensaje de STIGA
-    setTimeout(() => {
-      setTyping(true)
-      setTimeout(() => {
+    setTyping(true)
+    startChat(sessionId)
+      .then(({ data }) => {
         setTyping(false)
-        setMessages([{ id: 1, from: 'stiga', text: stigaFlow[0].text }])
-      }, 1200)
-    }, 600)
+        setMessages([{ id: Date.now(), from: 'stiga', text: data.message }])
+      })
+      .catch(() => {
+        setTyping(false)
+        setApiError('No se pudo conectar con el servidor. Verifique su conexión.')
+      })
+
+    return () => {
+      closeSession(sessionId).catch(() => {})
+    }
   }, [])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, typing])
 
-  const stigaRespond = (userMsgCount) => {
-    const next = stigaFlow[userMsgCount]
-    if (!next) {
-      // Última respuesta y resultado
-      setTyping(true)
-      setTimeout(() => {
-        setTyping(false)
-        setMessages(prev => [...prev, {
-          id: Date.now(),
-          from: 'stiga',
-          text: 'Gracias, ya tengo toda la información necesaria. Estoy analizando su caso...'
-        }])
-        setTimeout(() => {
-          setSessionDone(true)
-          setResult(mockResult)
-        }, 1500)
-      }, 1800)
-      return
-    }
-    setTyping(true)
-    setTimeout(() => {
-      setTyping(false)
-      setMessages(prev => [...prev, { id: Date.now(), from: 'stiga', text: next.text }])
-    }, 1400)
-  }
-
-  const handleSend = () => {
-    if (!input.trim() || sessionDone) return
-    const userMsgCount = messages.filter(m => m.from === 'user').length
-    const newMsg = { id: Date.now(), from: 'user', text: input.trim() }
-    setMessages(prev => [...prev, newMsg])
+  const handleSend = async () => {
+    if (!input.trim() || sessionDone || typing) return
+    const text = input.trim()
     setInput('')
-    setTimeout(() => stigaRespond(userMsgCount + 1), 400)
+    setMessages(prev => [...prev, { id: Date.now(), from: 'user', text }])
+    setTyping(true)
+    setApiError('')
+
+    try {
+      const { data } = await sendMessage(sessionIdRef.current, text)
+      setTyping(false)
+      setMessages(prev => [...prev, { id: Date.now(), from: 'stiga', text: data.message }])
+
+      if (data.status === 'complete' && data.triage_result) {
+        const tr = data.triage_result
+        setResult(tr)
+        setSessionDone(true)
+        syncForward(sessionIdRef.current, data.patient_data, tr).catch(() => {})
+      }
+    } catch {
+      setTyping(false)
+      setApiError('Hubo un error. Por favor intente de nuevo.')
+    }
   }
 
   const handleKey = (e) => {
@@ -440,6 +423,17 @@ export default function PacienteChat() {
             </div>
           )}
 
+          {/* Error de API */}
+          {apiError && (
+            <div style={{
+              background: '#fff5f5', border: '1px solid #fecaca',
+              borderRadius: '10px', padding: '0.75rem 1rem',
+              color: '#c0392b', fontSize: '0.85rem'
+            }}>
+              {apiError}
+            </div>
+          )}
+
           {/* Resultado del triaje */}
           {sessionDone && result && cfg && (
             <div style={{
@@ -498,9 +492,7 @@ export default function PacienteChat() {
                       {result.urgencia}
                     </h3>
                   </div>
-                  <div style={{
-                    marginLeft: 'auto', textAlign: 'right'
-                  }}>
+                  <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
                     <p style={{ margin: '0 0 0.15rem', fontSize: '0.75rem', color: '#aabcb0' }}>Confianza</p>
                     <p style={{ margin: 0, fontSize: '1.2rem', fontWeight: '800', color: cfg.color }}>
                       {Math.round(result.confianza * 100)}%
@@ -529,6 +521,16 @@ export default function PacienteChat() {
                       </p>
                     </div>
                   </div>
+
+                  {result.escalado && (
+                    <div style={{
+                      background: '#fef3c7', border: '1px solid #fde68a',
+                      borderRadius: '10px', padding: '0.6rem 1rem',
+                      marginBottom: '1rem', fontSize: '0.82rem', color: '#92400e'
+                    }}>
+                      Nivel ajustado por severidad de síntomas reportados.
+                    </div>
+                  )}
 
                   <div style={{ display: 'flex', gap: '0.75rem' }}>
                     <button

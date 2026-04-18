@@ -2,82 +2,84 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import AccessibilityMenu from '../../components/shared/AccessibilityMenu'
+import client from '../../api/api'
+
+const NIVEL_CONFIG = {
+  Verde:    { color: '#15803d', bg: '#f0fdf4', dot: '#22c55e', texto: 'No urgente',        requiere: false },
+  Amarillo: { color: '#b45309', bg: '#fef3c7', dot: '#f59e0b', texto: 'Urgencia moderada', requiere: true  },
+  Naranja:  { color: '#c2410c', bg: '#fff7ed', dot: '#f97316', texto: 'Urgencia alta',     requiere: true  },
+  Rojo:     { color: '#dc2626', bg: '#fef2f2', dot: '#ef4444', texto: 'Emergencia crítica', requiere: true  },
+}
+
+const RECOMENDACIONES = {
+  Verde:    ['Puede manejarse en casa con reposo y líquidos abundantes.', 'Tome medicamentos de venta libre según indicaciones.', 'Si los síntomas persisten más de 7 días, consulte a su médico.'],
+  Amarillo: ['Tome acetaminofén según indicaciones para el dolor y la fiebre.', 'Manténgase hidratado — tome al menos 2 litros de agua al día.', 'Reposo en cama y evite esfuerzos físicos.', 'Si los síntomas empeoran, busque atención médica de inmediato.'],
+  Naranja:  ['Busque atención médica presencial lo antes posible.', 'No tome analgésicos sin consultar un médico.', 'Tome líquidos claros en pequeñas cantidades.', 'Si el dolor aumenta o aparece fiebre alta, vaya urgentemente al centro de salud.'],
+  Rojo:     ['Requiere atención médica de emergencia inmediata.', 'Llame a servicios de emergencia o diríjase al hospital más cercano.', 'No espere — busque ayuda ahora.'],
+}
+
+const MENSAJE_ATENCION = {
+  Verde:    'Su condición no requiere atención urgente. Puede tratarse en casa siguiendo las recomendaciones.',
+  Amarillo: 'Su nivel de urgencia es moderado. Se recomienda consulta médica en las próximas 24 horas.',
+  Naranja:  'Su nivel de urgencia es alto. Se recomienda atención médica presencial lo antes posible.',
+  Rojo:     'Emergencia crítica. Requiere atención médica inmediata.',
+}
+
+function formatFecha(timestamp) {
+  if (!timestamp) return '—'
+  const d = new Date(timestamp)
+  return d.toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' })
+}
+
+function formatHora(timestamp) {
+  if (!timestamp) return ''
+  return new Date(timestamp).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
+}
+
+function mapTriaje(r) {
+  const color  = r.triage_color || 'Verde'
+  const cfg    = NIVEL_CONFIG[color] || NIVEL_CONFIG.Verde
+  const sintomas = r.symptoms ? r.symptoms.split(',').map(s => s.trim()).filter(Boolean) : ['Sin información']
+  return {
+    id:                r.id,
+    fecha:             formatFecha(r.timestamp),
+    hora:              formatHora(r.timestamp),
+    nivel:             { label: color, ...cfg },
+    sintomas,
+    recomendaciones:   RECOMENDACIONES[color] || [],
+    requierePresencial: cfg.requiere,
+    mensajeAtencion:   MENSAJE_ATENCION[color] || '',
+    confianza:         r.confianza,
+    escalado:          !!r.escalado,
+    necesitaAmbulancia: !!r.necesita_ambulancia,
+  }
+}
 
 export default function PacienteResultados() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [mounted, setMounted] = useState(false)
   const [selectedTriaje, setSelectedTriaje] = useState(null)
+  const [triajes, setTriajes] = useState([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     setTimeout(() => setMounted(true), 100)
+    client.get('/medico/mis-triajes')
+      .then(({ data }) => setTriajes(data.map(mapTriaje)))
+      .catch(() => {})
+      .finally(() => setLoading(false))
   }, [])
 
   const handleLogout = () => { logout(); navigate('/login') }
 
-  const triajes = [
-    {
-      id: 1,
-      fecha: 'Hoy, 25 de marzo 2025',
-      hora: '08:14 AM',
-      nivel: { label: 'Amarillo', color: '#b45309', bg: '#fef3c7', dot: '#f59e0b', texto: 'Urgencia moderada' },
-      sintomas: ['Dolor de cabeza intenso', 'Fiebre 38°C', 'Malestar general', 'Sin transporte disponible'],
-      recomendaciones: [
-        'Tome acetaminofén 500mg cada 8 horas para el dolor y la fiebre.',
-        'Manténgase hidratado — tome al menos 2 litros de agua durante el día.',
-        'Reposo en cama y evite esfuerzos físicos por las próximas 24 horas.',
-        'Si la fiebre supera 39°C o el dolor de cabeza empeora, busque atención médica de inmediato.',
-      ],
-      requierePresencial: true,
-      mensajeAtencion: 'Su nivel de urgencia es moderado. Se recomienda consulta médica presencial en las próximas 24 horas. Si no puede desplazarse, solicite una teleconsulta.',
-      medico: 'Dra. María López',
-      duracion: '8 min'
-    },
-    {
-      id: 2,
-      fecha: 'Hace 9 días — 16 de marzo 2025',
-      hora: '02:30 PM',
-      nivel: { label: 'Naranja', color: '#c2410c', bg: '#fff7ed', dot: '#f97316', texto: 'Urgencia alta' },
-      sintomas: ['Dolor abdominal agudo', 'Náuseas', 'Vómito (2 episodios)', 'Sin fiebre'],
-      recomendaciones: [
-        'No ingiera alimentos sólidos por las próximas 4 horas.',
-        'Tome líquidos claros en pequeñas cantidades (agua, suero oral).',
-        'Evite analgésicos sin consultar un médico — pueden enmascarar síntomas.',
-        'Si el dolor aumenta o aparece fiebre, diríjase urgentemente al centro de salud más cercano.',
-      ],
-      requierePresencial: true,
-      mensajeAtencion: 'Su nivel de urgencia es alto. Se recomienda atención médica presencial lo antes posible. Solicite teleconsulta si no puede desplazarse.',
-      medico: 'Sin asignar',
-      duracion: '11 min'
-    },
-    {
-      id: 3,
-      fecha: 'Hace 23 días — 2 de marzo 2025',
-      hora: '10:05 AM',
-      nivel: { label: 'Verde', color: '#15803d', bg: '#f0fdf4', dot: '#22c55e', texto: 'No urgente' },
-      sintomas: ['Tos leve', 'Malestar general', 'Congestión nasal', 'Sin fiebre'],
-      recomendaciones: [
-        'Puede manejarse en casa con reposo y líquidos abundantes.',
-        'Tome antigripales de venta libre según las indicaciones del empaque.',
-        'Use solución salina nasal para aliviar la congestión.',
-        'Si los síntomas persisten más de 7 días, consulte a su médico.',
-      ],
-      requierePresencial: false,
-      mensajeAtencion: 'Su condición no requiere atención médica de urgencia. Puede tratarse en casa siguiendo las recomendaciones. Consulte a su médico si los síntomas empeoran.',
-      medico: 'Dra. María López',
-      duracion: '6 min'
-    },
-  ]
+  const graficaNiveles = triajes.slice(-6).map(t => ({
+    mes:   t.fecha.split(' ').slice(0, 2).join(' '),
+    nivel: ['Verde', 'Amarillo', 'Naranja', 'Rojo'].indexOf(t.nivel.label),
+    label: t.nivel.label,
+  }))
 
-  // Datos para la gráfica
-  const graficaNiveles = [
-    { mes: 'Feb', nivel: 0, label: 'Verde' },
-    { mes: 'Mar 2', nivel: 1, label: 'Verde' },
-    { mes: 'Mar 16', nivel: 3, label: 'Naranja' },
-    { mes: 'Mar 25', nivel: 2, label: 'Amarillo' },
-  ]
-
-  const nivelAltura = { 0: 15, 1: 30, 2: 55, 3: 75, 4: 95 }
+  const nivelAltura = { 0: 15, 1: 40, 2: 65, 3: 90, '-1': 15 }
   const nivelColor = {
     'Verde': '#22c55e', 'Amarillo': '#f59e0b',
     'Naranja': '#f97316', 'Rojo': '#ef4444'
@@ -468,6 +470,16 @@ export default function PacienteResultados() {
             Historial completo
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+            {loading && (
+              <p style={{ color: '#aabcb0', fontSize: '0.88rem', textAlign: 'center', padding: '1.5rem 0' }}>
+                Cargando historial...
+              </p>
+            )}
+            {!loading && triajes.length === 0 && (
+              <p style={{ color: '#aabcb0', fontSize: '0.88rem', textAlign: 'center', padding: '1.5rem 0' }}>
+                Aún no tienes triajes registrados.
+              </p>
+            )}
             {triajes.map((t, i) => (
               <div
                 key={t.id}

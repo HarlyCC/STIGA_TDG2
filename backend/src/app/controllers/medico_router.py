@@ -1,7 +1,6 @@
 import logging
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel
 from app.data.database import get_conn
 from app.validation.dependencies import get_current_user
 
@@ -19,14 +18,6 @@ def require_medico(current_user: dict = Depends(get_current_user)) -> dict:
             detail="Acceso restringido al personal médico.",
         )
     return current_user
-
-
-# ── Modelos ───────────────────────────────────────────────────────────────────
-
-class HorarioRequest(BaseModel):
-    dia_semana:  int    # 0=Lunes … 6=Domingo
-    hora_inicio: str    # HH:MM
-    hora_fin:    str    # HH:MM
 
 
 # ── Pacientes y triajes ───────────────────────────────────────────────────────
@@ -128,44 +119,3 @@ def get_horarios(medico: dict = Depends(require_medico)):
     return [dict(r) for r in rows]
 
 
-@router.put("/horarios")
-def set_horario(
-    body:   HorarioRequest,
-    medico: dict = Depends(require_medico),
-):
-    """
-    Crea o actualiza la disponibilidad del médico para un día específico.
-    Si ya existe un horario para ese día, lo reemplaza.
-    """
-    if body.dia_semana < 0 or body.dia_semana > 6:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                            detail="dia_semana debe ser 0 (Lunes) a 6 (Domingo).")
-
-    with get_conn() as conn:
-        conn.execute(
-            """INSERT INTO medico_horarios (medico_email, dia_semana, hora_inicio, hora_fin)
-               VALUES (?, ?, ?, ?)
-               ON CONFLICT(medico_email, dia_semana)
-               DO UPDATE SET hora_inicio = excluded.hora_inicio,
-                             hora_fin    = excluded.hora_fin""",
-            (medico["email"], body.dia_semana, body.hora_inicio, body.hora_fin),
-        )
-
-    logger.info(f"Horario actualizado | {medico['email']} | día {body.dia_semana}")
-    return {"message": "Horario guardado correctamente."}
-
-
-@router.delete("/horarios/{dia_semana}")
-def delete_horario(
-    dia_semana: int,
-    medico:     dict = Depends(require_medico),
-):
-    """Elimina la disponibilidad del médico para un día específico."""
-    with get_conn() as conn:
-        conn.execute(
-            "DELETE FROM medico_horarios WHERE medico_email = ? AND dia_semana = ?",
-            (medico["email"], dia_semana),
-        )
-
-    logger.info(f"Horario eliminado | {medico['email']} | día {dia_semana}")
-    return {"message": "Horario eliminado correctamente."}
