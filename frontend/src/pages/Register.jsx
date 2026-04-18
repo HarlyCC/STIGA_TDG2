@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import validator from 'validator'
 import { register as registerApi } from '../api/api'
@@ -10,6 +10,8 @@ const GENDER_OPTIONS = [
   { value: 2, label: 'Prefiero no decir' },
 ]
 
+const CODE_LENGTH = 6
+
 export default function Register() {
   const navigate = useNavigate()
   const [step, setStep]       = useState(1)
@@ -18,7 +20,10 @@ export default function Register() {
   const [resending, setResending] = useState(false)
   const [toast, setToast]     = useState(null)
   const [emailError, setEmailError] = useState('')
-  const [code, setCode]       = useState('')
+  const [digits, setDigits]   = useState(Array(CODE_LENGTH).fill(''))
+  const inputsRef             = useRef([])
+
+  const code = digits.join('')
 
   const [form, setForm] = useState({
     nombre: '', email: '', password: '', cedula: '',
@@ -65,9 +70,35 @@ export default function Register() {
     }
   }
 
+  const handleDigit = (index, value) => {
+    const digit = value.replace(/\D/g, '').slice(-1)
+    const next  = [...digits]
+    next[index] = digit
+    setDigits(next)
+    if (digit && index < CODE_LENGTH - 1) {
+      inputsRef.current[index + 1]?.focus()
+    }
+  }
+
+  const handleDigitKey = (index, e) => {
+    if (e.key === 'Backspace' && !digits[index] && index > 0) {
+      inputsRef.current[index - 1]?.focus()
+    }
+  }
+
+  const handleDigitPaste = (e) => {
+    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, CODE_LENGTH)
+    if (!pasted) return
+    e.preventDefault()
+    const next = Array(CODE_LENGTH).fill('')
+    pasted.split('').forEach((ch, i) => { next[i] = ch })
+    setDigits(next)
+    inputsRef.current[Math.min(pasted.length, CODE_LENGTH - 1)]?.focus()
+  }
+
   const handleVerify = async (e) => {
     e.preventDefault()
-    if (code.length !== 6) {
+    if (code.length !== CODE_LENGTH) {
       showToast('error', 'Ingrese el código de 6 dígitos.')
       return
     }
@@ -173,25 +204,7 @@ export default function Register() {
           display: flex; align-items: center; justify-content: center;
           font-size: 0.8rem; font-weight: 700; transition: all 0.3s ease;
         }
-        .code-input {
-          width: 100%;
-          background: #f8fafb;
-          border: 1.5px solid #e2e8ee;
-          border-radius: 12px;
-          padding: 1rem;
-          font-size: 2rem; font-weight: 800;
-          color: #1a3a2e; text-align: center;
-          letter-spacing: 12px;
-          transition: border-color 0.2s, box-shadow 0.2s;
-          font-family: 'Courier New', monospace;
-        }
-        .code-input:focus {
-          outline: none;
-          border-color: #3d7a5a;
-          box-shadow: 0 0 0 3px rgba(61,122,90,0.12);
-          background: white;
-        }
-        .link-btn {
+.link-btn {
           background: none; border: none;
           color: #2e8fc0; font-size: 0.85rem;
           cursor: pointer; padding: 0;
@@ -544,20 +557,50 @@ export default function Register() {
               </p>
 
               <form onSubmit={handleVerify}>
-                <Field label="Código de verificación">
-                  <input
-                    className="code-input"
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={6}
-                    value={code}
-                    onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                    placeholder="000000"
-                    autoFocus
-                  />
-                </Field>
+                <div style={{ marginBottom: '0.5rem' }}>
+                  <label style={{
+                    display: 'block', fontSize: '0.78rem', fontWeight: '600',
+                    color: '#3a4a3e', marginBottom: '0.75rem', letterSpacing: '0.3px'
+                  }}>
+                    Código de verificación
+                  </label>
+                  <div style={{
+                    display: 'flex', gap: '0.6rem', justifyContent: 'center'
+                  }}
+                    onPaste={handleDigitPaste}
+                  >
+                    {digits.map((d, i) => (
+                      <input
+                        key={i}
+                        ref={el => inputsRef.current[i] = el}
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={1}
+                        value={d}
+                        autoFocus={i === 0}
+                        onChange={e => handleDigit(i, e.target.value)}
+                        onKeyDown={e => handleDigitKey(i, e)}
+                        style={{
+                          width: '52px', height: '60px',
+                          textAlign: 'center',
+                          fontSize: '1.6rem', fontWeight: '800',
+                          color: '#1a3a2e',
+                          background: d ? '#f0fdf4' : '#f8fafb',
+                          border: `2px solid ${d ? '#3d7a5a' : '#e2e8ee'}`,
+                          borderRadius: '12px',
+                          outline: 'none',
+                          transition: 'border-color 0.2s, background 0.2s',
+                          fontFamily: 'monospace',
+                          cursor: 'text',
+                        }}
+                        onFocus={e => e.target.style.borderColor = '#2e8fc0'}
+                        onBlur={e => e.target.style.borderColor = d ? '#3d7a5a' : '#e2e8ee'}
+                      />
+                    ))}
+                  </div>
+                </div>
 
-                <p style={{ fontSize: '0.8rem', color: '#aabcb0', margin: '-0.25rem 0 1.5rem', textAlign: 'center' }}>
+                <p style={{ fontSize: '0.8rem', color: '#aabcb0', margin: '0.5rem 0 1.5rem', textAlign: 'center' }}>
                   El código expira en 15 minutos
                 </p>
 
