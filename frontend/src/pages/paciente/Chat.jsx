@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import AccessibilityMenu from '../../components/shared/AccessibilityMenu'
 
 export default function PacienteChat() {
-  const { user } = useAuth()
+  const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
@@ -155,14 +156,34 @@ export default function PacienteChat() {
           border-color: #3d7a5a;
           box-shadow: 0 0 0 3px rgba(61,122,90,0.1);
         }
-        .back-btn {
-          display: flex; align-items: center; gap: 0.5rem;
-          background: none; border: none; cursor: pointer;
-          color: rgba(255,255,255,0.5); font-size: 0.85rem;
-          padding: 0.5rem 0.75rem; border-radius: 8px;
+        .nav-item {
+          display: flex; align-items: center; gap: 0.75rem;
+          padding: 0.7rem 1rem; border-radius: 10px;
+          cursor: pointer; color: rgba(255,255,255,0.5);
+          font-size: 0.88rem; font-weight: 500;
+          transition: all 0.18s ease; border: 1px solid transparent;
+        }
+        .nav-item:hover {
+          background: rgba(255,255,255,0.07);
+          color: rgba(255,255,255,0.9);
+        }
+        .nav-item.active {
+          background: rgba(122,200,150,0.12);
+          color: #7ac896;
+          border-color: rgba(122,200,150,0.15);
+        }
+        .logout-btn {
+          display: flex; align-items: center; gap: 0.6rem;
+          width: 100%; padding: 0.7rem 1rem; border-radius: 10px;
+          background: none; border: 1px solid rgba(255,255,255,0.08);
+          color: rgba(255,255,255,0.35); font-size: 0.85rem; cursor: pointer;
           transition: all 0.18s ease;
         }
-        .back-btn:hover { background: rgba(255,255,255,0.07); color: white; }
+        .logout-btn:hover {
+          background: rgba(220,50,50,0.1);
+          border-color: rgba(220,50,50,0.2);
+          color: #ff8080;
+        }
       `}</style>
 
       {/* ── Sidebar ── */}
@@ -226,46 +247,20 @@ export default function PacienteChat() {
             margin: '0 0 0.5rem 0.5rem', color: 'rgba(255,255,255,0.25)',
             fontSize: '0.7rem', fontWeight: '600', letterSpacing: '1.5px', textTransform: 'uppercase'
           }}>Menú</p>
-          <div
-            style={{
-              display: 'flex', alignItems: 'center', gap: '0.75rem',
-              padding: '0.7rem 1rem', borderRadius: '10px', cursor: 'pointer',
-              color: 'rgba(255,255,255,0.5)', fontSize: '0.88rem', fontWeight: '500',
-              transition: 'all 0.18s ease'
-            }}
-            onClick={() => navigate('/paciente')}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; e.currentTarget.style.color = 'rgba(255,255,255,0.9)' }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'rgba(255,255,255,0.5)' }}
-          >
+          <div className="nav-item" onClick={() => navigate('/paciente')}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
               <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
             </svg>
             Inicio
           </div>
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: '0.75rem',
-            padding: '0.7rem 1rem', borderRadius: '10px',
-            background: 'rgba(122,200,150,0.12)', color: '#7ac896',
-            border: '1px solid rgba(122,200,150,0.15)',
-            fontSize: '0.88rem', fontWeight: '500'
-          }}>
+          <div className="nav-item active">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zM12 8v4M12 16h.01"/>
             </svg>
             Nuevo triaje
           </div>
-          <div
-            style={{
-              display: 'flex', alignItems: 'center', gap: '0.75rem',
-              padding: '0.7rem 1rem', borderRadius: '10px', cursor: 'pointer',
-              color: 'rgba(255,255,255,0.5)', fontSize: '0.88rem', fontWeight: '500',
-              transition: 'all 0.18s ease'
-            }}
-            onClick={() => navigate('/paciente/resultados')}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; e.currentTarget.style.color = 'rgba(255,255,255,0.9)' }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'rgba(255,255,255,0.5)' }}
-          >
+          <div className="nav-item" onClick={() => navigate('/paciente/resultados')}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
               <polyline points="14 2 14 8 20 8"/>
@@ -274,13 +269,22 @@ export default function PacienteChat() {
             </svg>
             Mis resultados
           </div>
+          <div className="nav-item" onClick={() => navigate('/paciente/teleconsulta')}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <polygon points="23 7 16 12 23 17 23 7"/>
+              <rect x="1" y="5" width="15" height="14" rx="2"/>
+            </svg>
+            Teleconsulta
+          </div>
         </nav>
 
-        <button className="back-btn" onClick={() => navigate('/paciente')}>
+        <button className="logout-btn" onClick={() => { logout(); navigate('/login') }}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <polyline points="15 18 9 12 15 6"/>
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/>
+            <line x1="21" y1="12" x2="9" y2="12"/>
           </svg>
-          Volver al inicio
+          Cerrar sesión
         </button>
       </aside>
 
@@ -288,7 +292,9 @@ export default function PacienteChat() {
       <main style={{
         marginLeft: '240px', flex: 1,
         display: 'flex', flexDirection: 'column',
+        width: '100%',
         height: '100vh',
+        overflowY: 'auto',
         opacity: mounted ? 1 : 0,
         transition: 'opacity 0.5s ease 0.15s'
       }}>
@@ -322,14 +328,17 @@ export default function PacienteChat() {
           </div>
           <div style={{
             marginLeft: 'auto',
-            display: 'flex', alignItems: 'center', gap: '0.4rem'
+            display: 'flex', alignItems: 'center', gap: '0.75rem'
           }}>
-            <div style={{
-              width: '8px', height: '8px',
-              background: '#22c55e', borderRadius: '50%',
-              boxShadow: '0 0 6px rgba(34,197,94,0.5)'
-            }} />
-            <span style={{ color: '#7a9080', fontSize: '0.78rem' }}>En línea</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <div style={{
+                width: '8px', height: '8px',
+                background: '#22c55e', borderRadius: '50%',
+                boxShadow: '0 0 6px rgba(34,197,94,0.5)'
+              }} />
+              <span style={{ color: '#7a9080', fontSize: '0.78rem' }}>En línea</span>
+            </div>
+            <AccessibilityMenu inline />
           </div>
         </div>
 

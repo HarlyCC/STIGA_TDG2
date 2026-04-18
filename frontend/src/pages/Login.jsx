@@ -125,7 +125,7 @@ export default function Login() {
         }
         .btn-primary {
           width: 100%;
-          background: #1e3a2e;
+          background: #1a3a2e;
           color: white; border: none;
           border-radius: 10px; padding: 0.85rem;
           font-size: 0.97rem; font-weight: 600;
@@ -136,8 +136,8 @@ export default function Login() {
           letter-spacing: 0.3px;
         }
         .btn-primary:hover:not(:disabled) {
-          background: #2a5040;
-          box-shadow: 0 6px 20px rgba(30,58,46,0.25);
+          background: #2a5a44;
+          box-shadow: 0 6px 20px rgba(26,58,46,0.28);
           transform: translateY(-1px);
         }
         .btn-primary:active:not(:disabled) { transform: scale(0.98); }

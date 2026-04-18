@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import AccessibilityMenu from '../../components/shared/AccessibilityMenu'
 
 export default function PacienteResultados() {
   const { user, logout } = useAuth()
@@ -135,7 +136,7 @@ export default function PacienteResultados() {
         .logout-btn:hover {
           background: rgba(220,50,50,0.1);
           border-color: rgba(220,50,50,0.2);
-          color: #fca5a5;
+          color: #ff8080;
         }
 
         .triaje-card {
@@ -155,15 +156,15 @@ export default function PacienteResultados() {
         }
 
         .btn-green {
-          background: #1e3a2e; color: white;
+          background: #1a3a2e; color: white;
           border: none; border-radius: 10px;
           padding: 0.65rem 1.25rem; font-size: 0.87rem; font-weight: 600;
           cursor: pointer; display: flex; align-items: center; gap: 0.5rem;
           transition: all 0.2s cubic-bezier(0.34,1.56,0.64,1);
         }
         .btn-green:hover {
-          background: #2a5040;
-          box-shadow: 0 6px 18px rgba(30,58,46,0.25);
+          background: #2a5a44;
+          box-shadow: 0 6px 18px rgba(26,58,46,0.28);
           transform: translateY(-2px);
         }
         .btn-outline-green {
@@ -301,16 +302,12 @@ export default function PacienteResultados() {
             </svg>
             Mis resultados
           </div>
-          <div className="nav-item" style={{ opacity: 0.45, cursor: 'not-allowed' }}>
+          <div className="nav-item" onClick={() => navigate('/paciente/teleconsulta')}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              <polygon points="23 7 16 12 23 17 23 7"/>
+              <rect x="1" y="5" width="15" height="14" rx="2"/>
             </svg>
             Teleconsulta
-            <span style={{
-              marginLeft: 'auto', fontSize: '0.65rem',
-              background: 'rgba(232,160,32,0.15)', color: '#e8a020',
-              padding: '0.15rem 0.4rem', borderRadius: '4px', fontWeight: '600'
-            }}>Pronto</span>
           </div>
         </nav>
 
@@ -328,37 +325,41 @@ export default function PacienteResultados() {
       <main style={{
         marginLeft: '240px', flex: 1,
         padding: '2.5rem 2.5rem 6rem',
+        width: '100%', height: '100vh', overflowY: 'auto',
         opacity: mounted ? 1 : 0,
-        transition: 'opacity 0.5s ease 0.15s',
-        maxWidth: '820px'
+        transition: 'opacity 0.5s ease 0.15s'
       }}>
 
         {/* Header */}
         <div style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
           marginBottom: '2rem',
           animation: mounted ? 'fadeInUp 0.5s ease' : 'none'
         }}>
-          <button
-            onClick={() => navigate('/paciente')}
-            style={{
-              background: 'none', border: 'none', cursor: 'pointer',
-              color: '#3d7a5a', fontSize: '0.85rem', fontWeight: '600',
-              display: 'flex', alignItems: 'center', gap: '0.4rem',
-              marginBottom: '0.75rem', padding: 0,
-              transition: 'opacity 0.15s'
-            }}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <polyline points="15 18 9 12 15 6"/>
-            </svg>
-            Volver al inicio
-          </button>
-          <h1 style={{ margin: '0 0 0.1rem', fontSize: '1.8rem', fontWeight: '700', color: '#06111f' }}>
-            Mis resultados
-          </h1>
-          <p style={{ margin: 0, color: '#4a6a4a', fontSize: '0.88rem' }}>
-            {triajes.length} triajes registrados
-          </p>
+          <div>
+            <button
+              onClick={() => navigate('/paciente')}
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                color: '#3d7a5a', fontSize: '0.85rem', fontWeight: '600',
+                display: 'flex', alignItems: 'center', gap: '0.4rem',
+                marginBottom: '0.75rem', padding: 0,
+                transition: 'opacity 0.15s'
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <polyline points="15 18 9 12 15 6"/>
+              </svg>
+              Volver al inicio
+            </button>
+            <h1 style={{ margin: '0 0 0.1rem', fontSize: '1.8rem', fontWeight: '700', color: '#06111f' }}>
+              Mis resultados
+            </h1>
+            <p style={{ margin: 0, color: '#4a6a4a', fontSize: '0.88rem' }}>
+              {triajes.length} triajes registrados
+            </p>
+          </div>
+          <AccessibilityMenu inline />
         </div>
 
         {/* Gráfica de evolución */}

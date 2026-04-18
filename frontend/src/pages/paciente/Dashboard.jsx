@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import { useTeleconsulta } from '../../hooks/useTeleconsulta'
+import JitsiMeeting from '../../components/shared/JitsiMeeting'
+import AccessibilityMenu from '../../components/shared/AccessibilityMenu'
 
 export default function PacienteDashboard() {
   const { user, logout } = useAuth()
@@ -8,6 +11,9 @@ export default function PacienteDashboard() {
   const [mounted, setMounted] = useState(false)
   const [tipCollapsed, setTipCollapsed] = useState(false)
   const [greeting, setGreeting] = useState('')
+  const [showMeeting, setShowMeeting] = useState(false)
+  const [countdown, setCountdown] = useState(60)
+  const { meeting, cerrarSala } = useTeleconsulta()
 
   const tips = [
     'Tomar entre 6 y 8 vasos de agua al día ayuda a prevenir infecciones y mejora la circulación.',
@@ -27,6 +33,18 @@ export default function PacienteDashboard() {
     const t = setTimeout(() => setTipCollapsed(true), 3500)
     return () => clearTimeout(t)
   }, [])
+
+  // Cuenta regresiva para unirse a la teleconsulta
+  useEffect(() => {
+    if (!meeting || showMeeting) return
+    setCountdown(60)
+    const iv = setInterval(() => setCountdown(c => Math.max(0, c - 1)), 1000)
+    return () => clearInterval(iv)
+  }, [meeting?.roomId, showMeeting])
+
+  useEffect(() => {
+    if (countdown === 0 && meeting && !showMeeting) cerrarSala()
+  }, [countdown])
 
   const handleLogout = () => { logout(); navigate('/login') }
 
@@ -85,6 +103,14 @@ export default function PacienteDashboard() {
         @keyframes pulse {
           0%,100% { box-shadow: 0 0 0 0 rgba(61,122,90,0.4); }
           50%      { box-shadow: 0 0 0 12px rgba(61,122,90,0); }
+        }
+        @keyframes pulseGreen {
+          0%,100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.6); }
+          50%      { box-shadow: 0 0 0 9px rgba(34,197,94,0); }
+        }
+        @keyframes bannerGlow {
+          0%,100% { box-shadow: 0 4px 24px rgba(15,35,24,0.35), 0 0 0 1px rgba(34,197,94,0.06); }
+          50%      { box-shadow: 0 4px 32px rgba(15,35,24,0.45), 0 0 0 1px rgba(34,197,94,0.14); }
         }
         .tip-hero {
           overflow: hidden;
@@ -221,16 +247,12 @@ export default function PacienteDashboard() {
             </svg>
             Mis resultados
           </div>
-          <div className="nav-item" style={{ opacity: 0.45, cursor: 'not-allowed' }}>
+          <div className="nav-item" onClick={() => navigate('/paciente/teleconsulta')}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              <polygon points="23 7 16 12 23 17 23 7"/>
+              <rect x="1" y="5" width="15" height="14" rx="2"/>
             </svg>
             Teleconsulta
-            <span style={{
-              marginLeft: 'auto', fontSize: '0.65rem',
-              background: 'rgba(232,160,32,0.15)', color: '#e8a020',
-              padding: '0.15rem 0.4rem', borderRadius: '4px', fontWeight: '600'
-            }}>Pronto</span>
           </div>
         </nav>
 
@@ -250,18 +272,116 @@ export default function PacienteDashboard() {
         padding: '2.5rem 2.5rem 6rem',
         opacity: mounted ? 1 : 0,
         transition: 'opacity 0.5s ease 0.15s',
-        maxWidth: '900px'
+        width: '100%',
+        height: '100vh',
+        overflowY: 'auto'
       }}>
 
+        {/* Banner teleconsulta activa */}
+        {meeting && !showMeeting && (
+          <div style={{
+            marginBottom: '1.5rem',
+            background: 'linear-gradient(135deg, #050f08, #0f2318, #071626)',
+            borderRadius: '18px',
+            border: '1.5px solid rgba(34,197,94,0.2)',
+            padding: '1.1rem 1.5rem',
+            display: 'flex', alignItems: 'center', gap: '1rem',
+            animation: 'fadeInUp 0.4s ease',
+            animationName: 'fadeInUp, bannerGlow',
+            animationDuration: '0.4s, 3s',
+            animationTimingFunction: 'ease, ease-in-out',
+            animationIterationCount: '1, infinite',
+            position: 'relative', overflow: 'hidden'
+          }}>
+            {/* Línea luminosa superior */}
+            <div style={{
+              position: 'absolute', top: 0, left: '10%', right: '10%', height: '1.5px',
+              background: 'linear-gradient(90deg, transparent, rgba(34,197,94,0.6), transparent)'
+            }} />
+
+            {/* Dot pulsante */}
+            <div style={{
+              width: '14px', height: '14px', flexShrink: 0,
+              background: '#22c55e', borderRadius: '50%',
+              animation: 'pulseGreen 1.6s ease-in-out infinite',
+              boxShadow: '0 0 10px rgba(34,197,94,0.7)'
+            }} />
+
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{
+                margin: '0 0 0.12rem', color: '#7ac896',
+                fontWeight: '800', fontSize: '0.72rem',
+                textTransform: 'uppercase', letterSpacing: '1.2px'
+              }}>
+                Su médico está esperando
+              </p>
+              <p style={{ margin: 0, color: 'white', fontWeight: '700', fontSize: '0.93rem' }}>
+                {meeting.medicoNombre} está listo para atenderle
+              </p>
+            </div>
+
+            {/* Contador regresivo */}
+            <div style={{
+              flexShrink: 0, textAlign: 'center',
+              padding: '0.45rem 0.85rem',
+              background: countdown <= 15 ? 'rgba(220,38,38,0.18)' : 'rgba(255,255,255,0.06)',
+              border: `1.5px solid ${countdown <= 15 ? 'rgba(220,38,38,0.3)' : 'rgba(255,255,255,0.1)'}`,
+              borderRadius: '12px',
+              transition: 'all 0.5s ease'
+            }}>
+              <p style={{
+                margin: 0, lineHeight: 1,
+                fontSize: '1.5rem', fontWeight: '900',
+                color: countdown <= 15 ? '#ef4444' : 'white',
+                fontVariantNumeric: 'tabular-nums',
+                transition: 'color 0.3s ease'
+              }}>
+                {countdown}
+              </p>
+              <p style={{
+                margin: '2px 0 0', fontSize: '0.62rem',
+                color: 'rgba(255,255,255,0.35)', fontWeight: '600'
+              }}>
+                seg
+              </p>
+            </div>
+
+            <button
+              onClick={() => setShowMeeting(true)}
+              style={{
+                flexShrink: 0,
+                background: 'linear-gradient(135deg, #16a34a, #15803d)',
+                border: 'none', borderRadius: '12px',
+                padding: '0.65rem 1.4rem', color: 'white',
+                fontSize: '0.9rem', fontWeight: '800', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: '0.5rem',
+                boxShadow: '0 4px 18px rgba(22,163,74,0.45)',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 22px rgba(22,163,74,0.55)' }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 4px 18px rgba(22,163,74,0.45)' }}
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+                <polygon points="23 7 16 12 23 17 23 7"/>
+                <rect x="1" y="5" width="15" height="14" rx="2"/>
+              </svg>
+              Unirse ahora
+            </button>
+          </div>
+        )}
+
         {/* Header */}
-        <div style={{ marginBottom: '2rem', animation: mounted ? 'fadeInUp 0.5s ease' : 'none' }}>
-          <p style={{ margin: '0 0 0.2rem', color: '#7a9080', fontSize: '0.9rem' }}>{greeting}</p>
-          <h1 style={{ margin: '0 0 0.1rem', fontSize: '1.8rem', fontWeight: '700', color: '#0f2318' }}>
-            {user?.name}
-          </h1>
-          <p style={{ margin: 0, color: '#aabcb0', fontSize: '0.88rem' }}>
-            Este es tu resumen de atención médica
-          </p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem', animation: mounted ? 'fadeInUp 0.5s ease' : 'none' }}>
+          <div>
+            <p style={{ margin: '0 0 0.2rem', color: '#7a9080', fontSize: '0.9rem' }}>{greeting}</p>
+            <h1 style={{ margin: '0 0 0.1rem', fontSize: '1.8rem', fontWeight: '700', color: '#0f2318' }}>
+              {user?.name}
+            </h1>
+            <p style={{ margin: 0, color: '#aabcb0', fontSize: '0.88rem' }}>
+              Este es tu resumen de atención médica
+            </p>
+          </div>
+          <AccessibilityMenu inline />
         </div>
 
         {/* Tip hero */}
@@ -534,6 +654,15 @@ export default function PacienteDashboard() {
         </div>
 
       </main>
+
+      {/* Jitsi Meeting */}
+      {showMeeting && meeting && (
+        <JitsiMeeting
+          roomId={meeting.roomId}
+          displayName={user?.name}
+          onClose={() => { setShowMeeting(false); cerrarSala() }}
+        />
+      )}
 
       {/* FAB */}
       <button className="fab" onClick={() => navigate('/paciente/chat')} title="Iniciar triaje">
