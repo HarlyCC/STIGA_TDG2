@@ -114,17 +114,18 @@ def sync_forward(
         with get_conn() as conn:
             conn.execute("""
                 INSERT INTO triage_records (
-                    session_id, timestamp,
+                    session_id, timestamp, user_email,
                     nombre, cedula, telefono, direccion, eps,
                     age, gender, heart_rate, systolic_bp,
                     o2_sat, body_temp, glucose, cholesterol,
                     symptoms, symptom_severity,
                     ciudad, tiene_transporte, necesita_ambulancia,
                     triage_level, triage_color, confianza, escalado
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 request.session_id,
                 datetime.now().isoformat(),
+                current_user["email"],
                 request.patient_data.get("nombre"),
                 request.patient_data.get("cedula"),
                 request.patient_data.get("telefono"),

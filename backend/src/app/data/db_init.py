@@ -80,4 +80,10 @@ def init_db():
         conn.execute(_CREATE_USERS)
         conn.execute(_CREATE_TRIAGE_RECORDS)
         conn.execute(_CREATE_MEDICO_HORARIOS)
+        # Migración: agregar user_email si no existe
+        try:
+            conn.execute("ALTER TABLE triage_records ADD COLUMN user_email TEXT")
+            logger.info("Migración: columna user_email agregada a triage_records")
+        except Exception:
+            pass  # Ya existe
     logger.info("Base de datos inicializada | tablas: users, triage_records, medico_horarios")

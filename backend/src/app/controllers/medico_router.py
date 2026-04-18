@@ -88,18 +88,9 @@ def mis_triajes(current_user: dict = Depends(get_current_user)):
     ordenados del más reciente al más antiguo.
     """
     with get_conn() as conn:
-        user = conn.execute(
-            "SELECT cedula FROM users WHERE email = ?",
-            (current_user["email"],),
-        ).fetchone()
-
-    if not user or not user["cedula"]:
-        return []
-
-    with get_conn() as conn:
         rows = conn.execute(
-            "SELECT * FROM triage_records WHERE cedula = ? ORDER BY timestamp DESC",
-            (user["cedula"],),
+            "SELECT * FROM triage_records WHERE user_email = ? ORDER BY timestamp DESC",
+            (current_user["email"],),
         ).fetchall()
 
     return [dict(r) for r in rows]
