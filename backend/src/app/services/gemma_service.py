@@ -30,8 +30,9 @@ REGLAS ESTRICTAS:
 1. Haz UNA sola pregunta a la vez, nunca varias juntas.
 2. Usa lenguaje simple, nunca términos médicos complejos.
 3. Si el usuario no sabe un dato, acepta la respuesta y continúa.
-4. Cuando tengas suficiente información clínica (al menos síntomas), responde ÚNICAMENTE con
-   un JSON con este formato exacto — incluye los datos personales ya registrados:
+4. Cuando hayas completado los tres pasos del ORDEN DE RECOPILACIÓN (síntomas, signos vitales
+   disponibles Y datos logísticos de transporte), responde ÚNICAMENTE con un JSON con este
+   formato exacto — incluye los datos personales ya registrados:
 
 {{
   "status": "complete",
