@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import AccessibilityMenu from '../../components/shared/AccessibilityMenu'
+import client from '../../api/api'
 
 export default function AdminDashboard() {
   const { user, logout } = useAuth()
@@ -72,6 +73,15 @@ export default function AdminDashboard() {
   const [busquedaTriajes, setBusquedaTriajes] = useState('')
   const [filtroNivel, setFiltroNivel] = useState('todos')
 
+  /* ── Horarios ── */
+  const DIAS = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo']
+  const [medicos, setMedicos]               = useState([])
+  const [medicoSel, setMedicoSel]           = useState(null)
+  const [horarios, setHorarios]             = useState([])
+  const [loadingHorarios, setLoadingHorarios] = useState(false)
+  const [horarioModal, setHorarioModal]     = useState(null) // {dia, hora_inicio, hora_fin}
+  const [savingHorario, setSavingHorario]   = useState(false)
+
   /* ── Mapa ── */
   const [hoveredPoint, setHoveredPoint] = useState(null)
 
@@ -102,6 +112,7 @@ export default function AdminDashboard() {
     { key: 'usuarios', label: 'Usuarios',           icon: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75' },
     { key: 'triajes',  label: 'Historial triajes',  icon: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M16 13H8M16 17H8M10 9H8' },
     { key: 'mapa',     label: 'Mapa de pacientes',  icon: 'M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0zM12 10a1 1 0 1 1-2 0 1 1 0 0 1 2 0z' },
+    { key: 'horarios', label: 'Horarios médicos',   icon: 'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01' },
   ]
 
   /* ── Handlers alertas ── */
@@ -129,6 +140,56 @@ export default function AdminDashboard() {
     }])
     setNuevoForm({ nombre: '', rol: 'Paciente', municipio: '', correo: '' })
     setShowNuevoUsuario(false)
+  }
+
+  /* ── Horarios: cargar médicos cuando se activa la pestaña ── */
+  useEffect(() => {
+    if (activeTab !== 'horarios') return
+    client.get('/admin/usuarios?role=medico')
+      .then(({ data }) => setMedicos(data))
+      .catch(() => {})
+  }, [activeTab])
+
+  const seleccionarMedico = (m) => {
+    setMedicoSel(m)
+    setHorarios([])
+    setLoadingHorarios(true)
+    client.get(`/admin/medicos/${encodeURIComponent(m.email)}/horarios`)
+      .then(({ data }) => setHorarios(data))
+      .catch(() => {})
+      .finally(() => setLoadingHorarios(false))
+  }
+
+  const abrirHorarioModal = (dia) => {
+    const existing = horarios.find(h => h.dia_semana === dia)
+    setHorarioModal({ dia, hora_inicio: existing?.hora_inicio ?? '08:00', hora_fin: existing?.hora_fin ?? '17:00' })
+  }
+
+  const guardarHorario = async () => {
+    if (!medicoSel || !horarioModal) return
+    setSavingHorario(true)
+    try {
+      await client.put(`/admin/medicos/${encodeURIComponent(medicoSel.email)}/horarios`, {
+        dia_semana:  horarioModal.dia,
+        hora_inicio: horarioModal.hora_inicio,
+        hora_fin:    horarioModal.hora_fin,
+      })
+      const { data } = await client.get(`/admin/medicos/${encodeURIComponent(medicoSel.email)}/horarios`)
+      setHorarios(data)
+      setHorarioModal(null)
+    } catch {
+      // silencioso — el usuario verá que no cambió
+    } finally {
+      setSavingHorario(false)
+    }
+  }
+
+  const eliminarHorario = async (dia) => {
+    if (!medicoSel) return
+    try {
+      await client.delete(`/admin/medicos/${encodeURIComponent(medicoSel.email)}/horarios/${dia}`)
+      setHorarios(prev => prev.filter(h => h.dia_semana !== dia))
+    } catch {}
   }
 
   /* ── Listas filtradas ── */
@@ -858,6 +919,151 @@ export default function AdminDashboard() {
           </div>
         )}
 
+        {/* ── TAB Horarios ── */}
+        {activeTab === 'horarios' && (
+          <div style={{ animation: 'tabSlide 0.35s ease', display: 'flex', gap: '1.25rem', alignItems: 'flex-start' }}>
+
+            {/* Lista de médicos */}
+            <div style={{ width: '240px', flexShrink: 0 }}>
+              <p style={{ margin: '0 0 0.75rem', fontSize: '0.73rem', fontWeight: '700', color: '#4b5563', textTransform: 'uppercase', letterSpacing: '1.2px' }}>
+                Médicos ({medicos.length})
+              </p>
+              {medicos.length === 0 ? (
+                <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '1.5rem', textAlign: 'center' }}>
+                  <p style={{ margin: 0, color: '#9ca3af', fontSize: '0.85rem' }}>No hay médicos registrados.</p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {medicos.map(m => (
+                    <div
+                      key={m.email}
+                      onClick={() => seleccionarMedico(m)}
+                      style={{
+                        background: medicoSel?.email === m.email ? '#1f2937' : 'white',
+                        border: `1.5px solid ${medicoSel?.email === m.email ? '#1f2937' : '#e5e7eb'}`,
+                        borderRadius: '12px', padding: '0.85rem 1rem',
+                        cursor: 'pointer',
+                        transition: 'all 0.18s ease',
+                      }}
+                    >
+                      <div style={{
+                        display: 'flex', alignItems: 'center', gap: '0.65rem'
+                      }}>
+                        <div style={{
+                          width: '34px', height: '34px', flexShrink: 0,
+                          background: medicoSel?.email === m.email ? 'rgba(255,255,255,0.12)' : '#1a5f8a15',
+                          border: `1.5px solid ${medicoSel?.email === m.email ? 'rgba(255,255,255,0.2)' : '#1a5f8a30'}`,
+                          borderRadius: '9px',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: '0.78rem', fontWeight: '800',
+                          color: medicoSel?.email === m.email ? 'white' : '#1a5f8a',
+                        }}>
+                          {m.nombre.split(' ').filter(n => !['Dr.','Dra.'].includes(n)).map(n => n[0]).join('').slice(0,2).toUpperCase()}
+                        </div>
+                        <div style={{ minWidth: 0 }}>
+                          <p style={{ margin: 0, fontSize: '0.83rem', fontWeight: '700', color: medicoSel?.email === m.email ? 'white' : '#06111f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {m.nombre}
+                          </p>
+                          <p style={{ margin: 0, fontSize: '0.72rem', color: medicoSel?.email === m.email ? 'rgba(255,255,255,0.5)' : '#9ca3af', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {m.ciudad || m.email}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Calendario semanal */}
+            <div style={{ flex: 1 }}>
+              {!medicoSel ? (
+                <div style={{
+                  background: 'white', border: '1.5px dashed #e5e7eb',
+                  borderRadius: '16px', padding: '4rem 2rem', textAlign: 'center'
+                }}>
+                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" strokeWidth="1.5" style={{ marginBottom: '0.75rem' }}>
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                    <line x1="16" y1="2" x2="16" y2="6"/>
+                    <line x1="8" y1="2" x2="8" y2="6"/>
+                    <line x1="3" y1="10" x2="21" y2="10"/>
+                  </svg>
+                  <p style={{ margin: 0, color: '#9ca3af', fontSize: '0.9rem' }}>
+                    Selecciona un médico para gestionar su disponibilidad.
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <div>
+                      <p style={{ margin: '0 0 0.1rem', fontWeight: '700', color: '#06111f', fontSize: '1rem' }}>
+                        {medicoSel.nombre}
+                      </p>
+                      <p style={{ margin: 0, color: '#6b7280', fontSize: '0.82rem' }}>
+                        {horarios.length} día{horarios.length !== 1 ? 's' : ''} configurado{horarios.length !== 1 ? 's' : ''}
+                      </p>
+                    </div>
+                  </div>
+
+                  {loadingHorarios ? (
+                    <div style={{ background: 'white', borderRadius: '14px', padding: '3rem', textAlign: 'center' }}>
+                      <p style={{ margin: 0, color: '#9ca3af', fontSize: '0.88rem' }}>Cargando horarios...</p>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                      {DIAS.map((dia, idx) => {
+                        const h = horarios.find(hh => hh.dia_semana === idx)
+                        return (
+                          <div key={dia} style={{
+                            background: 'white', border: `1.5px solid ${h ? '#bbf7d0' : '#e5e7eb'}`,
+                            borderLeft: `4px solid ${h ? '#22c55e' : '#d1d5db'}`,
+                            borderRadius: '12px', padding: '0.85rem 1.1rem',
+                            display: 'flex', alignItems: 'center', gap: '1rem'
+                          }}>
+                            <div style={{ width: '90px', flexShrink: 0 }}>
+                              <p style={{ margin: 0, fontSize: '0.87rem', fontWeight: '700', color: '#06111f' }}>{dia}</p>
+                            </div>
+                            <div style={{ flex: 1 }}>
+                              {h ? (
+                                <span style={{
+                                  display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
+                                  background: '#f0fdf4', border: '1px solid #bbf7d0',
+                                  borderRadius: '20px', padding: '0.2rem 0.75rem',
+                                  fontSize: '0.83rem', fontWeight: '700', color: '#15803d'
+                                }}>
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                                  </svg>
+                                  {h.hora_inicio} – {h.hora_fin}
+                                </span>
+                              ) : (
+                                <span style={{ fontSize: '0.83rem', color: '#9ca3af', fontStyle: 'italic' }}>Sin horario</span>
+                              )}
+                            </div>
+                            <div style={{ display: 'flex', gap: '0.4rem', flexShrink: 0 }}>
+                              <button
+                                className="btn-outline-admin"
+                                onClick={() => abrirHorarioModal(idx)}
+                              >
+                                {h ? 'Editar' : 'Agregar'}
+                              </button>
+                              {h && (
+                                <button className="btn-danger" onClick={() => eliminarHorario(idx)}>
+                                  Quitar
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* ── TAB Mapa ── */}
         {activeTab === 'mapa' && (
           <div style={{ animation: 'tabSlide 0.35s ease' }}>
@@ -987,6 +1193,82 @@ export default function AdminDashboard() {
           ? `Ver alertas activas (${alertas.length})`
           : 'Sin alertas activas'}
       </button>
+
+      {/* ── Modal: Horario médico ── */}
+      {horarioModal && (
+        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setHorarioModal(null)}>
+          <div className="modal-box" style={{ maxWidth: '380px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <div>
+                <p style={{ margin: '0 0 0.15rem', fontSize: '0.72rem', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '1.2px' }}>
+                  {medicoSel?.nombre}
+                </p>
+                <h2 style={{ margin: 0, fontSize: '1.15rem', fontWeight: '700', color: '#06111f' }}>
+                  {DIAS[horarioModal.dia]}
+                </h2>
+              </div>
+              <button
+                onClick={() => setHorarioModal(null)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', padding: '0.25rem' }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.35rem' }}>
+                  Hora inicio
+                </label>
+                <input
+                  className="modal-input"
+                  type="time"
+                  value={horarioModal.hora_inicio}
+                  onChange={e => setHorarioModal(m => ({ ...m, hora_inicio: e.target.value }))}
+                />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.35rem' }}>
+                  Hora fin
+                </label>
+                <input
+                  className="modal-input"
+                  type="time"
+                  value={horarioModal.hora_fin}
+                  onChange={e => setHorarioModal(m => ({ ...m, hora_fin: e.target.value }))}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.6rem' }}>
+              <button
+                onClick={() => setHorarioModal(null)}
+                style={{
+                  flex: 1, background: 'none', border: '1.5px solid #e5e7eb',
+                  borderRadius: '10px', padding: '0.7rem', fontSize: '0.88rem',
+                  fontWeight: '600', color: '#374151', cursor: 'pointer', fontFamily: 'inherit',
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                className="btn-admin"
+                disabled={savingHorario}
+                onClick={guardarHorario}
+                style={{
+                  flex: 1, justifyContent: 'center', borderRadius: '10px',
+                  padding: '0.7rem', fontSize: '0.88rem',
+                  opacity: savingHorario ? 0.6 : 1,
+                }}
+              >
+                {savingHorario ? 'Guardando...' : 'Guardar horario'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Modal: Nuevo usuario ── */}
       {showNuevoUsuario && (
