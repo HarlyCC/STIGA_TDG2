@@ -52,6 +52,7 @@ function LoginAccessibility() {
 
 import Login from './pages/Login'
 import Register from './pages/Register'
+import ForgotPassword from './pages/ForgotPassword'
 import PacienteDashboard from './pages/paciente/Dashboard'
 import PacienteChat from './pages/paciente/Chat'
 import PacienteResultados from './pages/paciente/Resultados'
@@ -68,6 +69,7 @@ function AnimatedRoutes() {
       <Routes location={location}>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/" element={<Navigate to="/login" replace />} />
 
         <Route path="/paciente" element={

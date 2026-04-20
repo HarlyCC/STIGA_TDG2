@@ -303,12 +303,27 @@ export default function Login() {
             </div>
 
             <div style={{ marginBottom: '1.5rem' }}>
-              <label style={{
-                display: 'block', fontSize: '0.82rem', fontWeight: '600',
-                color: '#3a4a3e', marginBottom: '0.4rem', letterSpacing: '0.3px'
-              }}>
-                Contraseña
-              </label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '0.4rem' }}>
+                <label style={{
+                  fontSize: '0.82rem', fontWeight: '600',
+                  color: '#3a4a3e', letterSpacing: '0.3px'
+                }}>
+                  Contraseña
+                </label>
+                <button
+                  type="button"
+                  onClick={() => navigate('/forgot-password')}
+                  style={{
+                    background: 'none', border: 'none',
+                    color: '#2e8fc0', fontWeight: '500',
+                    cursor: 'pointer', padding: 0,
+                    fontSize: '0.78rem', textDecoration: 'underline',
+                    fontFamily: 'inherit'
+                  }}
+                >
+                  ¿Olvidaste tu contraseña?
+                </button>
+              </div>
               <input
                 className="input-stiga" type="password" value={password}
                 onChange={e => setPassword(e.target.value)}

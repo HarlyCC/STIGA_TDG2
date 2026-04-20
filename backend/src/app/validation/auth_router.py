@@ -3,9 +3,11 @@ from fastapi import APIRouter, Depends, status
 from pydantic import BaseModel, EmailStr, field_validator
 
 from app.validation.auth_service import (
+    forgot_password,
     get_profile,
     login_user,
     register_user,
+    reset_password,
     resend_verification_code,
     update_profile,
     verify_user,
@@ -48,6 +50,16 @@ class ResendRequest(BaseModel):
     email: EmailStr
 
 
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    email:        EmailStr
+    code:         str
+    new_password: str
+
+
 class UpdateProfileRequest(BaseModel):
     nombre:           Optional[str] = None
     cedula:           Optional[str] = None
@@ -84,6 +96,16 @@ def login(body: LoginRequest):
 @router.post("/resend-code")
 def resend_code(body: ResendRequest):
     return resend_verification_code(body.email)
+
+
+@router.post("/forgot-password")
+def forgot_password_route(body: ForgotPasswordRequest):
+    return forgot_password(body.email)
+
+
+@router.post("/reset-password")
+def reset_password_route(body: ResetPasswordRequest):
+    return reset_password(body.email, body.code, body.new_password)
 
 
 @router.get("/profile")

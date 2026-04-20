@@ -85,5 +85,14 @@ def init_db():
             conn.execute("ALTER TABLE triage_records ADD COLUMN user_email TEXT")
             logger.info("Migración: columna user_email agregada a triage_records")
         except Exception:
-            pass  # Ya existe
+            pass
+        # Migración: columnas para recuperación de contraseña
+        for col_def in [
+            "ALTER TABLE users ADD COLUMN reset_code TEXT",
+            "ALTER TABLE users ADD COLUMN reset_code_expires TEXT",
+        ]:
+            try:
+                conn.execute(col_def)
+            except Exception:
+                pass
     logger.info("Base de datos inicializada | tablas: users, triage_records, medico_horarios")

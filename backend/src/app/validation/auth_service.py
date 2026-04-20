@@ -6,7 +6,7 @@ from fastapi import HTTPException, status
 
 from app.data.database import get_conn
 from app.validation.dependencies import hash_password, verify_password, create_jwt
-from app.validation.email_service import send_verification_email
+from app.validation.email_service import send_verification_email, send_reset_email
 
 logger = logging.getLogger("stiga.auth_service")
 
@@ -189,6 +189,74 @@ def resend_verification_code(email: str) -> dict:
 
     logger.info(f"Código reenviado | {email}")
     return {"message": f"Nuevo código enviado a {email}."}
+
+
+def forgot_password(email: str) -> dict:
+    """
+    Genera y envía un código de recuperación de contraseña.
+    Siempre responde con el mismo mensaje para no revelar si el correo existe.
+    """
+    code       = _generate_code()
+    expires_at = _code_expires_at()
+
+    with get_conn() as conn:
+        user = conn.execute(
+            "SELECT nombre, is_verified FROM users WHERE email = ?", (email,)
+        ).fetchone()
+
+        if not user or not user["is_verified"]:
+            return {"message": "Si el correo está registrado, recibirás un código de recuperación."}
+
+        conn.execute(
+            "UPDATE users SET reset_code = ?, reset_code_expires = ? WHERE email = ?",
+            (code, expires_at, email),
+        )
+
+    try:
+        send_reset_email(email, user["nombre"], code, CODE_EXPIRE_MINUTES)
+    except RuntimeError as e:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(e))
+
+    logger.info(f"Código de recuperación enviado | {email}")
+    return {"message": "Si el correo está registrado, recibirás un código de recuperación."}
+
+
+def reset_password(email: str, code: str, new_password: str) -> dict:
+    """Valida el código y actualiza la contraseña."""
+    if len(new_password) < 6:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="La contraseña debe tener al menos 6 caracteres.",
+        )
+
+    with get_conn() as conn:
+        user = conn.execute(
+            "SELECT reset_code, reset_code_expires FROM users WHERE email = ?", (email,)
+        ).fetchone()
+
+        if not user or user["reset_code"] != code:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Código incorrecto o expirado.",
+            )
+
+        expires = datetime.fromisoformat(user["reset_code_expires"])
+        if datetime.now(timezone.utc) > expires:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="El código ha expirado. Solicite uno nuevo.",
+            )
+
+        hashed = hash_password(new_password)
+        conn.execute(
+            """UPDATE users
+               SET hashed_password = ?, reset_code = NULL, reset_code_expires = NULL
+               WHERE email = ?""",
+            (hashed, email),
+        )
+
+    logger.info(f"Contraseña restablecida | {email}")
+    return {"message": "Contraseña actualizada correctamente. Ya puede iniciar sesión."}
 
 
 def get_profile(email: str) -> dict:
