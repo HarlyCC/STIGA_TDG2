@@ -55,7 +55,7 @@ function mapTriaje(r) {
   }
 }
 
-export default function PacienteResultados() {
+export default function PatientResults() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [mounted, setMounted] = useState(false)

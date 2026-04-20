@@ -37,7 +37,7 @@ function mapRecord(r) {
   }
 }
 
-export default function MedicoDashboard() {
+export default function DoctorDashboard() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [mounted, setMounted] = useState(false)

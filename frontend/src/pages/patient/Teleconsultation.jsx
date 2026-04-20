@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext'
 import AccessibilityMenu from '../../components/shared/AccessibilityMenu'
 import client from '../../api/api'
 
-export default function PacienteTeleconsulta() {
+export default function PatientTeleconsultation() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [mounted, setMounted] = useState(false)

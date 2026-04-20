@@ -174,14 +174,14 @@ def get_availability(fecha: str, current_user: dict = Depends(get_current_user))
 
 # ── Citas (solicitudes de teleconsulta) ───────────────────────────────────────
 
-class CitaRequest(BaseModel):
+class AppointmentRequest(BaseModel):
     triaje_id:        Optional[int] = None
     fecha_solicitada: Optional[str] = None
     hora_solicitada:  Optional[str] = None
 
 
 @router.post("/mis-citas", status_code=201)
-def create_appointment(body: CitaRequest, current_user: dict = Depends(get_current_user)):
+def create_appointment(body: AppointmentRequest, current_user: dict = Depends(get_current_user)):
     """Registra una solicitud de teleconsulta del paciente autenticado."""
     now = datetime.now(timezone.utc).isoformat()
     with get_conn() as conn:

@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext'
 import AccessibilityMenu from '../../components/shared/AccessibilityMenu'
 import { startChat, sendMessage, syncForward, closeSession } from '../../api/api'
 
-export default function PacienteChat() {
+export default function PatientChat() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [messages, setMessages] = useState([])

@@ -33,7 +33,7 @@ function formatDateLong(isoStr) {
   return new Date(isoStr).toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' })
 }
 
-export default function MedicoTeleconsultas() {
+export default function DoctorTeleconsultations() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [mounted, setMounted] = useState(false)

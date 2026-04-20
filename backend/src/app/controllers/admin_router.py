@@ -29,7 +29,7 @@ def require_admin(current_user: dict = Depends(get_current_user)) -> dict:
 
 # ── Modelos ───────────────────────────────────────────────────────────────────
 
-ROLES_VALIDOS = {"medico", "admin"}
+VALID_ROLES = {"medico", "admin"}
 
 class CreateUserRequest(BaseModel):
     nombre:           str
@@ -47,8 +47,8 @@ class CreateUserRequest(BaseModel):
     @field_validator("role")
     @classmethod
     def check_role(cls, v: str) -> str:
-        if v not in ROLES_VALIDOS:
-            raise ValueError(f"Rol inválido. Use: {', '.join(ROLES_VALIDOS)}.")
+        if v not in VALID_ROLES:
+            raise ValueError(f"Rol inválido. Use: {', '.join(VALID_ROLES)}.")
         return v
 
     @field_validator("fecha_nacimiento")
@@ -242,7 +242,7 @@ def estadisticas(admin: dict = Depends(require_admin)):
 
 # ── Gestión de horarios de médicos ───────────────────────────────────────────
 
-class HorarioRequest(BaseModel):
+class ScheduleRequest(BaseModel):
     dia_semana:  int   # 0=Lunes … 6=Domingo
     hora_inicio: str   # HH:MM
     hora_fin:    str   # HH:MM
@@ -266,7 +266,7 @@ def get_horarios_medico(
 @router.put("/medicos/{email}/horarios")
 def set_horario_medico(
     email: str,
-    body:  HorarioRequest,
+    body:  ScheduleRequest,
     admin: dict = Depends(require_admin),
 ):
     """Crea o actualiza la disponibilidad de un médico para un día específico."""

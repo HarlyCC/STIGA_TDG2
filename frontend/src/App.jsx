@@ -53,12 +53,12 @@ function LoginAccessibility() {
 import Login from './pages/Login'
 import Register from './pages/Register'
 import ForgotPassword from './pages/ForgotPassword'
-import PacienteDashboard from './pages/patient/Dashboard'
-import PacienteChat from './pages/patient/Chat'
-import PacienteResultados from './pages/patient/Results'
-import PacienteTeleconsulta from './pages/patient/Teleconsultation'
-import MedicoDashboard from './pages/doctor/Dashboard'
-import MedicoTeleconsultas from './pages/doctor/Teleconsultations'
+import PatientDashboard from './pages/patient/Dashboard'
+import PatientChat from './pages/patient/Chat'
+import PatientResults from './pages/patient/Results'
+import PatientTeleconsultation from './pages/patient/Teleconsultation'
+import DoctorDashboard from './pages/doctor/Dashboard'
+import DoctorTeleconsultations from './pages/doctor/Teleconsultations'
 import AdminDashboard from './pages/admin/Dashboard'
 
 function AnimatedRoutes() {
@@ -73,22 +73,22 @@ function AnimatedRoutes() {
         <Route path="/" element={<Navigate to="/login" replace />} />
 
         <Route path="/paciente" element={
-          <ProtectedRoute role="paciente"><PacienteDashboard /></ProtectedRoute>
+          <ProtectedRoute role="paciente"><PatientDashboard /></ProtectedRoute>
         } />
         <Route path="/paciente/chat" element={
-          <ProtectedRoute role="paciente"><PacienteChat /></ProtectedRoute>
+          <ProtectedRoute role="paciente"><PatientChat /></ProtectedRoute>
         } />
         <Route path="/paciente/resultados" element={
-          <ProtectedRoute role="paciente"><PacienteResultados /></ProtectedRoute>
+          <ProtectedRoute role="paciente"><PatientResults /></ProtectedRoute>
         } />
         <Route path="/paciente/teleconsulta" element={
-          <ProtectedRoute role="paciente"><PacienteTeleconsulta /></ProtectedRoute>
+          <ProtectedRoute role="paciente"><PatientTeleconsultation /></ProtectedRoute>
         } />
         <Route path="/medico" element={
-          <ProtectedRoute role="medico"><MedicoDashboard /></ProtectedRoute>
+          <ProtectedRoute role="medico"><DoctorDashboard /></ProtectedRoute>
         } />
         <Route path="/medico/teleconsultas" element={
-          <ProtectedRoute role="medico"><MedicoTeleconsultas /></ProtectedRoute>
+          <ProtectedRoute role="medico"><DoctorTeleconsultations /></ProtectedRoute>
         } />
         <Route path="/admin" element={
           <ProtectedRoute role="admin"><AdminDashboard /></ProtectedRoute>
