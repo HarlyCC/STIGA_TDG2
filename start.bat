@@ -2,9 +2,7 @@
 title STIGA - Iniciando sistema...
 
 echo.
-echo  ==========================================
 echo   STIGA - Sistema de Triaje Inteligente
-echo  ==========================================
 echo.
 
 :: Backend
