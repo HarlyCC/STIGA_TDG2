@@ -4,8 +4,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, EmailStr, field_validator
 from app.data.database import get_conn
 from datetime import datetime, timezone
-from app.validation.auth_service import CODE_EXPIRE_MINUTES
-from app.validation.dependencies import (
+from app.services.auth_service import CODE_EXPIRE_MINUTES
+from app.core.security import (
     get_current_user,
     hash_password,
     validate_fecha_nacimiento,
@@ -119,7 +119,7 @@ def create_user(
 
 
 @router.get("/usuarios")
-def listar_usuarios(
+def list_users(
     role:  Optional[str] = None,
     admin: dict = Depends(require_admin),
 ):
@@ -145,7 +145,7 @@ def listar_usuarios(
 
 
 @router.get("/usuarios/{email}")
-def detalle_usuario(
+def get_user(
     email: str,
     admin: dict = Depends(require_admin),
 ):
@@ -166,7 +166,7 @@ def detalle_usuario(
 
 
 @router.put("/usuarios/{email}/rol")
-def cambiar_rol(
+def change_role(
     email: str,
     body:  UpdateRoleRequest,
     admin: dict = Depends(require_admin),
@@ -186,7 +186,7 @@ def cambiar_rol(
 
 
 @router.delete("/usuarios/{email}")
-def eliminar_usuario(
+def delete_user(
     email: str,
     admin: dict = Depends(require_admin),
 ):

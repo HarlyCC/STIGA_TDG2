@@ -4,7 +4,6 @@ const STORAGE_KEY = 'stiga_meeting'
 
 export function useTeleconsulta() {
   const [meeting, setMeeting] = useState(() => {
-    // Leer el estado inicial directamente desde localStorage
     try {
       const saved = localStorage.getItem(STORAGE_KEY)
       return saved ? JSON.parse(saved) : null
@@ -14,7 +13,7 @@ export function useTeleconsulta() {
   })
 
   useEffect(() => {
-    // Polling cada 2 segundos — garantiza sincronización incluso en la misma pestaña
+    // Poll every 2 seconds — ensures sync even within the same tab
     const interval = setInterval(() => {
       try {
         const saved = localStorage.getItem(STORAGE_KEY)
@@ -24,11 +23,11 @@ export function useTeleconsulta() {
           return prev
         })
       } catch {
-        // ignorar errores de parseo
+        // ignore parse errors
       }
     }, 2000)
 
-    // También escuchar el evento storage (para pestañas distintas)
+    // Also listen to the storage event (for different tabs)
     const onStorage = (e) => {
       if (e.key === STORAGE_KEY) {
         try {
@@ -46,14 +45,13 @@ export function useTeleconsulta() {
     }
   }, [])
 
-  const crearSala = (pacienteNombre, medicoNombre) => {
-    // Validar que no exista una sala activa antes de crear una nueva
+  const createRoom = (pacienteNombre, medicoNombre) => {
     const existing = localStorage.getItem(STORAGE_KEY)
     if (existing) {
       try {
         const parsed = JSON.parse(existing)
         if (parsed?.roomId) return parsed
-      } catch { /* continuar */ }
+      } catch { /* continue */ }
     }
     const roomId = `stiga-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
     const data = {
@@ -68,10 +66,10 @@ export function useTeleconsulta() {
     return data
   }
 
-  const cerrarSala = () => {
+  const closeRoom = () => {
     localStorage.removeItem(STORAGE_KEY)
     setMeeting(null)
   }
 
-  return { meeting, crearSala, cerrarSala }
+  return { meeting, createRoom, closeRoom }
 }

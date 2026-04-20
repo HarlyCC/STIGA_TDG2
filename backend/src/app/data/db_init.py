@@ -83,6 +83,18 @@ CREATE TABLE IF NOT EXISTS solicitudes_medico (
 )
 """
 
+_CREATE_CITAS = """
+CREATE TABLE IF NOT EXISTS citas (
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    paciente_email   TEXT NOT NULL,
+    triaje_id        INTEGER,
+    fecha_solicitada TEXT,
+    hora_solicitada  TEXT,
+    status           TEXT NOT NULL DEFAULT 'pendiente',
+    creado_en        TEXT NOT NULL
+)
+"""
+
 # ── Inicialización ────────────────────────────────────────────────────────────
 
 def init_db():
@@ -96,6 +108,7 @@ def init_db():
         conn.execute(_CREATE_TRIAGE_RECORDS)
         conn.execute(_CREATE_MEDICO_HORARIOS)
         conn.execute(_CREATE_SOLICITUDES_MEDICO)
+        conn.execute(_CREATE_CITAS)
         # Migración: agregar user_email si no existe
         try:
             conn.execute("ALTER TABLE triage_records ADD COLUMN user_email TEXT")
@@ -111,4 +124,4 @@ def init_db():
                 conn.execute(col_def)
             except Exception:
                 pass
-    logger.info("Base de datos inicializada | tablas: users, triage_records, medico_horarios")
+    logger.info("Base de datos inicializada | tablas: users, triage_records, medico_horarios, citas")

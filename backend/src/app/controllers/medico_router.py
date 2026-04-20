@@ -1,8 +1,10 @@
 import logging
+from datetime import datetime, timezone
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
 from app.data.database import get_conn
-from app.validation.dependencies import get_current_user
+from app.core.security import get_current_user
 
 logger = logging.getLogger("stiga.medico")
 
@@ -23,7 +25,7 @@ def require_medico(current_user: dict = Depends(get_current_user)) -> dict:
 # ── Pacientes y triajes ───────────────────────────────────────────────────────
 
 @router.get("/pacientes")
-def listar_pacientes(
+def list_patients(
     color:   Optional[str] = None,
     medico:  dict = Depends(require_medico),
 ):
@@ -47,7 +49,7 @@ def listar_pacientes(
 
 
 @router.get("/pacientes/{cedula}")
-def detalle_paciente(
+def patient_detail(
     cedula: str,
     medico: dict = Depends(require_medico),
 ):
@@ -82,7 +84,7 @@ def detalle_paciente(
 # ── Historial del paciente (para el paciente autenticado) ─────────────────────
 
 @router.get("/mis-triajes")
-def mis_triajes(current_user: dict = Depends(get_current_user)):
+def my_triages(current_user: dict = Depends(get_current_user)):
     """
     Retorna el historial de triajes del paciente autenticado,
     ordenados del más reciente al más antiguo.
@@ -99,7 +101,7 @@ def mis_triajes(current_user: dict = Depends(get_current_user)):
 # ── Disponibilidad horaria ────────────────────────────────────────────────────
 
 @router.get("/horarios")
-def get_horarios(medico: dict = Depends(require_medico)):
+def get_schedule(medico: dict = Depends(require_medico)):
     """Retorna la franja horaria configurada por el médico autenticado."""
     with get_conn() as conn:
         rows = conn.execute(
@@ -107,6 +109,41 @@ def get_horarios(medico: dict = Depends(require_medico)):
             (medico["email"],),
         ).fetchall()
 
+    return [dict(r) for r in rows]
+
+
+# ── Citas (solicitudes de teleconsulta) ───────────────────────────────────────
+
+class CitaRequest(BaseModel):
+    triaje_id:        Optional[int] = None
+    fecha_solicitada: Optional[str] = None
+    hora_solicitada:  Optional[str] = None
+
+
+@router.post("/mis-citas", status_code=201)
+def create_appointment(body: CitaRequest, current_user: dict = Depends(get_current_user)):
+    """Registra una solicitud de teleconsulta del paciente autenticado."""
+    now = datetime.now(timezone.utc).isoformat()
+    with get_conn() as conn:
+        cur = conn.execute(
+            """INSERT INTO citas
+               (paciente_email, triaje_id, fecha_solicitada, hora_solicitada, status, creado_en)
+               VALUES (?, ?, ?, ?, 'pendiente', ?)""",
+            (current_user["email"], body.triaje_id, body.fecha_solicitada, body.hora_solicitada, now),
+        )
+        cita_id = cur.lastrowid
+    logger.info(f"Cita creada | {current_user['email']} | id: {cita_id}")
+    return {"id": f"TC-{cita_id:05d}", "status": "pendiente"}
+
+
+@router.get("/mis-citas")
+def my_appointments(current_user: dict = Depends(get_current_user)):
+    """Retorna las solicitudes de teleconsulta del paciente autenticado."""
+    with get_conn() as conn:
+        rows = conn.execute(
+            "SELECT * FROM citas WHERE paciente_email = ? ORDER BY creado_en DESC",
+            (current_user["email"],),
+        ).fetchall()
     return [dict(r) for r in rows]
 
 

@@ -62,6 +62,7 @@ export default function PacienteResultados() {
   const [selectedTriaje, setSelectedTriaje] = useState(null)
   const [triajes, setTriajes] = useState([])
   const [loading, setLoading] = useState(true)
+  const [toastMsg, setToastMsg] = useState('')
 
   useEffect(() => {
     setTimeout(() => setMounted(true), 100)
@@ -72,6 +73,58 @@ export default function PacienteResultados() {
   }, [])
 
   const handleLogout = () => { logout(); navigate('/login') }
+
+  const showToast = (msg) => { setToastMsg(msg); setTimeout(() => setToastMsg(''), 3000) }
+
+  const handleDescargarPDF = () => {
+    const t = selectedTriaje
+    const win = window.open('', '_blank')
+    win.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+<title>Resultado de Triaje STIGA</title>
+<style>
+  body{font-family:'Segoe UI',sans-serif;max-width:680px;margin:40px auto;color:#1a2e1a;line-height:1.5}
+  .header{display:flex;align-items:center;gap:16px;margin-bottom:28px;padding-bottom:16px;border-bottom:2px solid #3d7a5a}
+  .logo-box{width:44px;height:44px;background:#1a3a2e;border-radius:10px;display:flex;align-items:center;justify-content:center;color:white;font-weight:900;font-size:13px;letter-spacing:1px;flex-shrink:0}
+  h1{font-size:20px;margin:0 0 4px;color:#0f2318}
+  .sub{color:#6b8070;font-size:12px;margin:0}
+  .badge{display:inline-block;padding:4px 14px;border-radius:20px;font-weight:700;font-size:13px;margin-bottom:22px;background:${t.nivel.bg};color:${t.nivel.color}}
+  .section{margin-bottom:20px}
+  .section-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#4a6a4a;margin-bottom:8px}
+  ul{margin:0;padding-left:18px}
+  li{margin-bottom:5px;font-size:13px}
+  .message{padding:12px 14px;border-radius:8px;font-size:13px;font-weight:500;background:${t.requierePresencial?'#fffbeb':'#f0fdf4'};border-left:3px solid ${t.requierePresencial?'#f59e0b':'#22c55e'};margin-bottom:20px}
+  .meta{font-size:11px;color:#aabcb0}
+  .footer{font-size:11px;color:#aabcb0;text-align:center;margin-top:36px;padding-top:14px;border-top:1px solid #edf0ec}
+  @media print{body{margin:20px}}
+</style></head><body>
+<div class="header">
+  <div class="logo-box">ST</div>
+  <div><h1>Reporte de Triaje</h1><p class="sub">Sistema de Triaje Inteligente STIGA &nbsp;·&nbsp; ${t.fecha} &nbsp;·&nbsp; ${t.hora}</p></div>
+</div>
+<span class="badge">Nivel ${t.nivel.label} — ${t.nivel.texto}</span>
+<div class="section"><div class="section-title">Síntomas reportados</div><ul>${t.sintomas.map(s=>`<li>${s}</li>`).join('')}</ul></div>
+<div class="section"><div class="section-title">Recomendaciones</div><ul>${t.recomendaciones.map(r=>`<li>${r}</li>`).join('')}</ul></div>
+<div class="message">${t.mensajeAtencion}</div>
+${t.confianza!=null?`<p class="meta">Confianza del modelo: ${Math.round(t.confianza*100)}%</p>`:''}
+<div class="footer">Generado por STIGA &nbsp;·&nbsp; Este reporte no reemplaza una consulta médica profesional.</div>
+</body></html>`)
+    win.document.close()
+    win.focus()
+    setTimeout(() => win.print(), 300)
+  }
+
+  const handleCompartir = () => {
+    const t = selectedTriaje
+    const text = [
+      `Reporte de Triaje STIGA — ${t.fecha} ${t.hora}`,
+      `Nivel: ${t.nivel.label} (${t.nivel.texto})`,
+      `Síntomas: ${t.sintomas.join(', ')}`,
+      t.mensajeAtencion,
+    ].join('\n')
+    navigator.clipboard.writeText(text)
+      .then(() => showToast('Resumen copiado al portapapeles'))
+      .catch(() => showToast('No se pudo copiar'))
+  }
 
   const graficaNiveles = triajes.slice(-6).map(t => ({
     mes:   t.fecha.split(' ').slice(0, 2).join(' '),
@@ -572,7 +625,7 @@ export default function PacienteResultados() {
                     {selectedTriaje.fecha}
                   </p>
                   <p style={{ margin: '0.15rem 0 0', color: 'rgba(255,255,255,0.5)', fontSize: '0.82rem' }}>
-                    {selectedTriaje.hora} · Duración: {selectedTriaje.duracion}
+                    {selectedTriaje.hora}
                   </p>
                 </div>
                 <button
@@ -637,7 +690,7 @@ export default function PacienteResultados() {
                     MÉDICO ASIGNADO
                   </p>
                   <p style={{ margin: 0, fontWeight: '700', color: '#06111f', fontSize: '0.9rem' }}>
-                    {selectedTriaje.medico}
+                    {selectedTriaje.medico || 'Sin asignar'}
                   </p>
                 </div>
               </div>
@@ -741,7 +794,7 @@ export default function PacienteResultados() {
                   </button>
                 )}
                 <div style={{ display: 'flex', gap: '0.75rem' }}>
-                  <button className="btn-outline-green" style={{ flex: 1, justifyContent: 'center' }}>
+                  <button className="btn-outline-green" style={{ flex: 1, justifyContent: 'center' }} onClick={handleDescargarPDF}>
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                       <polyline points="7 10 12 15 17 10"/>
@@ -749,7 +802,7 @@ export default function PacienteResultados() {
                     </svg>
                     Descargar PDF
                   </button>
-                  <button className="btn-outline-green" style={{ flex: 1, justifyContent: 'center' }}>
+                  <button className="btn-outline-green" style={{ flex: 1, justifyContent: 'center' }} onClick={handleCompartir}>
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/>
                       <circle cx="18" cy="19" r="3"/>
@@ -763,6 +816,18 @@ export default function PacienteResultados() {
 
             </div>
           </div>
+        </div>
+      )}
+
+      {toastMsg && (
+        <div style={{
+          position: 'fixed', bottom: '2rem', left: '50%', transform: 'translateX(-50%)',
+          background: '#1a3a2e', color: 'white', padding: '0.7rem 1.5rem',
+          borderRadius: '12px', fontSize: '0.88rem', fontWeight: '600',
+          zIndex: 9999, boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+          pointerEvents: 'none'
+        }}>
+          {toastMsg}
         </div>
       )}
 

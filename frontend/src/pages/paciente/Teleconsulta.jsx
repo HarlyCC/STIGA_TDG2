@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import AccessibilityMenu from '../../components/shared/AccessibilityMenu'
+import client from '../../api/api'
 
 export default function PacienteTeleconsulta() {
   const { user, logout } = useAuth()
@@ -11,51 +12,54 @@ export default function PacienteTeleconsulta() {
   const [selectedTriaje, setSelectedTriaje] = useState(null)
   const [selectedDate, setSelectedDate] = useState(null)
   const [selectedSlot, setSelectedSlot] = useState(null)
-  const [confirmedId] = useState(`TC-${Math.floor(10000 + Math.random() * 90000)}`)
+  const [confirmedId, setConfirmedId] = useState('')
+  const [triajes, setTriajes] = useState([])
+  const [loadingTriajes, setLoadingTriajes] = useState(true)
+  const [confirming, setConfirming] = useState(false)
 
-  const handleConfirmar = () => {
-    try {
-      const citas = JSON.parse(localStorage.getItem('stiga_citas') || '[]')
-      citas.push({
-        id: confirmedId,
-        pacienteNombre: user?.name ?? 'Paciente',
-        triaje: selectedTriaje,
-        fechaSolicitadaISO: selectedDate?.toISOString() ?? null,
-        horaSlot: selectedSlot,
-        status: 'pendiente',
-        fechaConfirmadaISO: null,
-        horaConfirmada: null,
-        creadoEn: new Date().toISOString(),
-      })
-      localStorage.setItem('stiga_citas', JSON.stringify(citas))
-    } catch (_) { /* noop */ }
-    setStep(4)
+  const NIVEL_CFG = {
+    Verde:    { label: 'Verde',    color: '#15803d', bg: '#f0fdf4', border: '#bbf7d0', dot: '#22c55e' },
+    Amarillo: { label: 'Amarillo', color: '#b45309', bg: '#fef3c7', border: '#fde68a', dot: '#f59e0b' },
+    Naranja:  { label: 'Naranja',  color: '#c2410c', bg: '#fff7ed', border: '#fed7aa', dot: '#f97316' },
+    Rojo:     { label: 'Rojo',     color: '#dc2626', bg: '#fef2f2', border: '#fecaca', dot: '#ef4444' },
   }
 
-  useEffect(() => { setTimeout(() => setMounted(true), 100) }, [])
+  const handleConfirmar = async () => {
+    setConfirming(true)
+    try {
+      const { data } = await client.post('/medico/mis-citas', {
+        triaje_id:        selectedTriaje?.id ?? null,
+        fecha_solicitada: selectedDate?.toISOString().split('T')[0] ?? null,
+        hora_solicitada:  selectedSlot,
+      })
+      setConfirmedId(data.id)
+      setStep(4)
+    } catch {
+      setConfirmedId(`TC-${Math.floor(10000 + Math.random() * 90000)}`)
+      setStep(4)
+    } finally {
+      setConfirming(false)
+    }
+  }
+
+  useEffect(() => {
+    setTimeout(() => setMounted(true), 100)
+    client.get('/medico/mis-triajes')
+      .then(({ data }) => setTriajes(data.map(r => {
+        const color = r.triage_color || 'Verde'
+        const cfg = NIVEL_CFG[color] || NIVEL_CFG.Verde
+        const fecha = r.timestamp
+          ? new Date(r.timestamp).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' })
+          : '—'
+        return { id: r.id, fecha, sintomas: r.symptoms || 'Sin información', nivel: cfg }
+      })))
+      .catch(() => {})
+      .finally(() => setLoadingTriajes(false))
+  }, [])
 
   const handleLogout = () => { logout(); navigate('/login') }
 
-  /* ── Datos mock ── */
-  const triajes = [
-    {
-      id: 1, fecha: '25 mar 2025',
-      sintomas: 'Dolor de cabeza, fiebre 38°C, malestar general',
-      nivel: { label: 'Amarillo', color: '#d97706', bg: '#fefce8', border: '#fde68a', dot: '#f59e0b' },
-    },
-    {
-      id: 2, fecha: '16 mar 2025',
-      sintomas: 'Dolor abdominal leve, náuseas ocasionales',
-      nivel: { label: 'Naranja', color: '#c2410c', bg: '#fff7ed', border: '#fed7aa', dot: '#f97316' },
-    },
-    {
-      id: 3, fecha: '2 mar 2025',
-      sintomas: 'Tos leve, malestar general, congestión nasal',
-      nivel: { label: 'Verde', color: '#15803d', bg: '#f0fdf4', border: '#bbf7d0', dot: '#22c55e' },
-    },
-  ]
-
-  const doctor = { nombre: 'Dr. Carlos Ramírez', especialidad: 'Medicina general', iniciales: 'CR' }
+  const doctor = { nombre: 'Médico STIGA', especialidad: 'Medicina general', iniciales: 'ST' }
 
   const getWeekdays = () => {
     const days = []
@@ -369,6 +373,16 @@ export default function PacienteTeleconsulta() {
               </p>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {loadingTriajes && (
+                  <p style={{ textAlign: 'center', color: '#aabcb0', fontSize: '0.85rem', padding: '1rem 0' }}>
+                    Cargando triajes…
+                  </p>
+                )}
+                {!loadingTriajes && triajes.length === 0 && (
+                  <p style={{ textAlign: 'center', color: '#aabcb0', fontSize: '0.85rem', padding: '1rem 0' }}>
+                    No tienes triajes registrados. Inicia un triaje primero.
+                  </p>
+                )}
                 {triajes.map(t => (
                   <div
                     key={t.id}
@@ -656,8 +670,8 @@ export default function PacienteTeleconsulta() {
 
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <button className="btn-outline" onClick={() => setStep(2)}>← Editar</button>
-              <button className="btn-primary" onClick={handleConfirmar}>
-                Confirmar solicitud ✓
+              <button className="btn-primary" onClick={handleConfirmar} disabled={confirming}>
+                {confirming ? 'Enviando…' : 'Confirmar solicitud ✓'}
               </button>
             </div>
           </div>
@@ -782,7 +796,7 @@ export default function PacienteTeleconsulta() {
                   <button
                     className="btn-outline"
                     style={{ flex: 1 }}
-                    onClick={() => { setStep(1); setSelectedTriaje(null); setSelectedDate(null); setSelectedSlot(null) }}
+                    onClick={() => { setStep(1); setSelectedTriaje(null); setSelectedDate(null); setSelectedSlot(null); setConfirmedId('') }}
                   >
                     Nueva solicitud
                   </button>

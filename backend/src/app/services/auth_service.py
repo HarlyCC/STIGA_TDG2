@@ -5,14 +5,18 @@ from datetime import datetime, timedelta, timezone
 from fastapi import HTTPException, status
 
 from app.data.database import get_conn
-from app.validation.dependencies import hash_password, verify_password, create_jwt
-from app.validation.email_service import send_verification_email, send_reset_email, send_solicitud_medico_email
+from app.core.security import hash_password, verify_password, create_jwt
+from app.services.email_service import (
+    send_verification_email,
+    send_reset_email,
+    send_doctor_access_request_email,
+)
 
 logger = logging.getLogger("stiga.auth_service")
 
 CODE_EXPIRE_MINUTES = 15
 
-# ── Utilidades internas ──────────────────────────────────────────────────────
+# ── Internal utilities ───────────────────────────────────────────────────────
 
 def _generate_code() -> str:
     return str(random.randint(100000, 999999))
@@ -24,12 +28,11 @@ def _code_expires_at() -> str:
     ).isoformat()
 
 
-# ── Lógica de negocio ────────────────────────────────────────────────────────
+# ── Business logic ───────────────────────────────────────────────────────────
 
 def register_user(data: dict) -> dict:
     """
-    Crea o actualiza una cuenta de paciente pendiente de verificación
-    y envía el código de verificación al correo.
+    Creates or updates a pending patient account and sends the verification code.
     """
     if len(data["password"]) < 6:
         raise HTTPException(
@@ -89,12 +92,12 @@ def register_user(data: dict) -> dict:
     except RuntimeError as e:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(e))
 
-    logger.info(f"Registro iniciado | {data['email']}")
+    logger.info(f"Registration started | {data['email']}")
     return {"message": f"Código de verificación enviado a {data['email']}."}
 
 
 def verify_user(email: str, code: str) -> dict:
-    """Verifica el código e activa la cuenta."""
+    """Verifies the code and activates the account."""
     with get_conn() as conn:
         user = conn.execute(
             "SELECT * FROM users WHERE email = ?", (email,)
@@ -124,12 +127,12 @@ def verify_user(email: str, code: str) -> dict:
             (email,),
         )
 
-    logger.info(f"Cuenta verificada | {email}")
+    logger.info(f"Account verified | {email}")
     return {"message": "Cuenta verificada correctamente. Ya puede iniciar sesión."}
 
 
 def login_user(email: str, password: str) -> dict:
-    """Autentica al usuario y retorna el JWT."""
+    """Authenticates the user and returns the JWT."""
     with get_conn() as conn:
         user = conn.execute(
             "SELECT * FROM users WHERE email = ?", (email,)
@@ -147,7 +150,7 @@ def login_user(email: str, password: str) -> dict:
         )
 
     token = create_jwt(user["email"], user["role"], user["nombre"])
-    logger.info(f"Login exitoso | {email} | rol: {user['role']}")
+    logger.info(f"Login successful | {email} | role: {user['role']}")
 
     return {
         "access_token": token,
@@ -161,7 +164,7 @@ def login_user(email: str, password: str) -> dict:
 
 
 def resend_verification_code(email: str) -> dict:
-    """Genera y reenvía un nuevo código de verificación."""
+    """Generates and resends a new verification code."""
     code       = _generate_code()
     expires_at = _code_expires_at()
 
@@ -187,14 +190,14 @@ def resend_verification_code(email: str) -> dict:
     except RuntimeError as e:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(e))
 
-    logger.info(f"Código reenviado | {email}")
+    logger.info(f"Code resent | {email}")
     return {"message": f"Nuevo código enviado a {email}."}
 
 
 def forgot_password(email: str) -> dict:
     """
-    Genera y envía un código de recuperación de contraseña.
-    Siempre responde con el mismo mensaje para no revelar si el correo existe.
+    Generates and sends a password recovery code.
+    Always responds with the same message to avoid revealing whether the email exists.
     """
     code       = _generate_code()
     expires_at = _code_expires_at()
@@ -217,12 +220,12 @@ def forgot_password(email: str) -> dict:
     except RuntimeError as e:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(e))
 
-    logger.info(f"Código de recuperación enviado | {email}")
+    logger.info(f"Recovery code sent | {email}")
     return {"message": "Si el correo está registrado, recibirás un código de recuperación."}
 
 
 def reset_password(email: str, code: str, new_password: str) -> dict:
-    """Valida el código y actualiza la contraseña."""
+    """Validates the code and updates the password."""
     if len(new_password) < 6:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -255,12 +258,12 @@ def reset_password(email: str, code: str, new_password: str) -> dict:
             (hashed, email),
         )
 
-    logger.info(f"Contraseña restablecida | {email}")
+    logger.info(f"Password reset | {email}")
     return {"message": "Contraseña actualizada correctamente. Ya puede iniciar sesión."}
 
 
-def solicitar_acceso_medico(datos: dict) -> dict:
-    """Guarda la solicitud de acceso médico y notifica al administrador por correo."""
+def request_doctor_access(datos: dict) -> dict:
+    """Saves the doctor access request and notifies the administrator by email."""
     now = datetime.now(timezone.utc).isoformat()
     with get_conn() as conn:
         conn.execute(
@@ -274,15 +277,15 @@ def solicitar_acceso_medico(datos: dict) -> dict:
             ),
         )
     try:
-        send_solicitud_medico_email(datos)
+        send_doctor_access_request_email(datos)
     except Exception:
-        logger.warning(f"Solicitud guardada pero no se pudo notificar por correo | {datos['email']}")
-    logger.info(f"Solicitud de acceso médico recibida | {datos['email']}")
+        logger.warning(f"Request saved but email notification failed | {datos['email']}")
+    logger.info(f"Doctor access request received | {datos['email']}")
     return {"message": "Solicitud enviada correctamente. El equipo de STIGA revisará tu información y se comunicará contigo pronto."}
 
 
 def get_profile(email: str) -> dict:
-    """Retorna los datos del perfil del usuario autenticado."""
+    """Returns the authenticated user's profile data."""
     with get_conn() as conn:
         user = conn.execute(
             """SELECT nombre, email, cedula, telefono, direccion,
@@ -298,7 +301,7 @@ def get_profile(email: str) -> dict:
 
 
 def update_profile(email: str, updates: dict) -> dict:
-    """Actualiza solo los campos enviados en el perfil del usuario."""
+    """Updates only the fields sent in the user's profile."""
     if not updates:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -311,5 +314,5 @@ def update_profile(email: str, updates: dict) -> dict:
     with get_conn() as conn:
         conn.execute(f"UPDATE users SET {fields_sql} WHERE email = ?", values)
 
-    logger.info(f"Perfil actualizado | {email} | campos: {list(updates.keys())}")
+    logger.info(f"Profile updated | {email} | fields: {list(updates.keys())}")
     return {"message": "Datos actualizados correctamente."}

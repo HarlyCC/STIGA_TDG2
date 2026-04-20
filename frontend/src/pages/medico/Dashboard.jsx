@@ -48,7 +48,7 @@ export default function MedicoDashboard() {
   const [activePaciente, setActivePaciente] = useState(null)
   const [pacientes, setPacientes] = useState([])
   const [loadingData, setLoadingData] = useState(true)
-  const { meeting, crearSala, cerrarSala } = useTeleconsulta()
+  const { meeting, createRoom, closeRoom } = useTeleconsulta()
 
   useEffect(() => {
     setTimeout(() => setMounted(true), 100)
@@ -66,7 +66,7 @@ export default function MedicoDashboard() {
     if (loadingId) return
     setLoadingId(paciente.id)
     setTimeout(() => {
-      crearSala(paciente.nombre, user?.name)
+      createRoom(paciente.nombre, user?.name)
       setActivePaciente(paciente)
       setLoadingId(null)
       setTransitPaciente(paciente)
@@ -580,7 +580,7 @@ export default function MedicoDashboard() {
           pacienteNombre={activePaciente?.nombre}
           nivelLabel={activePaciente?.nivel?.label}
           nivelColor={activePaciente?.nivel?.dot}
-          onClose={() => { setShowMeeting(false); cerrarSala() }}
+          onClose={() => { setShowMeeting(false); closeRoom() }}
         />
       )}
     </div>

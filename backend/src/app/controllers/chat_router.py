@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from app.data.database import get_conn
 from app.services.gemma_service import GemmaService
 from app.services.predictor import Predictor
-from app.validation.dependencies import get_current_user
+from app.core.security import get_current_user
 
 logger = logging.getLogger("stiga.chat")
 

@@ -48,7 +48,7 @@ export default function Login() {
     setMedicoError('')
     setMedicoSubmitting(true)
     try {
-      await client.post('/auth/solicitar-medico', medicoForm)
+      await client.post('/auth/request-doctor-access', medicoForm)
       setMedicoSuccess(true)
     } catch (err) {
       setMedicoError(err?.response?.data?.detail || 'No se pudo enviar la solicitud. Intenta de nuevo.')

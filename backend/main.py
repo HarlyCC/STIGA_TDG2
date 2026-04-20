@@ -10,16 +10,16 @@ load_dotenv()
 
 import uvicorn
 from config.logger_config import setup_logger
-from src.app.controllers.process_manager import ProcessManager
+from src.app.services.training_manager import TrainingManager
 
 if __name__ == "__main__":
     setup_logger()
 
     if "--train" in sys.argv:
-        ProcessManager().run_full_pipeline()
+        TrainingManager().run_full_pipeline()
     else:
         uvicorn.run(
-            "app.controllers.triage_controller:app",
+            "app.controllers.application:app",
             host="0.0.0.0",
             port=8000,
             reload=True

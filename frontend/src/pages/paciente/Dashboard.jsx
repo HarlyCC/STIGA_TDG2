@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext'
 import { useTeleconsulta } from '../../hooks/useTeleconsulta'
 import JitsiMeeting from '../../components/shared/JitsiMeeting'
 import AccessibilityMenu from '../../components/shared/AccessibilityMenu'
+import client from '../../api/api'
 
 export default function PacienteDashboard() {
   const { user, logout } = useAuth()
@@ -13,7 +14,8 @@ export default function PacienteDashboard() {
   const [greeting, setGreeting] = useState('')
   const [showMeeting, setShowMeeting] = useState(false)
   const [countdown, setCountdown] = useState(60)
-  const { meeting, cerrarSala } = useTeleconsulta()
+  const [triajes, setTriajes] = useState([])
+  const { meeting, closeRoom } = useTeleconsulta()
 
   const tips = [
     'Tomar entre 6 y 8 vasos de agua al día ayuda a prevenir infecciones y mejora la circulación.',
@@ -31,6 +33,7 @@ export default function PacienteDashboard() {
     else if (h < 18) setGreeting('Buenas tardes')
     else setGreeting('Buenas noches')
     const t = setTimeout(() => setTipCollapsed(true), 3500)
+    client.get('/medico/mis-triajes').then(({ data }) => setTriajes(data)).catch(() => {})
     return () => clearTimeout(t)
   }, [])
 
@@ -43,22 +46,44 @@ export default function PacienteDashboard() {
   }, [meeting?.roomId, showMeeting])
 
   useEffect(() => {
-    if (countdown === 0 && meeting && !showMeeting) cerrarSala()
+    if (countdown === 0 && meeting && !showMeeting) closeRoom()
   }, [countdown])
 
   const handleLogout = () => { logout(); navigate('/login') }
 
-  const notificaciones = [
-    { id: 1, tipo: 'medico', texto: 'El Dr. Ramírez ha revisado su triaje del 25 de marzo.', hora: 'Hace 1 hora', leida: false },
-    { id: 2, tipo: 'cita', texto: 'Tiene una teleconsulta programada para el 30 de marzo a las 10:00 a.m.', hora: 'Hace 3 horas', leida: false },
-    { id: 3, tipo: 'sistema', texto: 'Su resultado de triaje fue sincronizado correctamente.', hora: 'Hace 2 días', leida: true },
-  ]
+  const NIVEL_COLOR = {
+    Verde:    { color: '#15803d', bg: '#f0fdf4' },
+    Amarillo: { color: '#d97706', bg: '#fef3c7' },
+    Naranja:  { color: '#c2410c', bg: '#fff7ed' },
+    Rojo:     { color: '#dc2626', bg: '#fef2f2' },
+  }
 
-  const documentos = [
-    { id: 1, nombre: 'Resultado triaje — 25 mar', tipo: 'Triaje STIGA', fecha: '25 mar 2025', nivel: { label: 'Amarillo', color: '#d97706', bg: '#fef3c7' } },
-    { id: 2, nombre: 'Resultado triaje — 16 mar', tipo: 'Triaje STIGA', fecha: '16 mar 2025', nivel: { label: 'Naranja', color: '#c2410c', bg: '#fff7ed' } },
-    { id: 3, nombre: 'Resultado triaje — 2 mar',  tipo: 'Triaje STIGA', fecha: '2 mar 2025',  nivel: { label: 'Verde',   color: '#15803d', bg: '#f0fdf4' } },
-  ]
+  const notificaciones = triajes.slice(0, 3).map((t, i) => {
+    const fecha = t.timestamp
+      ? new Date(t.timestamp).toLocaleDateString('es-CO', { day: 'numeric', month: 'long' })
+      : 'reciente'
+    return {
+      id: t.id ?? i,
+      tipo: 'sistema',
+      texto: `Tu resultado de triaje del ${fecha} está disponible en Mis resultados.`,
+      hora: t.timestamp ? new Date(t.timestamp).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' }) : '',
+      leida: i > 0,
+    }
+  })
+
+  const documentos = triajes.slice(0, 3).map((t, i) => {
+    const fecha = t.timestamp
+      ? new Date(t.timestamp).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' })
+      : '—'
+    const color = t.triage_color || 'Verde'
+    return {
+      id: t.id ?? i,
+      nombre: `Resultado triaje — ${fecha}`,
+      tipo: 'Triaje STIGA',
+      fecha,
+      nivel: { label: color, ...(NIVEL_COLOR[color] || NIVEL_COLOR.Verde) },
+    }
+  })
 
   const notiIcon = (tipo) => {
     if (tipo === 'medico') return (
@@ -479,14 +504,21 @@ export default function PacienteDashboard() {
               <h3 style={{ margin: 0, fontSize: '0.92rem', fontWeight: '700', color: '#0f2318' }}>
                 Notificaciones
               </h3>
-              <span style={{
-                background: '#fef2f2', color: '#dc2626',
-                fontSize: '0.7rem', fontWeight: '700',
-                padding: '0.2rem 0.5rem', borderRadius: '20px'
-              }}>
-                2 nuevas
-              </span>
+              {notificaciones.filter(n => !n.leida).length > 0 && (
+                <span style={{
+                  background: '#fef2f2', color: '#dc2626',
+                  fontSize: '0.7rem', fontWeight: '700',
+                  padding: '0.2rem 0.5rem', borderRadius: '20px'
+                }}>
+                  {notificaciones.filter(n => !n.leida).length} nueva{notificaciones.filter(n => !n.leida).length > 1 ? 's' : ''}
+                </span>
+              )}
             </div>
+            {notificaciones.length === 0 && (
+              <div style={{ padding: '1.5rem', textAlign: 'center', color: '#aabcb0', fontSize: '0.85rem' }}>
+                No tienes notificaciones nuevas
+              </div>
+            )}
             {notificaciones.map(n => (
               <div key={n.id} style={{
                 display: 'flex', gap: '0.75rem', alignItems: 'flex-start',
@@ -525,65 +557,31 @@ export default function PacienteDashboard() {
               Próxima cita
             </h3>
             <div style={{
-              flex: 1, background: 'linear-gradient(135deg, #eff4fb, #e8f4f0)',
-              borderRadius: '14px', padding: '1.25rem',
-              border: '1px solid #dceaf4',
-              display: 'flex', flexDirection: 'column', justifyContent: 'space-between'
+              flex: 1, background: '#f8fafb', borderRadius: '14px',
+              padding: '1.5rem', border: '1px dashed #d8e6dc',
+              display: 'flex', flexDirection: 'column',
+              alignItems: 'center', justifyContent: 'center', gap: '0.75rem',
+              textAlign: 'center'
             }}>
-              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                <div style={{
-                  width: '44px', height: '44px', flexShrink: 0,
-                  background: 'white', borderRadius: '12px',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  boxShadow: '0 2px 8px rgba(46,111,160,0.12)'
-                }}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2e6fa0" strokeWidth="1.8">
-                    <rect x="3" y="4" width="18" height="18" rx="2"/>
-                    <line x1="16" y1="2" x2="16" y2="6"/>
-                    <line x1="8" y1="2" x2="8" y2="6"/>
-                    <line x1="3" y1="10" x2="21" y2="10"/>
-                  </svg>
-                </div>
-                <div>
-                  <p style={{ margin: '0 0 0.2rem', fontWeight: '700', color: '#0f2318', fontSize: '0.92rem' }}>
-                    Teleconsulta médica
-                  </p>
-                  <p style={{ margin: 0, color: '#6a8a9a', fontSize: '0.82rem' }}>
-                    Dr. Ramírez · Medicina general
-                  </p>
-                </div>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <p style={{ margin: '0 0 0.1rem', fontWeight: '700', color: '#2e6fa0', fontSize: '0.97rem' }}>
-                    30 de marzo
-                  </p>
-                  <p style={{ margin: 0, color: '#8aaa9a', fontSize: '0.8rem' }}>10:00 a.m.</p>
-                </div>
-                <span style={{
-                  background: '#2e6fa015', color: '#2e6fa0',
-                  fontSize: '0.75rem', fontWeight: '700',
-                  padding: '0.3rem 0.75rem', borderRadius: '20px',
-                  border: '1px solid #2e6fa025'
-                }}>
-                  Confirmada
-                </span>
-              </div>
-            </div>
-
-            <div style={{
-              marginTop: '1rem', padding: '0.9rem 1.1rem',
-              background: '#f8fafb', borderRadius: '10px',
-              border: '1px solid #edf0ec',
-              display: 'flex', alignItems: 'center', gap: '0.75rem'
-            }}>
-              <div style={{
-                width: '8px', height: '8px', background: '#aabcb0',
-                borderRadius: '50%', flexShrink: 0
-              }} />
-              <p style={{ margin: 0, color: '#8aaa8a', fontSize: '0.8rem' }}>
-                No hay más citas programadas
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#c8d8cc" strokeWidth="1.5">
+                <rect x="3" y="4" width="18" height="18" rx="2"/>
+                <line x1="16" y1="2" x2="16" y2="6"/>
+                <line x1="8" y1="2" x2="8" y2="6"/>
+                <line x1="3" y1="10" x2="21" y2="10"/>
+              </svg>
+              <p style={{ margin: 0, color: '#aabcb0', fontSize: '0.83rem', lineHeight: 1.5 }}>
+                No tienes citas programadas.<br/>Solicita una teleconsulta desde Mis resultados.
               </p>
+              <button
+                onClick={() => navigate('/paciente/teleconsulta')}
+                style={{
+                  background: 'none', border: '1px solid #3d7a5a', color: '#3d7a5a',
+                  borderRadius: '8px', padding: '0.4rem 1rem',
+                  fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer'
+                }}
+              >
+                Ir a Teleconsulta
+              </button>
             </div>
           </div>
         </div>
@@ -614,6 +612,11 @@ export default function PacienteDashboard() {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+            {documentos.length === 0 && (
+              <p style={{ margin: '1rem 0', textAlign: 'center', color: '#aabcb0', fontSize: '0.85rem' }}>
+                Aún no tienes resultados de triaje.
+              </p>
+            )}
             {documentos.map(doc => (
               <div
                 key={doc.id}
@@ -660,7 +663,7 @@ export default function PacienteDashboard() {
         <JitsiMeeting
           roomId={meeting.roomId}
           displayName={user?.name}
-          onClose={() => { setShowMeeting(false); cerrarSala() }}
+          onClose={() => { setShowMeeting(false); closeRoom() }}
         />
       )}
 

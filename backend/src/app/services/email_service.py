@@ -21,8 +21,8 @@ _CODE_STYLE = (
 
 def _send(to_email: str, subject: str, body_html: str):
     if not EMAIL_USER or not EMAIL_PASSWORD:
-        logger.error("Credenciales de correo no configuradas en .env")
-        raise RuntimeError("Servicio de correo no configurado.")
+        logger.error("Email credentials not configured in .env")
+        raise RuntimeError("Email service not configured.")
     msg = MIMEMultipart("alternative")
     msg["Subject"] = subject
     msg["From"]    = EMAIL_USER
@@ -34,17 +34,17 @@ def _send(to_email: str, subject: str, body_html: str):
             server.starttls()
             server.login(EMAIL_USER, EMAIL_PASSWORD)
             server.sendmail(EMAIL_USER, to_email, msg.as_string())
-        logger.info(f"Correo enviado a {to_email}")
+        logger.info(f"Email sent to {to_email}")
     except smtplib.SMTPAuthenticationError:
-        logger.error("Error de autenticación SMTP")
-        raise RuntimeError("Error de autenticación en el servicio de correo.")
+        logger.error("SMTP authentication error")
+        raise RuntimeError("Email service authentication error.")
     except Exception as e:
-        logger.error(f"Error enviando correo a {to_email}: {e}")
-        raise RuntimeError("No se pudo enviar el correo.")
+        logger.error(f"Error sending email to {to_email}: {e}")
+        raise RuntimeError("Could not send email.")
 
 
 def send_verification_email(to_email: str, nombre: str, code: str, expire_minutes: int):
-    """Envía el código de verificación de cuenta."""
+    """Sends the account verification code."""
     body = f"""
     <html><body style="font-family:Arial,sans-serif;color:#1a2332;">
       <div style="{_CARD_STYLE}">
@@ -61,10 +61,10 @@ def send_verification_email(to_email: str, nombre: str, code: str, expire_minute
     _send(to_email, "STIGA — Código de verificación de cuenta", body)
 
 
-def send_solicitud_medico_email(datos: dict):
-    """Notifica al administrador del sistema sobre una nueva solicitud de acceso médico."""
+def send_doctor_access_request_email(datos: dict):
+    """Notifies the system administrator about a new doctor access request."""
     if not EMAIL_USER:
-        logger.warning("EMAIL_USER no configurado — solicitud no notificada por correo")
+        logger.warning("EMAIL_USER not configured — request not notified by email")
         return
     body = f"""
     <html><body style="font-family:Arial,sans-serif;color:#1a2332;">
@@ -95,7 +95,7 @@ def send_solicitud_medico_email(datos: dict):
 
 
 def send_reset_email(to_email: str, nombre: str, code: str, expire_minutes: int):
-    """Envía el código de recuperación de contraseña."""
+    """Sends the password recovery code."""
     body = f"""
     <html><body style="font-family:Arial,sans-serif;color:#1a2332;">
       <div style="{_CARD_STYLE}">
