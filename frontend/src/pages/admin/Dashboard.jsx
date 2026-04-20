@@ -155,6 +155,15 @@ export default function AdminDashboard() {
       return { ...u, estado: next }
     }))
   }
+  const handleEliminarUsuario = async (email) => {
+    if (!window.confirm(`¿Eliminar al usuario ${email}? Esta acción no se puede deshacer.`)) return
+    try {
+      await client.delete(`/admin/usuarios/${encodeURIComponent(email)}`)
+      const { data } = await client.get('/admin/usuarios')
+      setUsuarios(data.map(mapUsuario))
+    } catch {}
+  }
+
   const handleAgregarUsuario = async () => {
     if (!nuevoForm.nombre.trim() || !nuevoForm.email.trim() || !nuevoForm.password.trim()) return
     setNuevoError('')
@@ -889,6 +898,7 @@ export default function AdminDashboard() {
                     ) : (
                       <button className="btn-outline-admin" onClick={() => handleAccionEstado(u.id)}>Activar</button>
                     )}
+                    <button className="btn-danger" onClick={() => handleEliminarUsuario(u.correo)}>Eliminar</button>
                   </div>
                 </div>
               ))}
