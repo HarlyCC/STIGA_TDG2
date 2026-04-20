@@ -74,13 +74,21 @@ export default function AdminDashboard() {
   const [filtroNivel, setFiltroNivel] = useState('todos')
 
   /* ── Horarios ── */
-  const DIAS = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo']
-  const [medicos, setMedicos]               = useState([])
-  const [medicoSel, setMedicoSel]           = useState(null)
-  const [horarios, setHorarios]             = useState([])
+  const DIAS         = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo']
+  const CAL_START    = 6
+  const CAL_END      = 22
+  const HOUR_H       = 56
+  const toMin = (t) => { const [h,m] = t.split(':').map(Number); return h * 60 + m }
+  const toTop = (t) => ((toMin(t) - CAL_START * 60) / 60) * HOUR_H
+  const toDur = (s, e) => Math.max(((toMin(e) - toMin(s)) / 60) * HOUR_H, HOUR_H * 0.5)
+
+  const [medicos, setMedicos]                 = useState([])
+  const [medicoSel, setMedicoSel]             = useState(null)
+  const [horarios, setHorarios]               = useState([])
   const [loadingHorarios, setLoadingHorarios] = useState(false)
-  const [horarioModal, setHorarioModal]     = useState(null) // {dia, hora_inicio, hora_fin}
-  const [savingHorario, setSavingHorario]   = useState(false)
+  const [calendarOpen, setCalendarOpen]       = useState(false)
+  const [slotForm, setSlotForm]               = useState(null)
+  const [savingSlot, setSavingSlot]           = useState(false)
 
   /* ── Mapa ── */
   const [hoveredPoint, setHoveredPoint] = useState(null)
@@ -153,35 +161,29 @@ export default function AdminDashboard() {
   const seleccionarMedico = (m) => {
     setMedicoSel(m)
     setHorarios([])
+    setSlotForm(null)
     setLoadingHorarios(true)
     client.get(`/admin/medicos/${encodeURIComponent(m.email)}/horarios`)
       .then(({ data }) => setHorarios(data))
       .catch(() => {})
       .finally(() => setLoadingHorarios(false))
+    setCalendarOpen(true)
   }
 
-  const abrirHorarioModal = (dia) => {
-    const existing = horarios.find(h => h.dia_semana === dia)
-    setHorarioModal({ dia, hora_inicio: existing?.hora_inicio ?? '08:00', hora_fin: existing?.hora_fin ?? '17:00' })
-  }
-
-  const guardarHorario = async () => {
-    if (!medicoSel || !horarioModal) return
-    setSavingHorario(true)
+  const guardarSlot = async () => {
+    if (!medicoSel || !slotForm) return
+    setSavingSlot(true)
     try {
       await client.put(`/admin/medicos/${encodeURIComponent(medicoSel.email)}/horarios`, {
-        dia_semana:  horarioModal.dia,
-        hora_inicio: horarioModal.hora_inicio,
-        hora_fin:    horarioModal.hora_fin,
+        dia_semana:  slotForm.dia,
+        hora_inicio: slotForm.hora_inicio,
+        hora_fin:    slotForm.hora_fin,
       })
       const { data } = await client.get(`/admin/medicos/${encodeURIComponent(medicoSel.email)}/horarios`)
       setHorarios(data)
-      setHorarioModal(null)
-    } catch {
-      // silencioso — el usuario verá que no cambió
-    } finally {
-      setSavingHorario(false)
-    }
+      setSlotForm(null)
+    } catch {}
+    finally { setSavingSlot(false) }
   }
 
   const eliminarHorario = async (dia) => {
@@ -189,6 +191,7 @@ export default function AdminDashboard() {
     try {
       await client.delete(`/admin/medicos/${encodeURIComponent(medicoSel.email)}/horarios/${dia}`)
       setHorarios(prev => prev.filter(h => h.dia_semana !== dia))
+      setSlotForm(null)
     } catch {}
   }
 
@@ -921,146 +924,57 @@ export default function AdminDashboard() {
 
         {/* ── TAB Horarios ── */}
         {activeTab === 'horarios' && (
-          <div style={{ animation: 'tabSlide 0.35s ease', display: 'flex', gap: '1.25rem', alignItems: 'flex-start' }}>
-
-            {/* Lista de médicos */}
-            <div style={{ width: '240px', flexShrink: 0 }}>
-              <p style={{ margin: '0 0 0.75rem', fontSize: '0.73rem', fontWeight: '700', color: '#4b5563', textTransform: 'uppercase', letterSpacing: '1.2px' }}>
-                Médicos ({medicos.length})
-              </p>
-              {medicos.length === 0 ? (
-                <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '1.5rem', textAlign: 'center' }}>
-                  <p style={{ margin: 0, color: '#9ca3af', fontSize: '0.85rem' }}>No hay médicos registrados.</p>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  {medicos.map(m => (
-                    <div
-                      key={m.email}
-                      onClick={() => seleccionarMedico(m)}
-                      style={{
-                        background: medicoSel?.email === m.email ? '#1f2937' : 'white',
-                        border: `1.5px solid ${medicoSel?.email === m.email ? '#1f2937' : '#e5e7eb'}`,
-                        borderRadius: '12px', padding: '0.85rem 1rem',
-                        cursor: 'pointer',
-                        transition: 'all 0.18s ease',
-                      }}
-                    >
+          <div style={{ animation: 'tabSlide 0.35s ease' }}>
+            <p style={{ margin: '0 0 1.25rem', fontSize: '0.73rem', fontWeight: '700', color: '#4b5563', textTransform: 'uppercase', letterSpacing: '1.2px' }}>
+              {medicos.length} médico{medicos.length !== 1 ? 's' : ''} registrado{medicos.length !== 1 ? 's' : ''} — selecciona uno para gestionar su calendario
+            </p>
+            {medicos.length === 0 ? (
+              <div style={{ background: 'white', border: '1.5px dashed #e5e7eb', borderRadius: '16px', padding: '4rem', textAlign: 'center' }}>
+                <p style={{ margin: 0, color: '#9ca3af' }}>No hay médicos registrados en el sistema.</p>
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: '0.85rem' }}>
+                {medicos.map((m, i) => (
+                  <div
+                    key={m.email}
+                    onClick={() => seleccionarMedico(m)}
+                    style={{
+                      background: 'white', border: '1.5px solid #e5e7eb',
+                      borderRadius: '16px', padding: '1.25rem',
+                      cursor: 'pointer', transition: 'all 0.2s ease',
+                      animation: `slideIn 0.4s ease ${i * 0.07}s both`,
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor='#1a3a2e'; e.currentTarget.style.boxShadow='0 6px 20px rgba(26,58,46,0.12)'; e.currentTarget.style.transform='translateY(-2px)' }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor='#e5e7eb'; e.currentTarget.style.boxShadow='none'; e.currentTarget.style.transform='none' }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
                       <div style={{
-                        display: 'flex', alignItems: 'center', gap: '0.65rem'
+                        width: '42px', height: '42px',
+                        background: 'linear-gradient(135deg, #0f2318, #1a3a2e)',
+                        borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: '0.88rem', fontWeight: '800', color: '#7ac896', flexShrink: 0,
                       }}>
-                        <div style={{
-                          width: '34px', height: '34px', flexShrink: 0,
-                          background: medicoSel?.email === m.email ? 'rgba(255,255,255,0.12)' : '#1a5f8a15',
-                          border: `1.5px solid ${medicoSel?.email === m.email ? 'rgba(255,255,255,0.2)' : '#1a5f8a30'}`,
-                          borderRadius: '9px',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          fontSize: '0.78rem', fontWeight: '800',
-                          color: medicoSel?.email === m.email ? 'white' : '#1a5f8a',
-                        }}>
-                          {m.nombre.split(' ').filter(n => !['Dr.','Dra.'].includes(n)).map(n => n[0]).join('').slice(0,2).toUpperCase()}
-                        </div>
-                        <div style={{ minWidth: 0 }}>
-                          <p style={{ margin: 0, fontSize: '0.83rem', fontWeight: '700', color: medicoSel?.email === m.email ? 'white' : '#06111f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {m.nombre}
-                          </p>
-                          <p style={{ margin: 0, fontSize: '0.72rem', color: medicoSel?.email === m.email ? 'rgba(255,255,255,0.5)' : '#9ca3af', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {m.ciudad || m.email}
-                          </p>
-                        </div>
+                        {m.nombre.split(' ').filter(n => !['Dr.','Dra.'].includes(n)).map(n => n[0]).join('').slice(0,2).toUpperCase()}
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: '700', color: '#06111f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.nombre}</p>
+                        <p style={{ margin: 0, fontSize: '0.75rem', color: '#9ca3af', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.ciudad || 'Sin ciudad'}</p>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Calendario semanal */}
-            <div style={{ flex: 1 }}>
-              {!medicoSel ? (
-                <div style={{
-                  background: 'white', border: '1.5px dashed #e5e7eb',
-                  borderRadius: '16px', padding: '4rem 2rem', textAlign: 'center'
-                }}>
-                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" strokeWidth="1.5" style={{ marginBottom: '0.75rem' }}>
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                    <line x1="16" y1="2" x2="16" y2="6"/>
-                    <line x1="8" y1="2" x2="8" y2="6"/>
-                    <line x1="3" y1="10" x2="21" y2="10"/>
-                  </svg>
-                  <p style={{ margin: 0, color: '#9ca3af', fontSize: '0.9rem' }}>
-                    Selecciona un médico para gestionar su disponibilidad.
-                  </p>
-                </div>
-              ) : (
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                    <div>
-                      <p style={{ margin: '0 0 0.1rem', fontWeight: '700', color: '#06111f', fontSize: '1rem' }}>
-                        {medicoSel.nombre}
-                      </p>
-                      <p style={{ margin: 0, color: '#6b7280', fontSize: '0.82rem' }}>
-                        {horarios.length} día{horarios.length !== 1 ? 's' : ''} configurado{horarios.length !== 1 ? 's' : ''}
-                      </p>
+                    <div style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+                      background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '10px',
+                      padding: '0.55rem', fontSize: '0.82rem', fontWeight: '600', color: '#374151',
+                    }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                      </svg>
+                      Ver disponibilidad
                     </div>
                   </div>
-
-                  {loadingHorarios ? (
-                    <div style={{ background: 'white', borderRadius: '14px', padding: '3rem', textAlign: 'center' }}>
-                      <p style={{ margin: 0, color: '#9ca3af', fontSize: '0.88rem' }}>Cargando horarios...</p>
-                    </div>
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                      {DIAS.map((dia, idx) => {
-                        const h = horarios.find(hh => hh.dia_semana === idx)
-                        return (
-                          <div key={dia} style={{
-                            background: 'white', border: `1.5px solid ${h ? '#bbf7d0' : '#e5e7eb'}`,
-                            borderLeft: `4px solid ${h ? '#22c55e' : '#d1d5db'}`,
-                            borderRadius: '12px', padding: '0.85rem 1.1rem',
-                            display: 'flex', alignItems: 'center', gap: '1rem'
-                          }}>
-                            <div style={{ width: '90px', flexShrink: 0 }}>
-                              <p style={{ margin: 0, fontSize: '0.87rem', fontWeight: '700', color: '#06111f' }}>{dia}</p>
-                            </div>
-                            <div style={{ flex: 1 }}>
-                              {h ? (
-                                <span style={{
-                                  display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
-                                  background: '#f0fdf4', border: '1px solid #bbf7d0',
-                                  borderRadius: '20px', padding: '0.2rem 0.75rem',
-                                  fontSize: '0.83rem', fontWeight: '700', color: '#15803d'
-                                }}>
-                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-                                  </svg>
-                                  {h.hora_inicio} – {h.hora_fin}
-                                </span>
-                              ) : (
-                                <span style={{ fontSize: '0.83rem', color: '#9ca3af', fontStyle: 'italic' }}>Sin horario</span>
-                              )}
-                            </div>
-                            <div style={{ display: 'flex', gap: '0.4rem', flexShrink: 0 }}>
-                              <button
-                                className="btn-outline-admin"
-                                onClick={() => abrirHorarioModal(idx)}
-                              >
-                                {h ? 'Editar' : 'Agregar'}
-                              </button>
-                              {h && (
-                                <button className="btn-danger" onClick={() => eliminarHorario(idx)}>
-                                  Quitar
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -1194,78 +1108,226 @@ export default function AdminDashboard() {
           : 'Sin alertas activas'}
       </button>
 
-      {/* ── Modal: Horario médico ── */}
-      {horarioModal && (
-        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setHorarioModal(null)}>
-          <div className="modal-box" style={{ maxWidth: '380px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+      {/* ── Modal: Calendario de disponibilidad ── */}
+      {calendarOpen && medicoSel && (
+        <div
+          className="modal-overlay"
+          style={{ alignItems: 'center' }}
+          onClick={e => e.target === e.currentTarget && (setCalendarOpen(false), setSlotForm(null))}
+        >
+          <div style={{
+            background: 'white',
+            width: '94vw', maxWidth: '980px',
+            height: '88vh', maxHeight: '720px',
+            borderRadius: '20px', display: 'flex', flexDirection: 'column',
+            overflow: 'hidden',
+            animation: 'modalIn 0.3s cubic-bezier(0.34,1.56,0.64,1)',
+            boxShadow: '0 32px 80px rgba(0,0,0,0.28)',
+          }}>
+
+            {/* Header oscuro STIGA */}
+            <div style={{
+              background: 'linear-gradient(135deg, #0f2318 0%, #1a3a2e 100%)',
+              padding: '1.4rem 2rem',
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              flexShrink: 0,
+            }}>
               <div>
-                <p style={{ margin: '0 0 0.15rem', fontSize: '0.72rem', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '1.2px' }}>
-                  {medicoSel?.nombre}
+                <p style={{ margin: '0 0 0.1rem', color: 'rgba(255,255,255,0.45)', fontSize: '0.7rem', fontWeight: '700', letterSpacing: '1.8px', textTransform: 'uppercase' }}>
+                  Disponibilidad semanal
                 </p>
-                <h2 style={{ margin: 0, fontSize: '1.15rem', fontWeight: '700', color: '#06111f' }}>
-                  {DIAS[horarioModal.dia]}
-                </h2>
+                <h2 style={{ margin: 0, color: 'white', fontSize: '1.15rem', fontWeight: '700' }}>{medicoSel.nombre}</h2>
+                <p style={{ margin: '0.2rem 0 0', color: 'rgba(255,255,255,0.4)', fontSize: '0.78rem' }}>
+                  {horarios.length} de 7 días configurados · Haz clic en un día vacío para agregar franja
+                </p>
               </div>
               <button
-                onClick={() => setHorarioModal(null)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', padding: '0.25rem' }}
+                onClick={() => { setCalendarOpen(false); setSlotForm(null) }}
+                style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '10px', cursor: 'pointer', padding: '0.5rem', color: 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center' }}
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                 </svg>
               </button>
             </div>
 
-            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
-              <div style={{ flex: 1 }}>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.35rem' }}>
-                  Hora inicio
-                </label>
-                <input
-                  className="modal-input"
-                  type="time"
-                  value={horarioModal.hora_inicio}
-                  onChange={e => setHorarioModal(m => ({ ...m, hora_inicio: e.target.value }))}
-                />
-              </div>
-              <div style={{ flex: 1 }}>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.35rem' }}>
-                  Hora fin
-                </label>
-                <input
-                  className="modal-input"
-                  type="time"
-                  value={horarioModal.hora_fin}
-                  onChange={e => setHorarioModal(m => ({ ...m, hora_fin: e.target.value }))}
-                />
-              </div>
+            {/* Cabecera de días */}
+            <div style={{ display: 'flex', borderBottom: '1px solid #e5e7eb', background: '#f9fafb', flexShrink: 0 }}>
+              <div style={{ width: '52px', flexShrink: 0 }} />
+              {DIAS.map((dia, idx) => {
+                const hasSlot = horarios.some(h => h.dia_semana === idx)
+                return (
+                  <div key={dia} style={{ flex: 1, padding: '0.6rem 0.25rem', textAlign: 'center', borderLeft: '1px solid #f0f0f0' }}>
+                    <p style={{ margin: 0, fontSize: '0.72rem', fontWeight: '800', color: hasSlot ? '#0f2318' : '#9ca3af', letterSpacing: '0.5px' }}>
+                      {dia.slice(0, 3).toUpperCase()}
+                    </p>
+                    {hasSlot && (
+                      <div style={{ width: '5px', height: '5px', background: '#7ac896', borderRadius: '50%', margin: '0.25rem auto 0', boxShadow: '0 0 4px #7ac89660' }} />
+                    )}
+                  </div>
+                )
+              })}
             </div>
 
-            <div style={{ display: 'flex', gap: '0.6rem' }}>
-              <button
-                onClick={() => setHorarioModal(null)}
-                style={{
-                  flex: 1, background: 'none', border: '1.5px solid #e5e7eb',
-                  borderRadius: '10px', padding: '0.7rem', fontSize: '0.88rem',
-                  fontWeight: '600', color: '#374151', cursor: 'pointer', fontFamily: 'inherit',
-                }}
-              >
-                Cancelar
-              </button>
-              <button
-                className="btn-admin"
-                disabled={savingHorario}
-                onClick={guardarHorario}
-                style={{
-                  flex: 1, justifyContent: 'center', borderRadius: '10px',
-                  padding: '0.7rem', fontSize: '0.88rem',
-                  opacity: savingHorario ? 0.6 : 1,
-                }}
-              >
-                {savingHorario ? 'Guardando...' : 'Guardar horario'}
-              </button>
+            {/* Cuerpo del calendario */}
+            <div style={{ flex: 1, overflowY: 'auto', position: 'relative' }}>
+              {loadingHorarios ? (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                  <p style={{ color: '#9ca3af', fontSize: '0.88rem' }}>Cargando horarios...</p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', height: `${(CAL_END - CAL_START) * HOUR_H}px`, minHeight: '100%' }}>
+
+                  {/* Etiquetas de hora */}
+                  <div style={{ width: '52px', flexShrink: 0, position: 'relative', background: '#fafafa', borderRight: '1px solid #f0f0f0' }}>
+                    {Array.from({ length: CAL_END - CAL_START }, (_, i) => (
+                      <div key={i} style={{ position: 'absolute', top: i * HOUR_H, width: '100%', height: HOUR_H, display: 'flex', alignItems: 'flex-start', padding: '3px 6px 0' }}>
+                        <span style={{ fontSize: '0.65rem', color: '#b0bec5', fontWeight: '600', fontVariantNumeric: 'tabular-nums' }}>
+                          {String(CAL_START + i).padStart(2,'0')}:00
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Columnas por día */}
+                  {DIAS.map((dia, idx) => {
+                    const slot    = horarios.find(h => h.dia_semana === idx)
+                    const picking = slotForm?.dia === idx && !slotForm?.isEdit
+
+                    return (
+                      <div
+                        key={dia}
+                        style={{ flex: 1, position: 'relative', borderLeft: '1px solid #f0f0f0', cursor: slot ? 'default' : 'pointer', background: picking ? 'rgba(26,58,46,0.03)' : 'transparent' }}
+                        onClick={() => { if (slot) return; setSlotForm({ dia: idx, hora_inicio: '08:00', hora_fin: '17:00', isEdit: false }) }}
+                      >
+                        {/* Líneas de hora */}
+                        {Array.from({ length: CAL_END - CAL_START }, (_, i) => (
+                          <div key={i} style={{ position: 'absolute', top: i * HOUR_H, width: '100%', borderTop: `1px solid ${i === 0 ? '#e5e7eb' : '#f5f5f5'}` }} />
+                        ))}
+
+                        {/* Bloque ocupado */}
+                        {slot && (() => {
+                          const top = toTop(slot.hora_inicio)
+                          const h   = toDur(slot.hora_inicio, slot.hora_fin)
+                          return (
+                            <div
+                              style={{
+                                position: 'absolute',
+                                top: top + 2, height: h - 4,
+                                left: 3, right: 3,
+                                background: 'linear-gradient(175deg, #0f2318 0%, #1a3a2e 60%, #2a5a44 100%)',
+                                borderRadius: '10px',
+                                border: '1px solid rgba(122,200,150,0.25)',
+                                display: 'flex', flexDirection: 'column',
+                                alignItems: 'center', justifyContent: 'center',
+                                zIndex: 2, padding: '0.4rem',
+                                cursor: 'pointer',
+                                boxShadow: '0 4px 16px rgba(15,35,24,0.35)',
+                              }}
+                              onClick={e => { e.stopPropagation(); setSlotForm({ dia: idx, hora_inicio: slot.hora_inicio, hora_fin: slot.hora_fin, isEdit: true }) }}
+                            >
+                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(122,200,150,0.7)" strokeWidth="2" style={{ marginBottom: '0.3rem', flexShrink: 0 }}>
+                                <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                              </svg>
+                              <span style={{ color: '#7ac896', fontSize: '0.68rem', fontWeight: '800', lineHeight: 1.2 }}>{slot.hora_inicio}</span>
+                              <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.6rem', margin: '1px 0' }}>—</span>
+                              <span style={{ color: '#7ac896', fontSize: '0.68rem', fontWeight: '800', lineHeight: 1.2 }}>{slot.hora_fin}</span>
+                              <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.58rem', marginTop: '0.3rem', letterSpacing: '0.5px' }}>OCUPADO</span>
+                            </div>
+                          )
+                        })()}
+
+                        {/* Día vacío — icono + */}
+                        {!slot && !picking && (
+                          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0 }}
+                            onMouseEnter={e => e.currentTarget.style.opacity = 1}
+                            onMouseLeave={e => e.currentTarget.style.opacity = 0}
+                          >
+                            <div style={{ width: '32px', height: '32px', borderRadius: '50%', border: '1.5px dashed #1a3a2e', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1a3a2e', fontSize: '1.1rem', fontWeight: '300' }}>+</div>
+                          </div>
+                        )}
+                        {!slot && !picking && (
+                          <div style={{
+                            position: 'absolute', inset: 0,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          }}>
+                            <div style={{ width: '32px', height: '32px', borderRadius: '50%', border: '1.5px dashed #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#cbd5e1', fontSize: '1.1rem' }}>+</div>
+                          </div>
+                        )}
+
+                        {/* Indicador de selección activa */}
+                        {picking && (
+                          <div style={{ position: 'absolute', inset: 0, border: '2px dashed #1a3a2e', borderRadius: '0', opacity: 0.3, pointerEvents: 'none' }} />
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
             </div>
+
+            {/* Footer: formulario de franja o leyenda */}
+            <div style={{ borderTop: '1px solid #e5e7eb', padding: '0.9rem 1.5rem', background: '#fafafa', flexShrink: 0 }}>
+              {slotForm && !slotForm.isEdit ? (
+                /* ── Formulario agregar ── */
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <div style={{ width: '8px', height: '8px', background: '#1a3a2e', borderRadius: '50%' }} />
+                    <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#06111f', minWidth: '85px' }}>{DIAS[slotForm.dia]}</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <label style={{ fontSize: '0.75rem', fontWeight: '600', color: '#6b7280' }}>Inicio</label>
+                    <input type="time" value={slotForm.hora_inicio}
+                      onChange={e => setSlotForm(f => ({ ...f, hora_inicio: e.target.value }))}
+                      style={{ border: '1.5px solid #e5e7eb', borderRadius: '8px', padding: '0.38rem 0.6rem', fontSize: '0.85rem', color: '#06111f', outline: 'none', fontFamily: 'inherit' }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <label style={{ fontSize: '0.75rem', fontWeight: '600', color: '#6b7280' }}>Fin</label>
+                    <input type="time" value={slotForm.hora_fin}
+                      onChange={e => setSlotForm(f => ({ ...f, hora_fin: e.target.value }))}
+                      style={{ border: '1.5px solid #e5e7eb', borderRadius: '8px', padding: '0.38rem 0.6rem', fontSize: '0.85rem', color: '#06111f', outline: 'none', fontFamily: 'inherit' }}
+                    />
+                  </div>
+                  <button onClick={guardarSlot} disabled={savingSlot} style={{ background: '#1a3a2e', color: 'white', border: 'none', borderRadius: '9px', padding: '0.5rem 1.25rem', fontSize: '0.85rem', fontWeight: '600', cursor: 'pointer', opacity: savingSlot ? 0.6 : 1, fontFamily: 'inherit' }}>
+                    {savingSlot ? 'Guardando...' : 'Guardar'}
+                  </button>
+                  <button onClick={() => setSlotForm(null)} style={{ background: 'none', border: '1.5px solid #e5e7eb', borderRadius: '9px', padding: '0.5rem 1rem', fontSize: '0.85rem', fontWeight: '600', color: '#374151', cursor: 'pointer', fontFamily: 'inherit' }}>
+                    Cancelar
+                  </button>
+                </div>
+              ) : slotForm?.isEdit ? (
+                /* ── Info de slot ocupado + eliminar ── */
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <div style={{ width: '8px', height: '8px', background: '#22c55e', borderRadius: '50%' }} />
+                    <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#06111f', minWidth: '85px' }}>{DIAS[slotForm.dia]}</span>
+                  </div>
+                  <span style={{ flex: 1, fontSize: '0.85rem', color: '#15803d', fontWeight: '600' }}>
+                    Horario bloqueado: {slotForm.hora_inicio} – {slotForm.hora_fin}
+                  </span>
+                  <button onClick={() => eliminarHorario(slotForm.dia)} style={{ background: 'none', border: '1.5px solid #fecaca', borderRadius: '9px', padding: '0.5rem 1rem', fontSize: '0.85rem', fontWeight: '600', color: '#b91c1c', cursor: 'pointer', fontFamily: 'inherit' }}>
+                    Eliminar franja
+                  </button>
+                  <button onClick={() => setSlotForm(null)} style={{ background: 'none', border: '1.5px solid #e5e7eb', borderRadius: '9px', padding: '0.5rem 1rem', fontSize: '0.85rem', fontWeight: '600', color: '#374151', cursor: 'pointer', fontFamily: 'inherit' }}>
+                    Cerrar
+                  </button>
+                </div>
+              ) : (
+                /* ── Leyenda ── */
+                <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <div style={{ width: '14px', height: '14px', background: 'linear-gradient(135deg,#0f2318,#1a3a2e)', borderRadius: '4px' }} />
+                    <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>Franja bloqueada — clic para ver opciones</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <div style={{ width: '14px', height: '14px', border: '1.5px dashed #cbd5e1', borderRadius: '4px' }} />
+                    <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>Día libre — clic para asignar franja</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
           </div>
         </div>
       )}
