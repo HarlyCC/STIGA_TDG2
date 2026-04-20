@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.controllers.auth_router import router as auth_router
 from app.controllers.chat_router import router as chat_router
-from app.controllers.medico_router import router as medico_router
+from app.controllers.doctor_router import router as medico_router
 from app.controllers.admin_router import router as admin_router
 from app.data.db_init import init_db
 

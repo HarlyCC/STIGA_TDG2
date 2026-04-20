@@ -5,7 +5,7 @@ import { useAuth } from './context/AuthContext'
 import ProtectedRoute from './components/shared/ProtectedRoute'
 import PageTransition from './components/shared/PageTransition'
 import AccessibilityMenu from './components/shared/AccessibilityMenu'
-import TerminosCondiciones from './components/shared/TerminosCondiciones'
+import TerminosCondiciones from './components/shared/TermsConditions'
 
 const TERMS_KEY = 'stiga_terms_accepted'
 
@@ -53,12 +53,12 @@ function LoginAccessibility() {
 import Login from './pages/Login'
 import Register from './pages/Register'
 import ForgotPassword from './pages/ForgotPassword'
-import PacienteDashboard from './pages/paciente/Dashboard'
-import PacienteChat from './pages/paciente/Chat'
-import PacienteResultados from './pages/paciente/Resultados'
-import PacienteTeleconsulta from './pages/paciente/Teleconsulta'
-import MedicoDashboard from './pages/medico/Dashboard'
-import MedicoTeleconsultas from './pages/medico/Teleconsultas'
+import PacienteDashboard from './pages/patient/Dashboard'
+import PacienteChat from './pages/patient/Chat'
+import PacienteResultados from './pages/patient/Results'
+import PacienteTeleconsulta from './pages/patient/Teleconsultation'
+import MedicoDashboard from './pages/doctor/Dashboard'
+import MedicoTeleconsultas from './pages/doctor/Teleconsultations'
 import AdminDashboard from './pages/admin/Dashboard'
 
 function AnimatedRoutes() {

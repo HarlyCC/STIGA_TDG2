@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import { useTeleconsulta } from '../../hooks/useTeleconsulta'
+import { useTeleconsulta } from '../../hooks/useTeleconsultation'
 import JitsiMeeting from '../../components/shared/JitsiMeeting'
 import AccessibilityMenu from '../../components/shared/AccessibilityMenu'
 import client from '../../api/api'
