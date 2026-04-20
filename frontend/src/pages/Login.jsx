@@ -85,7 +85,7 @@ export default function Login() {
     <div style={{
       minHeight: '100vh', display: 'flex',
       fontFamily: "'Segoe UI', -apple-system, sans-serif",
-      overflow: 'hidden'
+      overflowX: 'hidden'
     }}>
 
       <style>{`
@@ -263,7 +263,7 @@ export default function Login() {
           color: 'rgba(255,255,255,0.2)', fontSize: '0.75rem', margin: 0,
           animation: mounted ? 'fadeInLeft 0.7s ease 0.4s both' : 'none'
         }}>
-          Universidad Católica Luis Amigó · 2025
+          Universidad Católica Luis Amigó · 2026
         </p>
       </div>
 
@@ -272,7 +272,7 @@ export default function Login() {
         flex: 1, background: '#ffffff',
         display: 'flex', flexDirection: 'column',
         alignItems: 'center',
-        overflowY: 'auto', height: '100vh',
+        minHeight: '100vh',
         opacity: mounted ? 1 : 0,
         transform: mounted ? 'none' : 'translateX(20px)',
         transition: 'opacity 0.6s ease 0.1s, transform 0.6s ease 0.1s'
