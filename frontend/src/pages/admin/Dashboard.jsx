@@ -271,13 +271,58 @@ export default function AdminDashboard() {
   })()
 
   /* ── Mapa ── */
-  const mapaPoints = [
-    { id: 1, nombre: 'Buriticá',     x: 38, y: 42, nivel: '#ef4444', nivelLabel: 'Rojo',     teleconsulta: true,  count: 2 },
-    { id: 2, nombre: 'Liborina',     x: 32, y: 38, nivel: '#f97316', nivelLabel: 'Naranja',   teleconsulta: true,  count: 1 },
-    { id: 3, nombre: 'Sabanalarga',  x: 48, y: 34, nivel: '#f59e0b', nivelLabel: 'Amarillo',  teleconsulta: false, count: 1 },
-    { id: 4, nombre: 'Olaya',        x: 36, y: 50, nivel: '#22c55e', nivelLabel: 'Verde',     teleconsulta: false, count: 2 },
-    { id: 5, nombre: 'Sta. Fe Ant.', x: 42, y: 57, nivel: '#f97316', nivelLabel: 'Naranja',   teleconsulta: true,  count: 1 },
-  ]
+  const MUNICIPIO_COORDS = {
+    'Buriticá':                { x: 38, y: 42 },
+    'Liborina':                { x: 32, y: 38 },
+    'Sabanalarga':             { x: 48, y: 34 },
+    'Olaya':                   { x: 36, y: 50 },
+    'Santa Fe de Antioquia':   { x: 42, y: 57 },
+    'Sta. Fe Ant.':            { x: 42, y: 57 },
+    'Sopetrán':                { x: 48, y: 55 },
+    'San Jerónimo':            { x: 53, y: 58 },
+    'Heliconia':               { x: 56, y: 63 },
+    'Ebéjico':                 { x: 48, y: 65 },
+    'Armenia':                 { x: 35, y: 63 },
+    'Anzá':                    { x: 40, y: 70 },
+    'Caicedo':                 { x: 28, y: 55 },
+    'Cañasgordas':             { x: 25, y: 48 },
+    'Dabeiba':                 { x: 20, y: 38 },
+    'Giraldo':                 { x: 30, y: 45 },
+    'Peque':                   { x: 30, y: 32 },
+    'Medellín':                { x: 65, y: 62 },
+    'Bello':                   { x: 63, y: 55 },
+    'Itagüí':                  { x: 65, y: 67 },
+  }
+  const NIVEL_PRIORITY = { Verde: 1, Amarillo: 2, Naranja: 3, Rojo: 4 }
+  const NIVEL_DOT      = { Verde: '#22c55e', Amarillo: '#f59e0b', Naranja: '#f97316', Rojo: '#ef4444' }
+
+  const mapaPoints = (() => {
+    const grouped = {}
+    triajes.forEach(t => {
+      const ciudad = t.municipio && t.municipio !== '—' ? t.municipio : null
+      if (!ciudad) return
+      if (!grouped[ciudad]) grouped[ciudad] = { count: 0, worstLabel: 'Verde', worstPriority: 1 }
+      grouped[ciudad].count++
+      const priority = NIVEL_PRIORITY[t.nivel?.label] || 1
+      if (priority > grouped[ciudad].worstPriority) {
+        grouped[ciudad].worstLabel    = t.nivel?.label || 'Verde'
+        grouped[ciudad].worstPriority = priority
+      }
+    })
+    return Object.entries(grouped).map(([nombre, data], i) => {
+      const coords = MUNICIPIO_COORDS[nombre] || { x: 35 + (i % 5) * 7, y: 44 + Math.floor(i / 5) * 8 }
+      return {
+        id:         i + 1,
+        nombre,
+        x:          coords.x,
+        y:          coords.y,
+        nivel:      NIVEL_DOT[data.worstLabel] || '#22c55e',
+        nivelLabel: data.worstLabel,
+        teleconsulta: false,
+        count:      data.count,
+      }
+    })
+  })()
 
   const getTooltipPos = (p) => {
     const tx = Math.max(2, Math.min(p.x - 15, 65))
