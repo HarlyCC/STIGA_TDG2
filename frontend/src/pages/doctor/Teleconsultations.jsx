@@ -2,34 +2,30 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import AccessibilityMenu from '../../components/shared/AccessibilityMenu'
+import client from '../../api/api'
 
-const STORAGE_KEY = 'stiga_citas'
-const DISP_KEY = 'stiga_disponibilidad'
-
-function getCitas() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]') } catch { return [] }
+const NIVEL_CFG = {
+  Verde:    { label: 'Verde',    color: '#15803d', bg: '#f0fdf4', dot: '#22c55e' },
+  Amarillo: { label: 'Amarillo', color: '#854d0e', bg: '#fefce8', dot: '#eab308' },
+  Naranja:  { label: 'Naranja',  color: '#9a3412', bg: '#fff7ed', dot: '#f97316' },
+  Rojo:     { label: 'Rojo',     color: '#991b1b', bg: '#fef2f2', dot: '#ef4444' },
 }
-function saveCitas(arr) { localStorage.setItem(STORAGE_KEY, JSON.stringify(arr)) }
-function getDisp() {
-  try { return JSON.parse(localStorage.getItem(DISP_KEY) || '{}') } catch { return {} }
-}
-function saveDisp(obj) { localStorage.setItem(DISP_KEY, JSON.stringify(obj)) }
 
-const ALL_SLOTS = ['08:00', '09:00', '10:00', '11:00', '12:00', '14:00', '15:00', '16:00', '17:00']
-
-function getWeekdays() {
-  const days = []
-  const d = new Date()
-  d.setDate(d.getDate() + 1)
-  while (days.length < 7) {
-    if (d.getDay() !== 0 && d.getDay() !== 6) days.push(new Date(d))
-    d.setDate(d.getDate() + 1)
+function normalizeCita(c) {
+  return {
+    id: c.id,
+    pacienteNombre: c.paciente_nombre || c.paciente_email,
+    status: c.status,
+    fechaSolicitadaISO: c.fecha_solicitada,
+    horaSlot: c.hora_solicitada,
+    fechaConfirmadaISO: c.fecha_confirmada,
+    horaConfirmada: c.hora_confirmada,
+    triaje: c.triage_color ? {
+      nivel: NIVEL_CFG[c.triage_color] ?? null,
+      sintomas: c.triaje_sintomas || '',
+      fecha: c.triaje_fecha ? c.triaje_fecha.split('T')[0] : '',
+    } : null,
   }
-  return days
-}
-
-function dateKey(date) {
-  return date.toISOString().split('T')[0]
 }
 
 function formatDateLong(isoStr) {
@@ -37,31 +33,27 @@ function formatDateLong(isoStr) {
   return new Date(isoStr).toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' })
 }
 
-function formatDateShort(date) {
-  return date.toLocaleDateString('es-CO', { weekday: 'short', day: 'numeric', month: 'short' })
-}
-
 export default function MedicoTeleconsultas() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [mounted, setMounted] = useState(false)
-  const [citas, setCitas] = useState(getCitas)
-  const [disp, setDisp] = useState(getDisp)
+  const [citas, setCitas] = useState([])
+  const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState('pendientes')
   const [aceptandoId, setAceptandoId] = useState(null)
-  const [selDate, setSelDate] = useState(null)
-  const [selSlot, setSelSlot] = useState(null)
-  const [calTab, setCalTab] = useState('calendario')
-  const weekdays = getWeekdays()
+  const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => { setTimeout(() => setMounted(true), 100) }, [])
 
-  // Sync from localStorage every time tab becomes active
-  const refresh = useCallback(() => {
-    setCitas(getCitas())
-    setDisp(getDisp())
+  const loadCitas = useCallback(() => {
+    setLoading(true)
+    client.get('/medico/citas')
+      .then(({ data }) => setCitas(data.map(normalizeCita)))
+      .catch(() => {})
+      .finally(() => setLoading(false))
   }, [])
-  useEffect(() => { refresh() }, [tab, refresh])
+
+  useEffect(() => { loadCitas() }, [loadCitas])
 
   const handleLogout = () => { logout(); navigate('/login') }
 
@@ -69,52 +61,23 @@ export default function MedicoTeleconsultas() {
   const confirmadas = citas.filter(c => c.status === 'confirmada')
   const rechazadas = citas.filter(c => c.status === 'rechazada')
 
-  /* ── Disponibilidad ── */
-  const toggleSlot = (dk, slot) => {
-    const cur = disp[dk] || []
-    const next = cur.includes(slot) ? cur.filter(s => s !== slot) : [...cur, slot]
-    const updated = { ...disp, [dk]: next }
-    setDisp(updated)
-    saveDisp(updated)
-  }
-  const slotAvailable = (dk, slot) => (disp[dk] || []).includes(slot)
+  const handleAbrirAceptar = (id) => setAceptandoId(id)
+  const handleCancelarAceptar = () => setAceptandoId(null)
 
-  /* ── Aceptar ── */
-  const handleAbrirAceptar = (id) => {
-    setAceptandoId(id)
-    setSelDate(null)
-    setSelSlot(null)
+  const handleConfirmarAceptar = async (id) => {
+    setSubmitting(true)
+    try {
+      await client.put(`/medico/citas/${id}/status`, { status: 'confirmada' })
+      loadCitas()
+      setAceptandoId(null)
+    } finally {
+      setSubmitting(false)
+    }
   }
 
-  const handleCancelarAceptar = () => {
-    setAceptandoId(null)
-    setSelDate(null)
-    setSelSlot(null)
-  }
-
-  const slotsForDate = (date) => {
-    if (!date) return []
-    const dk = dateKey(date)
-    return ALL_SLOTS.filter(s => (disp[dk] || []).includes(s))
-  }
-
-  const handleConfirmarAceptar = (id) => {
-    const updated = citas.map(c =>
-      c.id === id
-        ? { ...c, status: 'confirmada', fechaConfirmadaISO: selDate?.toISOString(), horaConfirmada: selSlot }
-        : c
-    )
-    saveCitas(updated)
-    setCitas(updated)
-    setAceptandoId(null)
-    setSelDate(null)
-    setSelSlot(null)
-  }
-
-  const handleRechazar = (id) => {
-    const updated = citas.map(c => c.id === id ? { ...c, status: 'rechazada' } : c)
-    saveCitas(updated)
-    setCitas(updated)
+  const handleRechazar = async (id) => {
+    await client.put(`/medico/citas/${id}/status`, { status: 'rechazada' })
+    loadCitas()
   }
 
   const nivelBadge = (nivel) => {
@@ -132,6 +95,7 @@ export default function MedicoTeleconsultas() {
 
   const tabCounts = { pendientes: pendientes.length, confirmadas: confirmadas.length, rechazadas: rechazadas.length }
   const currentList = tab === 'pendientes' ? pendientes : tab === 'confirmadas' ? confirmadas : rechazadas
+
 
   return (
     <div style={{
@@ -393,7 +357,7 @@ export default function MedicoTeleconsultas() {
 
         {/* Layout 2 columnas */}
         <div style={{
-          display: 'grid', gridTemplateColumns: '1fr 380px',
+          display: 'grid', gridTemplateColumns: '1fr',
           gap: '1.25rem', alignItems: 'start',
           animation: mounted ? 'fadeInUp 0.5s ease 0.2s both' : 'none',
         }}>
@@ -425,7 +389,11 @@ export default function MedicoTeleconsultas() {
 
             {/* Lista */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {currentList.length === 0 ? (
+              {loading ? (
+                <p style={{ textAlign: 'center', color: '#aabcb0', fontSize: '0.9rem', padding: '3rem 0' }}>
+                  Cargando citas…
+                </p>
+              ) : currentList.length === 0 ? (
                 <div style={{
                   background: 'white', border: '1px solid #edf0ec',
                   borderRadius: '14px', padding: '3rem',
@@ -442,7 +410,8 @@ export default function MedicoTeleconsultas() {
                       : 'No hay solicitudes rechazadas.'}
                   </p>
                 </div>
-              ) : currentList.map(cita => (
+              ) : null}
+              {!loading && currentList.map(cita => (
                 <div key={cita.id} className="cita-card"
                   style={{ borderLeft: `4px solid ${cita.triaje?.nivel?.dot ?? '#aabcb0'}` }}>
                   {/* Cabecera */}
@@ -537,82 +506,19 @@ export default function MedicoTeleconsultas() {
                   {cita.status === 'pendiente' && aceptandoId === cita.id && (
                     <div style={{
                       margin: '0 1.25rem 1.1rem',
-                      background: '#f8fafb', borderRadius: '12px',
-                      border: '1px solid #e2e8ee', padding: '1.1rem',
+                      background: '#f0fdf4', borderRadius: '12px',
+                      border: '1px solid #bbf7d0', padding: '1rem 1.25rem',
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap',
                     }}>
-                      <p style={{ margin: '0 0 0.75rem', fontSize: '0.78rem', fontWeight: '700', color: '#3a4a3e', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
-                        Asignar fecha y hora
+                      <p style={{ margin: 0, fontSize: '0.84rem', color: '#15803d', fontWeight: '600' }}>
+                        Confirmar para {formatDateLong(cita.fechaSolicitadaISO)} a las {cita.horaSlot}
                       </p>
-
-                      {/* Selector de fecha */}
-                      <div style={{ display: 'flex', gap: '0.35rem', marginBottom: '0.85rem', flexWrap: 'wrap' }}>
-                        {weekdays.map((d, i) => {
-                          const dk = dateKey(d)
-                          const hasSlots = (disp[dk] || []).length > 0
-                          const isSel = selDate?.getTime() === d.getTime()
-                          return (
-                            <button
-                              key={i}
-                              className={`date-chip ${isSel ? 'selected' : ''}`}
-                              disabled={!hasSlots}
-                              onClick={() => { setSelDate(d); setSelSlot(null) }}
-                              title={!hasSlots ? 'Sin horarios disponibles' : undefined}
-                            >
-                              <span style={{
-                                fontSize: '0.65rem', fontWeight: '600', textTransform: 'uppercase',
-                                color: isSel ? 'rgba(255,255,255,0.6)' : hasSlots ? '#3d7a5a' : '#aabcb0',
-                              }}>
-                                {d.toLocaleDateString('es-CO', { weekday: 'short' })}
-                              </span>
-                              <span style={{
-                                fontSize: '1rem', fontWeight: '800',
-                                color: isSel ? 'white' : hasSlots ? '#0f2318' : '#c8d8cc',
-                              }}>
-                                {d.getDate()}
-                              </span>
-                              <span style={{
-                                fontSize: '0.62rem',
-                                color: isSel ? 'rgba(255,255,255,0.5)' : '#aabcb0',
-                              }}>
-                                {d.toLocaleDateString('es-CO', { month: 'short' })}
-                              </span>
-                            </button>
-                          )
-                        })}
-                      </div>
-
-                      {/* Selector de hora */}
-                      {selDate && (
-                        <div style={{ marginBottom: '0.85rem' }}>
-                          <p style={{ margin: '0 0 0.5rem', fontSize: '0.72rem', fontWeight: '600', color: '#7a9080' }}>
-                            Horarios disponibles para {formatDateShort(selDate)}
-                          </p>
-                          <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-                            {slotsForDate(selDate).map(s => (
-                              <button
-                                key={s}
-                                className={`slot-chip ${selSlot === s ? 'sel-avail' : 'avail'}`}
-                                onClick={() => setSelSlot(s)}
-                              >
-                                {s}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {!selDate && (
-                        <p style={{ margin: '0 0 0.85rem', fontSize: '0.8rem', color: '#aabcb0', fontStyle: 'italic' }}>
-                          Selecciona una fecha con horarios disponibles (configúralos en el calendario).
-                        </p>
-                      )}
-
-                      <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
                         <button
                           onClick={handleCancelarAceptar}
                           style={{
-                            background: 'none', border: '1.5px solid #e2e8ee', borderRadius: '8px',
-                            padding: '0.45rem 0.9rem', fontSize: '0.82rem', fontWeight: '600',
+                            background: 'none', border: '1.5px solid #d0dcd4', borderRadius: '8px',
+                            padding: '0.4rem 0.85rem', fontSize: '0.82rem', fontWeight: '600',
                             color: '#3a4a3e', cursor: 'pointer', fontFamily: 'inherit',
                           }}
                         >
@@ -620,8 +526,8 @@ export default function MedicoTeleconsultas() {
                         </button>
                         <button
                           className="btn-accept"
-                          disabled={!selDate || !selSlot}
-                          style={{ opacity: (!selDate || !selSlot) ? 0.4 : 1, cursor: (!selDate || !selSlot) ? 'not-allowed' : 'pointer' }}
+                          disabled={submitting}
+                          style={{ opacity: submitting ? 0.6 : 1 }}
                           onClick={() => handleConfirmarAceptar(cita.id)}
                         >
                           Confirmar cita
@@ -634,84 +540,6 @@ export default function MedicoTeleconsultas() {
             </div>
           </div>
 
-          {/* ── Columna derecha: disponibilidad ── */}
-          <div style={{
-            background: 'white', borderRadius: '16px',
-            border: '1px solid #edf0ec', overflow: 'hidden',
-            position: 'sticky', top: 0,
-          }}>
-            {/* Header columna */}
-            <div style={{
-              background: 'linear-gradient(135deg, #0f2318, #1a3a2e)',
-              padding: '1.1rem 1.25rem',
-            }}>
-              <p style={{ margin: '0 0 0.15rem', fontSize: '0.75rem', fontWeight: '700', color: '#7ac896', textTransform: 'uppercase', letterSpacing: '1.5px' }}>
-                Mi disponibilidad
-              </p>
-              <p style={{ margin: 0, color: 'rgba(255,255,255,0.5)', fontSize: '0.8rem' }}>
-                Marca los bloques en que puedes atender
-              </p>
-            </div>
-
-            <div style={{ padding: '1.1rem' }}>
-              {/* Instrucción */}
-              <div style={{
-                display: 'flex', gap: '0.5rem', alignItems: 'flex-start',
-                padding: '0.65rem 0.85rem', background: '#f0fdf4',
-                borderRadius: '8px', border: '1px solid #bbf7d0', marginBottom: '1rem',
-              }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#15803d" strokeWidth="2" style={{ flexShrink: 0, marginTop: '1px' }}>
-                  <circle cx="12" cy="12" r="10"/>
-                  <line x1="12" y1="8" x2="12" y2="12"/>
-                  <line x1="12" y1="16" x2="12.01" y2="16"/>
-                </svg>
-                <p style={{ margin: 0, color: '#15803d', fontSize: '0.77rem', lineHeight: 1.4 }}>
-                  Haz clic en un horario para marcarlo disponible. Usa estos bloques al aceptar una solicitud.
-                </p>
-              </div>
-
-              {/* Días y slots */}
-              {weekdays.slice(0, 5).map((d, di) => {
-                const dk = dateKey(d)
-                const avail = disp[dk] || []
-                return (
-                  <div key={di} style={{ marginBottom: di < 4 ? '0.9rem' : 0 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-                      <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: '700', color: '#0f2318' }}>
-                        {d.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric' })}
-                      </p>
-                      {avail.length > 0 && (
-                        <span style={{
-                          fontSize: '0.67rem', fontWeight: '700',
-                          background: '#f0fdf4', color: '#15803d',
-                          padding: '0.1rem 0.45rem', borderRadius: '8px',
-                          border: '1px solid #bbf7d0',
-                        }}>
-                          {avail.length} disp.
-                        </span>
-                      )}
-                    </div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
-                      {ALL_SLOTS.map(s => {
-                        const isAvail = avail.includes(s)
-                        return (
-                          <button
-                            key={s}
-                            className={`slot-chip ${isAvail ? 'avail' : ''}`}
-                            onClick={() => toggleSlot(dk, s)}
-                            title={isAvail ? 'Marcar no disponible' : 'Marcar disponible'}
-                          >
-                            {s}
-                          </button>
-                        )
-                      })}
-                    </div>
-                    {di < 4 && <div style={{ height: '1px', background: '#f0f4f2', marginTop: '0.9rem' }} />}
-                  </div>
-                )
-              })}
-            </div>
-          </div>
 
         </div>
       </main>

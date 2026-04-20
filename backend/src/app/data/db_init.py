@@ -124,4 +124,14 @@ def init_db():
                 conn.execute(col_def)
             except Exception:
                 pass
+        # Migración: médico asignado y fecha de confirmación en citas
+        for col_def in [
+            "ALTER TABLE citas ADD COLUMN medico_email TEXT",
+            "ALTER TABLE citas ADD COLUMN fecha_confirmada TEXT",
+            "ALTER TABLE citas ADD COLUMN hora_confirmada TEXT",
+        ]:
+            try:
+                conn.execute(col_def)
+            except Exception:
+                pass
     logger.info("Base de datos inicializada | tablas: users, triage_records, medico_horarios, citas")

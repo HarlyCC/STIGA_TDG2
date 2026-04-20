@@ -73,7 +73,7 @@ export default function PacienteTeleconsulta() {
 
   const handleLogout = () => { logout(); navigate('/login') }
 
-  const doctor = { nombre: 'Médico STIGA', especialidad: 'Medicina general', iniciales: 'ST' }
+  const doctor = { nombre: 'Pendiente de asignación', especialidad: 'Un médico revisará tu solicitud pronto', iniciales: '?' }
 
   const getWeekdays = () => {
     const days = []

@@ -207,3 +207,59 @@ def my_appointments(current_user: dict = Depends(get_current_user)):
     return [dict(r) for r in rows]
 
 
+@router.get("/citas")
+def list_appointments(medico: dict = Depends(require_medico)):
+    """
+    Returns all pending appointments (unassigned) plus appointments
+    already accepted by this doctor, with patient name and triage info.
+    """
+    with get_conn() as conn:
+        rows = conn.execute(
+            """SELECT c.*,
+                      u.nombre  AS paciente_nombre,
+                      t.triage_color    AS triage_color,
+                      t.symptoms        AS triaje_sintomas,
+                      t.timestamp       AS triaje_fecha
+               FROM citas c
+               LEFT JOIN users          u ON u.email = c.paciente_email
+               LEFT JOIN triage_records t ON t.id    = c.triaje_id
+               WHERE c.status = 'pendiente' OR c.medico_email = ?
+               ORDER BY c.creado_en DESC""",
+            (medico["email"],),
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+class StatusUpdate(BaseModel):
+    status: str  # 'confirmada' | 'rechazada'
+
+
+@router.put("/citas/{cita_id}/status")
+def update_appointment_status(
+    cita_id: int,
+    body: StatusUpdate,
+    medico: dict = Depends(require_medico),
+):
+    """Doctor accepts or rejects a pending appointment."""
+    if body.status not in ("confirmada", "rechazada"):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="status must be 'confirmada' or 'rechazada'.",
+        )
+    with get_conn() as conn:
+        cita = conn.execute("SELECT * FROM citas WHERE id = ?", (cita_id,)).fetchone()
+    if not cita:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Appointment not found.")
+    if dict(cita)["status"] != "pendiente":
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Only pending appointments can be updated.")
+
+    medico_email = medico["email"] if body.status == "confirmada" else None
+    with get_conn() as conn:
+        conn.execute(
+            "UPDATE citas SET status = ?, medico_email = ? WHERE id = ?",
+            (body.status, medico_email, cita_id),
+        )
+    logger.info(f"Cita {cita_id} → {body.status} | médico: {medico['email']}")
+    return {"id": cita_id, "status": body.status}
+
+
