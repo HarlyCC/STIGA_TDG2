@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 
 const STORAGE_KEY = 'stiga_meeting'
 
-export function useTeleconsulta() {
+export function useTeleconsultation() {
   const [meeting, setMeeting] = useState(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY)

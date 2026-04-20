@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import { useTeleconsulta } from '../../hooks/useTeleconsultation'
+import { useTeleconsultation } from '../../hooks/useTeleconsultation'
 import JitsiMeeting from '../../components/shared/JitsiMeeting'
 import AccessibilityMenu from '../../components/shared/AccessibilityMenu'
 import client from '../../api/api'
@@ -48,7 +48,7 @@ export default function MedicoDashboard() {
   const [activePaciente, setActivePaciente] = useState(null)
   const [pacientes, setPacientes] = useState([])
   const [loadingData, setLoadingData] = useState(true)
-  const { meeting, createRoom, closeRoom } = useTeleconsulta()
+  const { meeting, createRoom, closeRoom } = useTeleconsultation()
 
   useEffect(() => {
     setTimeout(() => setMounted(true), 100)

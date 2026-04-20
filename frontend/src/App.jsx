@@ -5,7 +5,7 @@ import { useAuth } from './context/AuthContext'
 import ProtectedRoute from './components/shared/ProtectedRoute'
 import PageTransition from './components/shared/PageTransition'
 import AccessibilityMenu from './components/shared/AccessibilityMenu'
-import TerminosCondiciones from './components/shared/TermsConditions'
+import TermsConditions from './components/shared/TermsConditions'
 
 const TERMS_KEY = 'stiga_terms_accepted'
 
@@ -38,7 +38,7 @@ function TerminosWrapper({ children }) {
     <>
       {children}
       {showTerminos && (
-        <TerminosCondiciones onAceptar={handleAceptar} onRechazar={handleRechazar} />
+        <TermsConditions onAceptar={handleAceptar} onRechazar={handleRechazar} />
       )}
     </>
   )

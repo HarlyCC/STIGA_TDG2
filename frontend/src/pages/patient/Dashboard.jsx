@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import { useTeleconsulta } from '../../hooks/useTeleconsultation'
+import { useTeleconsultation } from '../../hooks/useTeleconsultation'
 import JitsiMeeting from '../../components/shared/JitsiMeeting'
 import AccessibilityMenu from '../../components/shared/AccessibilityMenu'
 import client from '../../api/api'
@@ -15,7 +15,7 @@ export default function PacienteDashboard() {
   const [showMeeting, setShowMeeting] = useState(false)
   const [countdown, setCountdown] = useState(60)
   const [triajes, setTriajes] = useState([])
-  const { meeting, closeRoom } = useTeleconsulta()
+  const { meeting, closeRoom } = useTeleconsultation()
 
   const tips = [
     'Tomar entre 6 y 8 vasos de agua al día ayuda a prevenir infecciones y mejora la circulación.',
