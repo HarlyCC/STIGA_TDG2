@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timezone
+from datetime import date as date_type, datetime, timedelta, timezone
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
@@ -110,6 +110,66 @@ def get_schedule(medico: dict = Depends(require_medico)):
         ).fetchall()
 
     return [dict(r) for r in rows]
+
+
+# ── Disponibilidad pública para pacientes ────────────────────────────────────
+
+@router.get("/disponibilidad")
+def get_availability(fecha: str, current_user: dict = Depends(get_current_user)):
+    """
+    Returns available 1-hour slots for a given date based on all doctors' schedules.
+    Slots already taken by existing appointments are marked unavailable.
+    fecha: YYYY-MM-DD
+    """
+    try:
+        date_obj = date_type.fromisoformat(fecha)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Invalid date format. Use YYYY-MM-DD.",
+        )
+
+    if date_obj < date_type.today():
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Date cannot be in the past.",
+        )
+
+    # weekday(): 0=Monday … 6=Sunday — matches medico_horarios.dia_semana convention
+    dia_semana = date_obj.weekday()
+
+    with get_conn() as conn:
+        horarios = conn.execute(
+            "SELECT hora_inicio, hora_fin FROM medico_horarios WHERE dia_semana = ?",
+            (dia_semana,),
+        ).fetchall()
+
+    if not horarios:
+        return []
+
+    # Union of all 1-hour slots across every doctor that works that day
+    all_slots: set[str] = set()
+    for h in horarios:
+        start = datetime.strptime(h["hora_inicio"], "%H:%M")
+        end   = datetime.strptime(h["hora_fin"],   "%H:%M")
+        cur   = start
+        while cur < end:
+            all_slots.add(cur.strftime("%H:%M"))
+            cur += timedelta(hours=1)
+
+    # Mark slots that already have a pending/confirmed appointment that day
+    with get_conn() as conn:
+        taken_rows = conn.execute(
+            "SELECT hora_solicitada FROM citas WHERE fecha_solicitada = ? AND status != 'cancelada'",
+            (fecha,),
+        ).fetchall()
+
+    occupied = {r["hora_solicitada"] for r in taken_rows}
+
+    return [
+        {"hora": slot, "disponible": slot not in occupied}
+        for slot in sorted(all_slots)
+    ]
 
 
 # ── Citas (solicitudes de teleconsulta) ───────────────────────────────────────

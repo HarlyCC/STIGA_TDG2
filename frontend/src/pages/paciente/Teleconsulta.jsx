@@ -16,6 +16,8 @@ export default function PacienteTeleconsulta() {
   const [triajes, setTriajes] = useState([])
   const [loadingTriajes, setLoadingTriajes] = useState(true)
   const [confirming, setConfirming] = useState(false)
+  const [slots, setSlots] = useState([])
+  const [loadingSlots, setLoadingSlots] = useState(false)
 
   const NIVEL_CFG = {
     Verde:    { label: 'Verde',    color: '#15803d', bg: '#f0fdf4', border: '#bbf7d0', dot: '#22c55e' },
@@ -41,6 +43,18 @@ export default function PacienteTeleconsulta() {
       setConfirming(false)
     }
   }
+
+  useEffect(() => {
+    if (!selectedDate) return
+    setLoadingSlots(true)
+    setSlots([])
+    setSelectedSlot(null)
+    const fecha = selectedDate.toISOString().split('T')[0]
+    client.get(`/medico/disponibilidad?fecha=${fecha}`)
+      .then(({ data }) => setSlots(data))
+      .catch(() => setSlots([]))
+      .finally(() => setLoadingSlots(false))
+  }, [selectedDate])
 
   useEffect(() => {
     setTimeout(() => setMounted(true), 100)
@@ -72,17 +86,6 @@ export default function PacienteTeleconsulta() {
     return days
   }
   const weekdays = getWeekdays()
-
-  const slots = [
-    { hora: '09:00', disponible: true  },
-    { hora: '10:00', disponible: false },
-    { hora: '11:00', disponible: true  },
-    { hora: '12:00', disponible: false },
-    { hora: '14:00', disponible: true  },
-    { hora: '15:00', disponible: true  },
-    { hora: '16:00', disponible: false },
-    { hora: '17:00', disponible: true  },
-  ]
 
   const formatDate = (date) =>
     date?.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' }) ?? ''
@@ -494,7 +497,7 @@ export default function PacienteTeleconsulta() {
                   <button
                     key={i}
                     className={`date-btn ${selectedDate?.getTime() === d.getTime() ? 'selected' : ''}`}
-                    onClick={() => { setSelectedDate(d); setSelectedSlot(null) }}
+                    onClick={() => setSelectedDate(d)}
                   >
                     <span style={{
                       fontSize: '0.7rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px',
@@ -530,6 +533,16 @@ export default function PacienteTeleconsulta() {
               <p style={{ margin: '0 0 1rem', fontSize: '0.78rem', fontWeight: '700', color: '#3a4a3e', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
                 Horarios disponibles
               </p>
+              {loadingSlots && (
+                <p style={{ textAlign: 'center', color: '#aabcb0', fontSize: '0.85rem', padding: '0.5rem 0' }}>
+                  Cargando horarios…
+                </p>
+              )}
+              {!loadingSlots && selectedDate && slots.length === 0 && (
+                <p style={{ textAlign: 'center', color: '#aabcb0', fontSize: '0.85rem', padding: '0.5rem 0' }}>
+                  No hay horarios disponibles para este día.
+                </p>
+              )}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.5rem' }}>
                 {slots.map(s => (
                   <button
