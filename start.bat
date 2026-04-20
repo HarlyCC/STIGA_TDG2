@@ -8,7 +8,7 @@ echo  ==========================================
 echo.
 
 :: Backend
-start "STIGA Backend" cmd /k "cd /d %~dp0backend && C:\Users\harly\AppData\Local\Programs\Python\Python313\python.exe main.py"
+start "STIGA Backend" cmd /k "cd /d %~dp0backend && python main.py"
 
 :: Espera 3 segundos para que el backend levante
 timeout /t 3 /nobreak >nul
