@@ -13,58 +13,18 @@ export default function AdminDashboard() {
   const [tipCollapsed, setTipCollapsed] = useState(false)
 
   /* ── Data como estado ── */
-  const [alertas, setAlertas] = useState([
-    { id: 1, tipo: 'crítico',    color: '#b91c1c', bg: '#fef2f2', border: '#fecaca',
-      titulo: 'Triaje sin atender — Nivel Rojo',
-      desc: 'Juan Pérez (Buriticá) lleva 2 horas sin respuesta médica.', hora: 'Hace 2 horas' },
-    { id: 2, tipo: 'advertencia', color: '#b45309', bg: '#fffbeb', border: '#fde68a',
-      titulo: 'Latencia elevada en el modelo IA',
-      desc: 'El tiempo de respuesta de Gemma supera los 8 segundos.', hora: 'Hace 35 min' },
-    { id: 3, tipo: 'info',        color: '#1a5f8a', bg: '#eff6ff', border: '#bfdbfe',
-      titulo: 'Nuevo médico registrado',
-      desc: 'Dr. Camilo Restrepo fue añadido al sistema — pendiente de aprobación.', hora: 'Hace 1 hora' },
-  ])
-
-  const [usuarios, setUsuarios] = useState([
-    { id: 1, nombre: 'Juan Pérez',          rol: 'Paciente', municipio: 'Buriticá',     correo: 'juan.perez@example.com',      estado: 'activo',    triajes: 3 },
-    { id: 2, nombre: 'Dra. María López',    rol: 'Médico',   municipio: 'Sta. Fe Ant.', correo: 'maria.lopez@example.com',     estado: 'activo',    triajes: 0 },
-    { id: 3, nombre: 'Rosa Cardona',        rol: 'Paciente', municipio: 'Liborina',     correo: 'rosa.cardona@example.com',    estado: 'activo',    triajes: 5 },
-    { id: 4, nombre: 'Dr. Camilo Restrepo', rol: 'Médico',   municipio: 'Olaya',        correo: 'camilo.restrepo@example.com', estado: 'pendiente', triajes: 0 },
-    { id: 5, nombre: 'Carlos Múnera',       rol: 'Paciente', municipio: 'Sabanalarga',  correo: 'carlos.munera@example.com',   estado: 'activo',    triajes: 1 },
-    { id: 6, nombre: 'Amparo Gil',          rol: 'Paciente', municipio: 'Olaya',        correo: 'amparo.gil@example.com',      estado: 'inactivo',  triajes: 2 },
-  ])
-
-  const [triajes, setTriajes] = useState([
-    { id: 1, paciente: 'Juan Pérez',    municipio: 'Buriticá',    fecha: 'Hoy 08:14',
-      nivel: { label: 'Rojo',     color: '#b91c1c', bg: '#fef2f2', dot: '#ef4444' },
-      medico: 'Sin asignar',      teleconsulta: true,  edad: 58,
-      sintomas: 'Dolor en el pecho, dificultad para respirar, sudoración fría.',
-      motivo: 'Consulta urgente por dolor torácico de 3 horas de evolución sin mejora.' },
-    { id: 2, paciente: 'Rosa Cardona',  municipio: 'Liborina',    fecha: 'Hoy 09:30',
-      nivel: { label: 'Naranja',  color: '#c2410c', bg: '#fff7ed', dot: '#f97316' },
-      medico: 'Dra. María López', teleconsulta: true,  edad: 42,
-      sintomas: 'Dolor abdominal severo en cuadrante inferior derecho, náuseas, vómito.',
-      motivo: 'Dolor abdominal de inicio súbito hace 5 horas.' },
-    { id: 3, paciente: 'Carlos Múnera', municipio: 'Sabanalarga', fecha: 'Hoy 11:05',
-      nivel: { label: 'Amarillo', color: '#b45309', bg: '#fef3c7', dot: '#f59e0b' },
-      medico: 'Dra. María López', teleconsulta: false, edad: 29,
-      sintomas: 'Fiebre 38 °C, dolor de cabeza, malestar general, fatiga.',
-      motivo: 'Síndrome gripal de 2 días de evolución.' },
-    { id: 4, paciente: 'Amparo Gil',    municipio: 'Olaya',       fecha: 'Ayer 14:22',
-      nivel: { label: 'Verde',    color: '#15803d', bg: '#f0fdf4', dot: '#22c55e' },
-      medico: 'Dra. María López', teleconsulta: false, edad: 67,
-      sintomas: 'Tos leve, congestión nasal, malestar general.',
-      motivo: 'Control de resfriado común, sin complicaciones.' },
-    { id: 5, paciente: 'Luis Ríos',     municipio: 'Buriticá',    fecha: 'Ayer 16:47',
-      nivel: { label: 'Naranja',  color: '#c2410c', bg: '#fff7ed', dot: '#f97316' },
-      medico: 'Sin asignar',      teleconsulta: true,  edad: 45,
-      sintomas: 'Mareo intenso, náuseas persistentes, visión borrosa.',
-      motivo: 'Episodio vertiginoso con náuseas que no ceden en 4 horas.' },
-  ])
+  const [alertas, setAlertas]         = useState([])
+  const [usuarios, setUsuarios]       = useState([])
+  const [triajes, setTriajes]         = useState([])
+  const [estadisticas, setEstadisticas] = useState(null)
+  const [loadingUsuarios, setLoadingUsuarios] = useState(false)
+  const [loadingTriajes, setLoadingTriajes]   = useState(false)
 
   /* ── Modales ── */
   const [showNuevoUsuario, setShowNuevoUsuario] = useState(false)
-  const [nuevoForm, setNuevoForm] = useState({ nombre: '', rol: 'Paciente', municipio: '', correo: '' })
+  const [nuevoForm, setNuevoForm] = useState({ nombre: '', role: 'medico', ciudad: '', email: '', password: '' })
+  const [nuevoError, setNuevoError]   = useState('')
+  const [savingUsuario, setSavingUsuario] = useState(false)
   const [detalleTriaje, setDetalleTriaje] = useState(null)
 
   /* ── Filtros ── */
@@ -74,24 +34,64 @@ export default function AdminDashboard() {
   const [filtroNivel, setFiltroNivel] = useState('todos')
 
   /* ── Horarios ── */
-  const DIAS         = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo']
-  const CAL_START    = 6
-  const CAL_END      = 22
-  const HOUR_H       = 56
-  const toMin = (t) => { const [h,m] = t.split(':').map(Number); return h * 60 + m }
-  const toTop = (t) => ((toMin(t) - CAL_START * 60) / 60) * HOUR_H
+  const DIAS       = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo']
+  const CAL_START  = 6
+  const CAL_END    = 22
+  const HOUR_H     = 54
+  const toMin = (t) => { const [h,m] = t.split(':').map(Number); return h*60+m }
+  const toTop = (t) => ((toMin(t) - CAL_START*60) / 60) * HOUR_H
   const toDur = (s, e) => Math.max(((toMin(e) - toMin(s)) / 60) * HOUR_H, HOUR_H * 0.5)
 
-  const [medicos, setMedicos]                 = useState([])
-  const [medicoSel, setMedicoSel]             = useState(null)
-  const [horarios, setHorarios]               = useState([])
-  const [loadingHorarios, setLoadingHorarios] = useState(false)
-  const [calendarOpen, setCalendarOpen]       = useState(false)
-  const [slotForm, setSlotForm]               = useState(null)
-  const [savingSlot, setSavingSlot]           = useState(false)
+  const [medicos, setMedicos]           = useState([])
+  const [allHorarios, setAllHorarios]   = useState({})   // { email: horarios[] }
+  const [medicoSel, setMedicoSel]       = useState(null)
+  const [calendarOpen, setCalendarOpen] = useState(false)
+  const [slotForm, setSlotForm]         = useState(null)
+  const [savingSlot, setSavingSlot]     = useState(false)
+  const [conflictError, setConflictError] = useState('')
 
   /* ── Mapa ── */
   const [hoveredPoint, setHoveredPoint] = useState(null)
+
+  /* ── Helpers de mapeo ── */
+  const CAP_ROLE = { paciente: 'Paciente', medico: 'Médico', admin: 'Admin' }
+  const NIVEL_CFG = {
+    Verde:    { label: 'Verde',    color: '#15803d', bg: '#f0fdf4', dot: '#22c55e' },
+    Amarillo: { label: 'Amarillo', color: '#b45309', bg: '#fef3c7', dot: '#f59e0b' },
+    Naranja:  { label: 'Naranja',  color: '#c2410c', bg: '#fff7ed', dot: '#f97316' },
+    Rojo:     { label: 'Rojo',     color: '#b91c1c', bg: '#fef2f2', dot: '#ef4444' },
+  }
+  const fmtFecha = (ts) => {
+    if (!ts) return '—'
+    const d = new Date(ts)
+    const hoy  = new Date()
+    const ayer = new Date(hoy); ayer.setDate(hoy.getDate() - 1)
+    const time = d.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
+    if (d.toDateString() === hoy.toDateString())  return `Hoy ${time}`
+    if (d.toDateString() === ayer.toDateString()) return `Ayer ${time}`
+    return d.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' }) + ` ${time}`
+  }
+  const mapUsuario = (u) => ({
+    id:        u.id,
+    nombre:    u.nombre,
+    rol:       CAP_ROLE[u.role] || u.role,
+    municipio: u.ciudad || '—',
+    correo:    u.email,
+    estado:    u.is_verified ? 'activo' : 'pendiente',
+    triajes:   0,
+  })
+  const mapTriaje = (t) => ({
+    id:          t.id,
+    paciente:    t.nombre || '—',
+    municipio:   t.ciudad || '—',
+    fecha:       fmtFecha(t.timestamp),
+    nivel:       NIVEL_CFG[t.triage_color] || NIVEL_CFG.Verde,
+    medico:      'Sin asignar',
+    teleconsulta: false,
+    edad:        t.age,
+    sintomas:    t.symptoms || '',
+    motivo:      '',
+  })
 
   useEffect(() => {
     setTimeout(() => setMounted(true), 100)
@@ -100,17 +100,37 @@ export default function AdminDashboard() {
     else if (h < 18) setGreeting('Buenas tardes')
     else setGreeting('Buenas noches')
     const t = setTimeout(() => setTipCollapsed(true), 3500)
+    // Carga estadísticas generales al montar
+    client.get('/admin/estadisticas').then(({ data }) => setEstadisticas(data)).catch(() => {})
     return () => clearTimeout(t)
   }, [])
+
+  useEffect(() => {
+    if (activeTab !== 'usuarios') return
+    setLoadingUsuarios(true)
+    client.get('/admin/usuarios')
+      .then(({ data }) => setUsuarios(data.map(mapUsuario)))
+      .catch(() => {})
+      .finally(() => setLoadingUsuarios(false))
+  }, [activeTab])
+
+  useEffect(() => {
+    if (activeTab !== 'triajes') return
+    setLoadingTriajes(true)
+    client.get('/medico/pacientes')
+      .then(({ data }) => setTriajes(data.map(mapTriaje)))
+      .catch(() => {})
+      .finally(() => setLoadingTriajes(false))
+  }, [activeTab])
 
   const handleLogout = () => { logout(); navigate('/login') }
 
   /* ── Stats dinámicos ── */
   const stats = [
-    { label: 'Triajes hoy',      value: triajes.length,                                                      color: '#374151' },
-    { label: 'Usuarios activos', value: usuarios.filter(u => u.estado === 'activo').length,                   color: '#1a5f8a' },
-    { label: 'Médicos en línea', value: usuarios.filter(u => u.rol === 'Médico' && u.estado === 'activo').length, color: '#15803d' },
-    { label: 'Alertas activas',  value: alertas.length,                                                       color: '#b91c1c' },
+    { label: 'Total triajes',    value: estadisticas?.triajes?.total                  ?? '…', color: '#374151' },
+    { label: 'Pacientes',        value: estadisticas?.usuarios?.paciente               ?? '…', color: '#1a5f8a' },
+    { label: 'Médicos',          value: estadisticas?.usuarios?.medico                 ?? '…', color: '#15803d' },
+    { label: 'Alertas activas',  value: alertas.length,                                        color: '#b91c1c' },
   ]
 
   /* ── Nav unificado ── */
@@ -135,52 +155,77 @@ export default function AdminDashboard() {
       return { ...u, estado: next }
     }))
   }
-  const handleAgregarUsuario = () => {
-    if (!nuevoForm.nombre.trim() || !nuevoForm.municipio.trim()) return
-    setUsuarios(prev => [...prev, {
-      id: Date.now(),
-      nombre:    nuevoForm.nombre.trim(),
-      rol:       nuevoForm.rol,
-      municipio: nuevoForm.municipio.trim(),
-      correo:    nuevoForm.correo.trim(),
-      estado:    'pendiente',
-      triajes:   0,
-    }])
-    setNuevoForm({ nombre: '', rol: 'Paciente', municipio: '', correo: '' })
-    setShowNuevoUsuario(false)
+  const handleAgregarUsuario = async () => {
+    if (!nuevoForm.nombre.trim() || !nuevoForm.email.trim() || !nuevoForm.password.trim()) return
+    setNuevoError('')
+    setSavingUsuario(true)
+    try {
+      await client.post('/admin/usuarios', {
+        nombre:   nuevoForm.nombre.trim(),
+        email:    nuevoForm.email.trim(),
+        password: nuevoForm.password.trim(),
+        role:     nuevoForm.role,
+        ciudad:   nuevoForm.ciudad.trim() || undefined,
+      })
+      setNuevoForm({ nombre: '', role: 'medico', ciudad: '', email: '', password: '' })
+      setShowNuevoUsuario(false)
+      const { data } = await client.get('/admin/usuarios')
+      setUsuarios(data.map(mapUsuario))
+      const { data: est } = await client.get('/admin/estadisticas')
+      setEstadisticas(est)
+    } catch (err) {
+      setNuevoError(err?.response?.data?.detail || 'Error al crear el usuario.')
+    } finally {
+      setSavingUsuario(false)
+    }
   }
 
-  /* ── Horarios: cargar médicos cuando se activa la pestaña ── */
+  /* ── Horarios: carga médicos + todos sus horarios al abrir la pestaña ── */
   useEffect(() => {
     if (activeTab !== 'horarios') return
     client.get('/admin/usuarios?role=medico')
-      .then(({ data }) => setMedicos(data))
+      .then(({ data }) => {
+        setMedicos(data)
+        data.forEach(m => {
+          client.get(`/admin/medicos/${encodeURIComponent(m.email)}/horarios`)
+            .then(({ data: hs }) => setAllHorarios(prev => ({ ...prev, [m.email]: hs })))
+            .catch(() => setAllHorarios(prev => ({ ...prev, [m.email]: [] })))
+        })
+      })
       .catch(() => {})
   }, [activeTab])
 
   const seleccionarMedico = (m) => {
     setMedicoSel(m)
-    setHorarios([])
     setSlotForm(null)
-    setLoadingHorarios(true)
-    client.get(`/admin/medicos/${encodeURIComponent(m.email)}/horarios`)
-      .then(({ data }) => setHorarios(data))
-      .catch(() => {})
-      .finally(() => setLoadingHorarios(false))
+    setConflictError('')
     setCalendarOpen(true)
+  }
+
+  const checkConflict = (dia, hi, hf) => {
+    for (const [email, hs] of Object.entries(allHorarios)) {
+      if (email === medicoSel?.email) continue
+      const ex = (hs || []).find(h => h.dia_semana === dia)
+      if (ex && toMin(hi) < toMin(ex.hora_fin) && toMin(ex.hora_inicio) < toMin(hf)) {
+        const nombre = medicos.find(m => m.email === email)?.nombre || email
+        return `Conflicto con ${nombre}: ya tiene ${ex.hora_inicio}–${ex.hora_fin} ese día`
+      }
+    }
+    return ''
   }
 
   const guardarSlot = async () => {
     if (!medicoSel || !slotForm) return
+    const conflict = checkConflict(slotForm.dia, slotForm.hora_inicio, slotForm.hora_fin)
+    if (conflict) { setConflictError(conflict); return }
+    setConflictError('')
     setSavingSlot(true)
     try {
       await client.put(`/admin/medicos/${encodeURIComponent(medicoSel.email)}/horarios`, {
-        dia_semana:  slotForm.dia,
-        hora_inicio: slotForm.hora_inicio,
-        hora_fin:    slotForm.hora_fin,
+        dia_semana: slotForm.dia, hora_inicio: slotForm.hora_inicio, hora_fin: slotForm.hora_fin,
       })
       const { data } = await client.get(`/admin/medicos/${encodeURIComponent(medicoSel.email)}/horarios`)
-      setHorarios(data)
+      setAllHorarios(prev => ({ ...prev, [medicoSel.email]: data }))
       setSlotForm(null)
     } catch {}
     finally { setSavingSlot(false) }
@@ -190,7 +235,7 @@ export default function AdminDashboard() {
     if (!medicoSel) return
     try {
       await client.delete(`/admin/medicos/${encodeURIComponent(medicoSel.email)}/horarios/${dia}`)
-      setHorarios(prev => prev.filter(h => h.dia_semana !== dia))
+      setAllHorarios(prev => ({ ...prev, [medicoSel.email]: (prev[medicoSel.email] || []).filter(h => h.dia_semana !== dia) }))
       setSlotForm(null)
     } catch {}
   }
@@ -684,23 +729,27 @@ export default function AdminDashboard() {
 
             <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '16px', padding: '1.5rem' }}>
               <p style={{ margin: '0 0 1.25rem', fontWeight: '700', color: '#06111f', fontSize: '0.97rem' }}>
-                Distribución por nivel de urgencia — hoy
+                Distribución por nivel de urgencia — histórico
               </p>
-              {[
-                { label: 'Rojo',     count: 3,  total: 24, color: '#ef4444' },
-                { label: 'Naranja',  count: 6,  total: 24, color: '#f97316' },
-                { label: 'Amarillo', count: 9,  total: 24, color: '#f59e0b' },
-                { label: 'Verde',    count: 6,  total: 24, color: '#22c55e' },
-              ].map(n => (
-                <div key={n.label} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.85rem' }}>
-                  <div style={{ width: '10px', height: '10px', background: n.color, borderRadius: '50%', flexShrink: 0, boxShadow: `0 0 6px ${n.color}60` }} />
-                  <span style={{ minWidth: '65px', fontSize: '0.83rem', fontWeight: '600', color: '#374151' }}>{n.label}</span>
-                  <div style={{ flex: 1, height: '22px', background: '#f3f4f6', borderRadius: '6px', overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${(n.count / n.total) * 100}%`, background: n.color, borderRadius: '6px', opacity: 0.75 }} />
+              {(() => {
+                const pc = estadisticas?.triajes?.por_color || {}
+                const total = Object.values(pc).reduce((a, b) => a + b, 0) || 1
+                return [
+                  { label: 'Rojo',     count: pc['Rojo']     || 0, color: '#ef4444' },
+                  { label: 'Naranja',  count: pc['Naranja']  || 0, color: '#f97316' },
+                  { label: 'Amarillo', count: pc['Amarillo'] || 0, color: '#f59e0b' },
+                  { label: 'Verde',    count: pc['Verde']    || 0, color: '#22c55e' },
+                ].map(n => (
+                  <div key={n.label} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.85rem' }}>
+                    <div style={{ width: '10px', height: '10px', background: n.color, borderRadius: '50%', flexShrink: 0, boxShadow: `0 0 6px ${n.color}60` }} />
+                    <span style={{ minWidth: '65px', fontSize: '0.83rem', fontWeight: '600', color: '#374151' }}>{n.label}</span>
+                    <div style={{ flex: 1, height: '22px', background: '#f3f4f6', borderRadius: '6px', overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${(n.count / total) * 100}%`, background: n.color, borderRadius: '6px', opacity: 0.75, transition: 'width 0.8s ease' }} />
+                    </div>
+                    <span style={{ minWidth: '36px', fontSize: '0.83rem', fontWeight: '700', color: '#374151', textAlign: 'right' }}>{n.count}</span>
                   </div>
-                  <span style={{ minWidth: '36px', fontSize: '0.83rem', fontWeight: '700', color: '#374151', textAlign: 'right' }}>{n.count}</span>
-                </div>
-              ))}
+                ))
+              })()}
             </div>
           </div>
         )}
@@ -790,12 +839,15 @@ export default function AdminDashboard() {
             </div>
 
             <p style={{ margin: '0 0 0.75rem', fontSize: '0.73rem', fontWeight: '700', color: '#4b5563', textTransform: 'uppercase', letterSpacing: '1.2px' }}>
-              {usuariosFiltrados.length} usuario{usuariosFiltrados.length !== 1 ? 's' : ''}
-              {(busquedaUsuarios || filtroRol !== 'todos') ? ' encontrados' : ' registrados'}
+              {loadingUsuarios ? 'Cargando…' : `${usuariosFiltrados.length} usuario${usuariosFiltrados.length !== 1 ? 's' : ''}${(busquedaUsuarios || filtroRol !== 'todos') ? ' encontrados' : ' registrados'}`}
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {usuariosFiltrados.length === 0 ? (
+              {loadingUsuarios ? (
+                <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '14px', padding: '2.5rem', textAlign: 'center' }}>
+                  <p style={{ margin: 0, color: '#9ca3af', fontSize: '0.9rem' }}>Cargando usuarios…</p>
+                </div>
+              ) : usuariosFiltrados.length === 0 ? (
                 <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '14px', padding: '2.5rem', textAlign: 'center' }}>
                   <p style={{ margin: 0, color: '#9ca3af', fontSize: '0.9rem' }}>No se encontraron usuarios con esos criterios.</p>
                 </div>
@@ -871,12 +923,15 @@ export default function AdminDashboard() {
             </div>
 
             <p style={{ margin: '0 0 0.75rem', fontSize: '0.73rem', fontWeight: '700', color: '#4b5563', textTransform: 'uppercase', letterSpacing: '1.2px' }}>
-              {triajesFiltrados.length} triaje{triajesFiltrados.length !== 1 ? 's' : ''}
-              {(busquedaTriajes || filtroNivel !== 'todos') ? ' encontrados' : ' recientes'}
+              {loadingTriajes ? 'Cargando…' : `${triajesFiltrados.length} triaje${triajesFiltrados.length !== 1 ? 's' : ''}${(busquedaTriajes || filtroNivel !== 'todos') ? ' encontrados' : ' recientes'}`}
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {triajesFiltrados.length === 0 ? (
+              {loadingTriajes ? (
+                <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '14px', padding: '2.5rem', textAlign: 'center' }}>
+                  <p style={{ margin: 0, color: '#9ca3af', fontSize: '0.9rem' }}>Cargando historial de triajes…</p>
+                </div>
+              ) : triajesFiltrados.length === 0 ? (
                 <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '14px', padding: '2.5rem', textAlign: 'center' }}>
                   <p style={{ margin: 0, color: '#9ca3af', fontSize: '0.9rem' }}>No se encontraron triajes con esos criterios.</p>
                 </div>
@@ -925,54 +980,56 @@ export default function AdminDashboard() {
         {/* ── TAB Horarios ── */}
         {activeTab === 'horarios' && (
           <div style={{ animation: 'tabSlide 0.35s ease' }}>
-            <p style={{ margin: '0 0 1.25rem', fontSize: '0.73rem', fontWeight: '700', color: '#4b5563', textTransform: 'uppercase', letterSpacing: '1.2px' }}>
-              {medicos.length} médico{medicos.length !== 1 ? 's' : ''} registrado{medicos.length !== 1 ? 's' : ''} — selecciona uno para gestionar su calendario
+            <p style={{ margin: '0 0 1rem', fontSize: '0.73rem', fontWeight: '700', color: '#4b5563', textTransform: 'uppercase', letterSpacing: '1.2px' }}>
+              {medicos.length} médico{medicos.length !== 1 ? 's' : ''} — selecciona uno para gestionar su calendario
             </p>
             {medicos.length === 0 ? (
-              <div style={{ background: 'white', border: '1.5px dashed #e5e7eb', borderRadius: '16px', padding: '4rem', textAlign: 'center' }}>
+              <div style={{ background: 'white', border: '1.5px dashed #e5e7eb', borderRadius: '14px', padding: '3rem', textAlign: 'center' }}>
                 <p style={{ margin: 0, color: '#9ca3af' }}>No hay médicos registrados en el sistema.</p>
               </div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: '0.85rem' }}>
-                {medicos.map((m, i) => (
-                  <div
-                    key={m.email}
-                    onClick={() => seleccionarMedico(m)}
-                    style={{
-                      background: 'white', border: '1.5px solid #e5e7eb',
-                      borderRadius: '16px', padding: '1.25rem',
-                      cursor: 'pointer', transition: 'all 0.2s ease',
-                      animation: `slideIn 0.4s ease ${i * 0.07}s both`,
-                    }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor='#1a3a2e'; e.currentTarget.style.boxShadow='0 6px 20px rgba(26,58,46,0.12)'; e.currentTarget.style.transform='translateY(-2px)' }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor='#e5e7eb'; e.currentTarget.style.boxShadow='none'; e.currentTarget.style.transform='none' }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                {medicos.map((m, i) => {
+                  const hs = allHorarios[m.email] || []
+                  return (
+                    <div
+                      key={m.email}
+                      className="usuario-row"
+                      onClick={() => seleccionarMedico(m)}
+                      style={{ cursor: 'pointer', animation: `slideIn 0.4s ease ${i * 0.07}s both` }}
+                    >
                       <div style={{
-                        width: '42px', height: '42px',
+                        width: '40px', height: '40px', flexShrink: 0,
                         background: 'linear-gradient(135deg, #0f2318, #1a3a2e)',
                         borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: '0.88rem', fontWeight: '800', color: '#7ac896', flexShrink: 0,
+                        fontSize: '0.82rem', fontWeight: '800', color: '#7ac896',
                       }}>
                         {m.nombre.split(' ').filter(n => !['Dr.','Dra.'].includes(n)).map(n => n[0]).join('').slice(0,2).toUpperCase()}
                       </div>
-                      <div style={{ minWidth: 0 }}>
-                        <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: '700', color: '#06111f', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.nombre}</p>
-                        <p style={{ margin: 0, fontSize: '0.75rem', color: '#9ca3af', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.ciudad || 'Sin ciudad'}</p>
+                      <div style={{ flex: 1 }}>
+                        <p style={{ margin: 0, fontWeight: '700', color: '#06111f', fontSize: '0.92rem' }}>{m.nombre}</p>
+                        <p style={{ margin: 0, color: '#6b7280', fontSize: '0.78rem' }}>
+                          {m.ciudad || m.email} · {hs.length} día{hs.length !== 1 ? 's' : ''} configurado{hs.length !== 1 ? 's' : ''}
+                        </p>
                       </div>
+                      <div style={{ display: 'flex', gap: '0.35rem', flexShrink: 0 }}>
+                        {DIAS.map((_, idx) => {
+                          const tiene = hs.some(h => h.dia_semana === idx)
+                          return (
+                            <div key={idx} style={{
+                              width: '8px', height: '8px', borderRadius: '50%',
+                              background: tiene ? '#22c55e' : '#e5e7eb',
+                              boxShadow: tiene ? '0 0 4px #22c55e60' : 'none',
+                            }} />
+                          )
+                        })}
+                      </div>
+                      <button className="btn-outline-admin" style={{ flexShrink: 0 }}>
+                        Ver calendario →
+                      </button>
                     </div>
-                    <div style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
-                      background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '10px',
-                      padding: '0.55rem', fontSize: '0.82rem', fontWeight: '600', color: '#374151',
-                    }}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-                      </svg>
-                      Ver disponibilidad
-                    </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </div>
@@ -1109,98 +1166,90 @@ export default function AdminDashboard() {
       </button>
 
       {/* ── Modal: Calendario de disponibilidad ── */}
-      {calendarOpen && medicoSel && (
-        <div
-          className="modal-overlay"
-          style={{ alignItems: 'center' }}
-          onClick={e => e.target === e.currentTarget && (setCalendarOpen(false), setSlotForm(null))}
-        >
-          <div style={{
-            background: 'white',
-            width: '94vw', maxWidth: '980px',
-            height: '88vh', maxHeight: '720px',
-            borderRadius: '20px', display: 'flex', flexDirection: 'column',
-            overflow: 'hidden',
-            animation: 'modalIn 0.3s cubic-bezier(0.34,1.56,0.64,1)',
-            boxShadow: '0 32px 80px rgba(0,0,0,0.28)',
-          }}>
-
-            {/* Header oscuro STIGA */}
+      {calendarOpen && medicoSel && (() => {
+        const hs = allHorarios[medicoSel.email] || []
+        return (
+          <div
+            className="modal-overlay"
+            style={{ alignItems: 'center' }}
+            onClick={e => e.target === e.currentTarget && (setCalendarOpen(false), setSlotForm(null), setConflictError(''))}
+          >
             <div style={{
-              background: 'linear-gradient(135deg, #0f2318 0%, #1a3a2e 100%)',
-              padding: '1.4rem 2rem',
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              flexShrink: 0,
+              background: 'white', width: '94vw', maxWidth: '980px',
+              height: '88vh', maxHeight: '720px',
+              borderRadius: '20px', display: 'flex', flexDirection: 'column',
+              overflow: 'hidden',
+              animation: 'modalIn 0.3s cubic-bezier(0.34,1.56,0.64,1)',
+              boxShadow: '0 32px 80px rgba(0,0,0,0.28)',
             }}>
-              <div>
-                <p style={{ margin: '0 0 0.1rem', color: 'rgba(255,255,255,0.45)', fontSize: '0.7rem', fontWeight: '700', letterSpacing: '1.8px', textTransform: 'uppercase' }}>
-                  Disponibilidad semanal
-                </p>
-                <h2 style={{ margin: 0, color: 'white', fontSize: '1.15rem', fontWeight: '700' }}>{medicoSel.nombre}</h2>
-                <p style={{ margin: '0.2rem 0 0', color: 'rgba(255,255,255,0.4)', fontSize: '0.78rem' }}>
-                  {horarios.length} de 7 días configurados · Haz clic en un día vacío para agregar franja
-                </p>
-              </div>
-              <button
-                onClick={() => { setCalendarOpen(false); setSlotForm(null) }}
-                style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '10px', cursor: 'pointer', padding: '0.5rem', color: 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center' }}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                </svg>
-              </button>
-            </div>
 
-            {/* Cabecera de días */}
-            <div style={{ display: 'flex', borderBottom: '1px solid #e5e7eb', background: '#f9fafb', flexShrink: 0 }}>
-              <div style={{ width: '52px', flexShrink: 0 }} />
-              {DIAS.map((dia, idx) => {
-                const hasSlot = horarios.some(h => h.dia_semana === idx)
-                return (
-                  <div key={dia} style={{ flex: 1, padding: '0.6rem 0.25rem', textAlign: 'center', borderLeft: '1px solid #f0f0f0' }}>
-                    <p style={{ margin: 0, fontSize: '0.72rem', fontWeight: '800', color: hasSlot ? '#0f2318' : '#9ca3af', letterSpacing: '0.5px' }}>
-                      {dia.slice(0, 3).toUpperCase()}
-                    </p>
-                    {hasSlot && (
-                      <div style={{ width: '5px', height: '5px', background: '#7ac896', borderRadius: '50%', margin: '0.25rem auto 0', boxShadow: '0 0 4px #7ac89660' }} />
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-
-            {/* Cuerpo del calendario */}
-            <div style={{ flex: 1, overflowY: 'auto', position: 'relative' }}>
-              {loadingHorarios ? (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-                  <p style={{ color: '#9ca3af', fontSize: '0.88rem' }}>Cargando horarios...</p>
+              {/* Header STIGA oscuro */}
+              <div style={{
+                background: 'linear-gradient(135deg, #0f2318 0%, #1a3a2e 100%)',
+                padding: '1.35rem 2rem', flexShrink: 0,
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              }}>
+                <div>
+                  <p style={{ margin: '0 0 0.1rem', color: 'rgba(255,255,255,0.4)', fontSize: '0.68rem', fontWeight: '700', letterSpacing: '1.8px', textTransform: 'uppercase' }}>
+                    Disponibilidad semanal
+                  </p>
+                  <h2 style={{ margin: 0, color: 'white', fontSize: '1.15rem', fontWeight: '700' }}>{medicoSel.nombre}</h2>
+                  <p style={{ margin: '0.15rem 0 0', color: 'rgba(255,255,255,0.38)', fontSize: '0.76rem' }}>
+                    {hs.length} de 7 días configurados · clic en día vacío para agregar franja
+                  </p>
                 </div>
-              ) : (
-                <div style={{ display: 'flex', height: `${(CAL_END - CAL_START) * HOUR_H}px`, minHeight: '100%' }}>
+                <button
+                  onClick={() => { setCalendarOpen(false); setSlotForm(null); setConflictError('') }}
+                  style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '10px', cursor: 'pointer', padding: '0.5rem', color: 'rgba(255,255,255,0.6)', display: 'flex' }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </button>
+              </div>
 
-                  {/* Etiquetas de hora */}
+              {/* Cabecera días */}
+              <div style={{ display: 'flex', borderBottom: '1px solid #e5e7eb', background: '#f9fafb', flexShrink: 0 }}>
+                <div style={{ width: '52px', flexShrink: 0 }} />
+                {DIAS.map((dia, idx) => {
+                  const tiene = hs.some(h => h.dia_semana === idx)
+                  return (
+                    <div key={dia} style={{ flex: 1, padding: '0.55rem 0.25rem', textAlign: 'center', borderLeft: '1px solid #f0f0f0' }}>
+                      <p style={{ margin: 0, fontSize: '0.7rem', fontWeight: '800', color: tiene ? '#0f2318' : '#9ca3af', letterSpacing: '0.5px' }}>
+                        {dia.slice(0,3).toUpperCase()}
+                      </p>
+                      {tiene && <div style={{ width: '5px', height: '5px', background: '#7ac896', borderRadius: '50%', margin: '0.2rem auto 0' }} />}
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* Cuadrícula */}
+              <div style={{ flex: 1, overflowY: 'auto' }}>
+                <div style={{ display: 'flex', height: `${(CAL_END - CAL_START) * HOUR_H}px` }}>
+
+                  {/* Horas */}
                   <div style={{ width: '52px', flexShrink: 0, position: 'relative', background: '#fafafa', borderRight: '1px solid #f0f0f0' }}>
                     {Array.from({ length: CAL_END - CAL_START }, (_, i) => (
                       <div key={i} style={{ position: 'absolute', top: i * HOUR_H, width: '100%', height: HOUR_H, display: 'flex', alignItems: 'flex-start', padding: '3px 6px 0' }}>
-                        <span style={{ fontSize: '0.65rem', color: '#b0bec5', fontWeight: '600', fontVariantNumeric: 'tabular-nums' }}>
+                        <span style={{ fontSize: '0.63rem', color: '#b0bec5', fontWeight: '600' }}>
                           {String(CAL_START + i).padStart(2,'0')}:00
                         </span>
                       </div>
                     ))}
                   </div>
 
-                  {/* Columnas por día */}
+                  {/* Columnas */}
                   {DIAS.map((dia, idx) => {
-                    const slot    = horarios.find(h => h.dia_semana === idx)
+                    const slot    = hs.find(h => h.dia_semana === idx)
                     const picking = slotForm?.dia === idx && !slotForm?.isEdit
-
                     return (
                       <div
                         key={dia}
-                        style={{ flex: 1, position: 'relative', borderLeft: '1px solid #f0f0f0', cursor: slot ? 'default' : 'pointer', background: picking ? 'rgba(26,58,46,0.03)' : 'transparent' }}
-                        onClick={() => { if (slot) return; setSlotForm({ dia: idx, hora_inicio: '08:00', hora_fin: '17:00', isEdit: false }) }}
+                        style={{ flex: 1, position: 'relative', borderLeft: '1px solid #f0f0f0', cursor: slot ? 'default' : 'pointer', background: picking ? 'rgba(26,58,46,0.04)' : 'transparent' }}
+                        onClick={() => { if (slot) return; setConflictError(''); setSlotForm({ dia: idx, hora_inicio: '08:00', hora_fin: '17:00', isEdit: false }) }}
                       >
-                        {/* Líneas de hora */}
+                        {/* Líneas */}
                         {Array.from({ length: CAL_END - CAL_START }, (_, i) => (
                           <div key={i} style={{ position: 'absolute', top: i * HOUR_H, width: '100%', borderTop: `1px solid ${i === 0 ? '#e5e7eb' : '#f5f5f5'}` }} />
                         ))}
@@ -1212,125 +1261,108 @@ export default function AdminDashboard() {
                           return (
                             <div
                               style={{
-                                position: 'absolute',
-                                top: top + 2, height: h - 4,
-                                left: 3, right: 3,
+                                position: 'absolute', top: top + 2, height: h - 4,
+                                left: 3, right: 3, zIndex: 2,
                                 background: 'linear-gradient(175deg, #0f2318 0%, #1a3a2e 60%, #2a5a44 100%)',
-                                borderRadius: '10px',
-                                border: '1px solid rgba(122,200,150,0.25)',
-                                display: 'flex', flexDirection: 'column',
-                                alignItems: 'center', justifyContent: 'center',
-                                zIndex: 2, padding: '0.4rem',
-                                cursor: 'pointer',
+                                borderRadius: '10px', border: '1px solid rgba(122,200,150,0.25)',
+                                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                                padding: '0.4rem', cursor: 'pointer',
                                 boxShadow: '0 4px 16px rgba(15,35,24,0.35)',
                               }}
-                              onClick={e => { e.stopPropagation(); setSlotForm({ dia: idx, hora_inicio: slot.hora_inicio, hora_fin: slot.hora_fin, isEdit: true }) }}
+                              onClick={e => { e.stopPropagation(); setConflictError(''); setSlotForm({ dia: idx, hora_inicio: slot.hora_inicio, hora_fin: slot.hora_fin, isEdit: true }) }}
                             >
-                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(122,200,150,0.7)" strokeWidth="2" style={{ marginBottom: '0.3rem', flexShrink: 0 }}>
+                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(122,200,150,0.7)" strokeWidth="2" style={{ marginBottom: '0.25rem', flexShrink: 0 }}>
                                 <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                               </svg>
-                              <span style={{ color: '#7ac896', fontSize: '0.68rem', fontWeight: '800', lineHeight: 1.2 }}>{slot.hora_inicio}</span>
-                              <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.6rem', margin: '1px 0' }}>—</span>
-                              <span style={{ color: '#7ac896', fontSize: '0.68rem', fontWeight: '800', lineHeight: 1.2 }}>{slot.hora_fin}</span>
-                              <span style={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.58rem', marginTop: '0.3rem', letterSpacing: '0.5px' }}>OCUPADO</span>
+                              <span style={{ color: '#7ac896', fontSize: '0.67rem', fontWeight: '800' }}>{slot.hora_inicio}</span>
+                              <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: '0.58rem', margin: '1px 0' }}>—</span>
+                              <span style={{ color: '#7ac896', fontSize: '0.67rem', fontWeight: '800' }}>{slot.hora_fin}</span>
+                              <span style={{ color: 'rgba(255,255,255,0.22)', fontSize: '0.56rem', marginTop: '0.25rem', letterSpacing: '0.5px' }}>OCUPADO</span>
                             </div>
                           )
                         })()}
 
-                        {/* Día vacío — icono + */}
+                        {/* Icono + en vacíos */}
                         {!slot && !picking && (
-                          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0 }}
-                            onMouseEnter={e => e.currentTarget.style.opacity = 1}
-                            onMouseLeave={e => e.currentTarget.style.opacity = 0}
-                          >
-                            <div style={{ width: '32px', height: '32px', borderRadius: '50%', border: '1.5px dashed #1a3a2e', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1a3a2e', fontSize: '1.1rem', fontWeight: '300' }}>+</div>
+                          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <div style={{ width: '28px', height: '28px', borderRadius: '50%', border: '1.5px dashed #d1d5db', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontSize: '1rem' }}>+</div>
                           </div>
                         )}
-                        {!slot && !picking && (
-                          <div style={{
-                            position: 'absolute', inset: 0,
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          }}>
-                            <div style={{ width: '32px', height: '32px', borderRadius: '50%', border: '1.5px dashed #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#cbd5e1', fontSize: '1.1rem' }}>+</div>
-                          </div>
-                        )}
-
-                        {/* Indicador de selección activa */}
-                        {picking && (
-                          <div style={{ position: 'absolute', inset: 0, border: '2px dashed #1a3a2e', borderRadius: '0', opacity: 0.3, pointerEvents: 'none' }} />
-                        )}
+                        {picking && <div style={{ position: 'absolute', inset: 0, border: '2px dashed rgba(26,58,46,0.25)', pointerEvents: 'none' }} />}
                       </div>
                     )
                   })}
                 </div>
-              )}
-            </div>
+              </div>
 
-            {/* Footer: formulario de franja o leyenda */}
-            <div style={{ borderTop: '1px solid #e5e7eb', padding: '0.9rem 1.5rem', background: '#fafafa', flexShrink: 0 }}>
-              {slotForm && !slotForm.isEdit ? (
-                /* ── Formulario agregar ── */
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flexWrap: 'wrap' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <div style={{ width: '8px', height: '8px', background: '#1a3a2e', borderRadius: '50%' }} />
-                    <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#06111f', minWidth: '85px' }}>{DIAS[slotForm.dia]}</span>
+              {/* Footer */}
+              <div style={{ borderTop: '1px solid #e5e7eb', padding: '0.85rem 1.5rem', background: '#fafafa', flexShrink: 0 }}>
+                {conflictError && (
+                  <div style={{ background: '#fff5f5', border: '1px solid #fecaca', borderRadius: '8px', padding: '0.5rem 0.9rem', marginBottom: '0.6rem', color: '#b91c1c', fontSize: '0.82rem', fontWeight: '600' }}>
+                    ⚠ {conflictError}
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <label style={{ fontSize: '0.75rem', fontWeight: '600', color: '#6b7280' }}>Inicio</label>
-                    <input type="time" value={slotForm.hora_inicio}
-                      onChange={e => setSlotForm(f => ({ ...f, hora_inicio: e.target.value }))}
-                      style={{ border: '1.5px solid #e5e7eb', borderRadius: '8px', padding: '0.38rem 0.6rem', fontSize: '0.85rem', color: '#06111f', outline: 'none', fontFamily: 'inherit' }}
-                    />
+                )}
+                {slotForm && !slotForm.isEdit ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <div style={{ width: '7px', height: '7px', background: '#1a3a2e', borderRadius: '50%' }} />
+                      <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#06111f', minWidth: '82px' }}>{DIAS[slotForm.dia]}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <label style={{ fontSize: '0.75rem', fontWeight: '600', color: '#6b7280' }}>Inicio</label>
+                      <input type="time" value={slotForm.hora_inicio}
+                        onChange={e => { setConflictError(''); setSlotForm(f => ({ ...f, hora_inicio: e.target.value })) }}
+                        style={{ border: '1.5px solid #e5e7eb', borderRadius: '8px', padding: '0.35rem 0.55rem', fontSize: '0.85rem', color: '#06111f', outline: 'none', fontFamily: 'inherit' }}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <label style={{ fontSize: '0.75rem', fontWeight: '600', color: '#6b7280' }}>Fin</label>
+                      <input type="time" value={slotForm.hora_fin}
+                        onChange={e => { setConflictError(''); setSlotForm(f => ({ ...f, hora_fin: e.target.value })) }}
+                        style={{ border: '1.5px solid #e5e7eb', borderRadius: '8px', padding: '0.35rem 0.55rem', fontSize: '0.85rem', color: '#06111f', outline: 'none', fontFamily: 'inherit' }}
+                      />
+                    </div>
+                    <button onClick={guardarSlot} disabled={savingSlot} style={{ background: '#1a3a2e', color: 'white', border: 'none', borderRadius: '9px', padding: '0.48rem 1.2rem', fontSize: '0.85rem', fontWeight: '600', cursor: 'pointer', opacity: savingSlot ? 0.6 : 1, fontFamily: 'inherit' }}>
+                      {savingSlot ? 'Guardando...' : 'Guardar'}
+                    </button>
+                    <button onClick={() => { setSlotForm(null); setConflictError('') }} style={{ background: 'none', border: '1.5px solid #e5e7eb', borderRadius: '9px', padding: '0.48rem 0.9rem', fontSize: '0.85rem', fontWeight: '600', color: '#374151', cursor: 'pointer', fontFamily: 'inherit' }}>
+                      Cancelar
+                    </button>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <label style={{ fontSize: '0.75rem', fontWeight: '600', color: '#6b7280' }}>Fin</label>
-                    <input type="time" value={slotForm.hora_fin}
-                      onChange={e => setSlotForm(f => ({ ...f, hora_fin: e.target.value }))}
-                      style={{ border: '1.5px solid #e5e7eb', borderRadius: '8px', padding: '0.38rem 0.6rem', fontSize: '0.85rem', color: '#06111f', outline: 'none', fontFamily: 'inherit' }}
-                    />
+                ) : slotForm?.isEdit ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <div style={{ width: '7px', height: '7px', background: '#22c55e', borderRadius: '50%' }} />
+                      <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#06111f', minWidth: '82px' }}>{DIAS[slotForm.dia]}</span>
+                    </div>
+                    <span style={{ flex: 1, fontSize: '0.85rem', color: '#15803d', fontWeight: '600' }}>
+                      Bloqueado: {slotForm.hora_inicio} – {slotForm.hora_fin}
+                    </span>
+                    <button onClick={() => eliminarHorario(slotForm.dia)} style={{ background: 'none', border: '1.5px solid #fecaca', borderRadius: '9px', padding: '0.48rem 0.9rem', fontSize: '0.85rem', fontWeight: '600', color: '#b91c1c', cursor: 'pointer', fontFamily: 'inherit' }}>
+                      Eliminar franja
+                    </button>
+                    <button onClick={() => setSlotForm(null)} style={{ background: 'none', border: '1.5px solid #e5e7eb', borderRadius: '9px', padding: '0.48rem 0.9rem', fontSize: '0.85rem', fontWeight: '600', color: '#374151', cursor: 'pointer', fontFamily: 'inherit' }}>
+                      Cerrar
+                    </button>
                   </div>
-                  <button onClick={guardarSlot} disabled={savingSlot} style={{ background: '#1a3a2e', color: 'white', border: 'none', borderRadius: '9px', padding: '0.5rem 1.25rem', fontSize: '0.85rem', fontWeight: '600', cursor: 'pointer', opacity: savingSlot ? 0.6 : 1, fontFamily: 'inherit' }}>
-                    {savingSlot ? 'Guardando...' : 'Guardar'}
-                  </button>
-                  <button onClick={() => setSlotForm(null)} style={{ background: 'none', border: '1.5px solid #e5e7eb', borderRadius: '9px', padding: '0.5rem 1rem', fontSize: '0.85rem', fontWeight: '600', color: '#374151', cursor: 'pointer', fontFamily: 'inherit' }}>
-                    Cancelar
-                  </button>
-                </div>
-              ) : slotForm?.isEdit ? (
-                /* ── Info de slot ocupado + eliminar ── */
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flexWrap: 'wrap' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <div style={{ width: '8px', height: '8px', background: '#22c55e', borderRadius: '50%' }} />
-                    <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#06111f', minWidth: '85px' }}>{DIAS[slotForm.dia]}</span>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                      <div style={{ width: '12px', height: '12px', background: 'linear-gradient(135deg,#0f2318,#1a3a2e)', borderRadius: '3px' }} />
+                      <span style={{ fontSize: '0.74rem', color: '#6b7280' }}>Franja bloqueada — clic para eliminar</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                      <div style={{ width: '12px', height: '12px', border: '1.5px dashed #d1d5db', borderRadius: '3px' }} />
+                      <span style={{ fontSize: '0.74rem', color: '#6b7280' }}>Día libre — clic para asignar franja</span>
+                    </div>
                   </div>
-                  <span style={{ flex: 1, fontSize: '0.85rem', color: '#15803d', fontWeight: '600' }}>
-                    Horario bloqueado: {slotForm.hora_inicio} – {slotForm.hora_fin}
-                  </span>
-                  <button onClick={() => eliminarHorario(slotForm.dia)} style={{ background: 'none', border: '1.5px solid #fecaca', borderRadius: '9px', padding: '0.5rem 1rem', fontSize: '0.85rem', fontWeight: '600', color: '#b91c1c', cursor: 'pointer', fontFamily: 'inherit' }}>
-                    Eliminar franja
-                  </button>
-                  <button onClick={() => setSlotForm(null)} style={{ background: 'none', border: '1.5px solid #e5e7eb', borderRadius: '9px', padding: '0.5rem 1rem', fontSize: '0.85rem', fontWeight: '600', color: '#374151', cursor: 'pointer', fontFamily: 'inherit' }}>
-                    Cerrar
-                  </button>
-                </div>
-              ) : (
-                /* ── Leyenda ── */
-                <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <div style={{ width: '14px', height: '14px', background: 'linear-gradient(135deg,#0f2318,#1a3a2e)', borderRadius: '4px' }} />
-                    <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>Franja bloqueada — clic para ver opciones</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <div style={{ width: '14px', height: '14px', border: '1.5px dashed #cbd5e1', borderRadius: '4px' }} />
-                    <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>Día libre — clic para asignar franja</span>
-                  </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
 
+            </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
 
       {/* ── Modal: Nuevo usuario ── */}
       {showNuevoUsuario && (
@@ -1362,7 +1394,7 @@ export default function AdminDashboard() {
                   className="modal-input"
                   placeholder="Ej. Dr. Juan Pérez"
                   value={nuevoForm.nombre}
-                  onChange={e => setNuevoForm(f => ({ ...f, nombre: e.target.value }))}
+                  onChange={e => { setNuevoError(''); setNuevoForm(f => ({ ...f, nombre: e.target.value })) }}
                 />
               </div>
               <div>
@@ -1371,36 +1403,53 @@ export default function AdminDashboard() {
                 </label>
                 <select
                   className="modal-select"
-                  value={nuevoForm.rol}
-                  onChange={e => setNuevoForm(f => ({ ...f, rol: e.target.value }))}
+                  value={nuevoForm.role}
+                  onChange={e => setNuevoForm(f => ({ ...f, role: e.target.value }))}
                 >
-                  <option value="Paciente">Paciente</option>
-                  <option value="Médico">Médico</option>
+                  <option value="medico">Médico</option>
+                  <option value="admin">Administrador</option>
                 </select>
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.35rem' }}>
-                  Municipio *
-                </label>
-                <input
-                  className="modal-input"
-                  placeholder="Ej. Buriticá"
-                  value={nuevoForm.municipio}
-                  onChange={e => setNuevoForm(f => ({ ...f, municipio: e.target.value }))}
-                />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.35rem' }}>
-                  Correo electrónico
+                  Correo electrónico *
                 </label>
                 <input
                   className="modal-input"
                   type="email"
                   placeholder="correo@ejemplo.com"
-                  value={nuevoForm.correo}
-                  onChange={e => setNuevoForm(f => ({ ...f, correo: e.target.value }))}
+                  value={nuevoForm.email}
+                  onChange={e => { setNuevoError(''); setNuevoForm(f => ({ ...f, email: e.target.value })) }}
                 />
               </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.35rem' }}>
+                  Contraseña temporal *
+                </label>
+                <input
+                  className="modal-input"
+                  type="password"
+                  placeholder="Mínimo 6 caracteres"
+                  value={nuevoForm.password}
+                  onChange={e => { setNuevoError(''); setNuevoForm(f => ({ ...f, password: e.target.value })) }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.35rem' }}>
+                  Municipio
+                </label>
+                <input
+                  className="modal-input"
+                  placeholder="Ej. Buriticá"
+                  value={nuevoForm.ciudad}
+                  onChange={e => setNuevoForm(f => ({ ...f, ciudad: e.target.value }))}
+                />
+              </div>
+              {nuevoError && (
+                <p style={{ margin: 0, color: '#b91c1c', fontSize: '0.82rem', fontWeight: '600', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', padding: '0.5rem 0.75rem' }}>
+                  {nuevoError}
+                </p>
+              )}
             </div>
 
             <div style={{
@@ -1408,7 +1457,7 @@ export default function AdminDashboard() {
               paddingTop: '1.25rem', borderTop: '1px solid #f3f4f6'
             }}>
               <button
-                onClick={() => setShowNuevoUsuario(false)}
+                onClick={() => { setShowNuevoUsuario(false); setNuevoError('') }}
                 style={{
                   flex: 1, background: 'none', border: '1.5px solid #e5e7eb',
                   borderRadius: '10px', padding: '0.7rem', fontSize: '0.88rem',
@@ -1417,19 +1466,24 @@ export default function AdminDashboard() {
               >
                 Cancelar
               </button>
-              <button
-                className="btn-admin"
-                disabled={!nuevoForm.nombre.trim() || !nuevoForm.municipio.trim()}
-                onClick={handleAgregarUsuario}
-                style={{
-                  flex: 1, justifyContent: 'center', borderRadius: '10px',
-                  padding: '0.7rem', fontSize: '0.88rem',
-                  opacity: (!nuevoForm.nombre.trim() || !nuevoForm.municipio.trim()) ? 0.4 : 1,
-                  cursor: (!nuevoForm.nombre.trim() || !nuevoForm.municipio.trim()) ? 'not-allowed' : 'pointer',
-                }}
-              >
-                Crear usuario
-              </button>
+              {(() => {
+                const valid = nuevoForm.nombre.trim() && nuevoForm.email.trim() && nuevoForm.password.trim()
+                return (
+                  <button
+                    className="btn-admin"
+                    disabled={!valid || savingUsuario}
+                    onClick={handleAgregarUsuario}
+                    style={{
+                      flex: 1, justifyContent: 'center', borderRadius: '10px',
+                      padding: '0.7rem', fontSize: '0.88rem',
+                      opacity: (!valid || savingUsuario) ? 0.4 : 1,
+                      cursor: (!valid || savingUsuario) ? 'not-allowed' : 'pointer',
+                    }}
+                  >
+                    {savingUsuario ? 'Creando…' : 'Crear usuario'}
+                  </button>
+                )
+              })()}
             </div>
           </div>
         </div>

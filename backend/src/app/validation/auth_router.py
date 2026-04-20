@@ -9,6 +9,7 @@ from app.validation.auth_service import (
     register_user,
     reset_password,
     resend_verification_code,
+    solicitar_acceso_medico,
     update_profile,
     verify_user,
 )
@@ -60,6 +61,16 @@ class ResetPasswordRequest(BaseModel):
     new_password: str
 
 
+class SolicitudMedicoRequest(BaseModel):
+    tipo_documento:   str
+    numero_documento: str
+    nombre:           str
+    centro_salud:     str
+    telefono:         str
+    email:            EmailStr
+    especialidad:     Optional[str] = None
+
+
 class UpdateProfileRequest(BaseModel):
     nombre:           Optional[str] = None
     cedula:           Optional[str] = None
@@ -106,6 +117,11 @@ def forgot_password_route(body: ForgotPasswordRequest):
 @router.post("/reset-password")
 def reset_password_route(body: ResetPasswordRequest):
     return reset_password(body.email, body.code, body.new_password)
+
+
+@router.post("/solicitar-medico", status_code=201)
+def solicitar_medico(body: SolicitudMedicoRequest):
+    return solicitar_acceso_medico(body.model_dump())
 
 
 @router.get("/profile")

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { login as loginApi } from '../api/api'
+import client, { login as loginApi } from '../api/api'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -11,6 +11,14 @@ export default function Login() {
   const [mounted, setMounted] = useState(false)
   const [transitioning, setTransitioning] = useState(false)
   const [transitionRole, setTransitionRole] = useState('')
+  const [showMedicoForm, setShowMedicoForm] = useState(false)
+  const [medicoForm, setMedicoForm] = useState({
+    tipo_documento: 'CC', numero_documento: '', nombre: '',
+    centro_salud: '', especialidad: '', telefono: '', email: '',
+  })
+  const [medicoSubmitting, setMedicoSubmitting] = useState(false)
+  const [medicoSuccess, setMedicoSuccess] = useState(false)
+  const [medicoError, setMedicoError] = useState('')
   const { login } = useAuth()
   const navigate = useNavigate()
 
@@ -32,6 +40,20 @@ export default function Login() {
       setError(detail || 'Correo o contraseña incorrectos')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleMedicoSubmit = async (e) => {
+    e.preventDefault()
+    setMedicoError('')
+    setMedicoSubmitting(true)
+    try {
+      await client.post('/auth/solicitar-medico', medicoForm)
+      setMedicoSuccess(true)
+    } catch (err) {
+      setMedicoError(err?.response?.data?.detail || 'No se pudo enviar la solicitud. Intenta de nuevo.')
+    } finally {
+      setMedicoSubmitting(false)
     }
   }
 
@@ -261,11 +283,14 @@ export default function Login() {
       <div style={{
         flex: 1, background: '#ffffff',
         display: 'flex', flexDirection: 'column',
-        justifyContent: 'center', padding: '3rem 4rem',
+        alignItems: 'center',
+        overflowY: 'auto', height: '100vh',
         opacity: mounted ? 1 : 0,
         transform: mounted ? 'none' : 'translateX(20px)',
         transition: 'opacity 0.6s ease 0.1s, transform 0.6s ease 0.1s'
       }}>
+        {/* Bloque login — centrado verticalmente */}
+        <div style={{ flex: showMedicoForm ? '0 0 auto' : '1', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', padding: '3rem 4rem' }}>
         <div style={{ maxWidth: '380px', width: '100%' }}>
 
           {/* Encabezado */}
@@ -427,7 +452,235 @@ export default function Login() {
             ))}
           </div>
 
+          {/* Separador y botón de solicitud médica */}
+          <div style={{
+            marginTop: '1.75rem',
+            animation: mounted ? 'fadeInRight 0.6s ease 0.6s both' : 'none'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+              <div style={{ flex: 1, height: '1px', background: '#edf0ec' }} />
+              <span style={{ color: '#b0c0b4', fontSize: '0.78rem', fontWeight: '500' }}>personal médico</span>
+              <div style={{ flex: 1, height: '1px', background: '#edf0ec' }} />
+            </div>
+            <button
+              type="button"
+              onClick={() => { setShowMedicoForm(v => !v); setMedicoSuccess(false); setMedicoError('') }}
+              style={{
+                width: '100%', background: showMedicoForm ? '#f3f4f6' : 'white',
+                border: `1.5px solid ${showMedicoForm ? '#9ca3af' : '#d1d5db'}`,
+                borderRadius: '10px', padding: '0.7rem 1rem',
+                display: 'flex', alignItems: 'center', gap: '0.75rem',
+                cursor: 'pointer', transition: 'all 0.2s ease', fontFamily: 'inherit',
+              }}
+            >
+              <div style={{
+                width: '32px', height: '32px', flexShrink: 0,
+                background: 'linear-gradient(135deg, #0f2318, #1a3a2e)',
+                borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center'
+              }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#7ac896" strokeWidth="2">
+                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.32a2 2 0 0 1 1.95-2.18h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.96a16 16 0 0 0 6 6l.87-.87a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+                </svg>
+              </div>
+              <div style={{ flex: 1, textAlign: 'left' }}>
+                <p style={{ margin: 0, fontSize: '0.87rem', fontWeight: '600', color: '#0f2318' }}>
+                  ¿Eres médico de nuestro equipo?
+                </p>
+                <p style={{ margin: 0, fontSize: '0.76rem', color: '#7a9080' }}>
+                  Solicita tu acceso al sistema
+                </p>
+              </div>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2.5"
+                style={{ transform: showMedicoForm ? 'rotate(180deg)' : 'none', transition: 'transform 0.3s ease', flexShrink: 0 }}>
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </button>
+          </div>
+
         </div>
+        </div>
+
+        {/* Formulario de solicitud médica — expande debajo */}
+        <div style={{
+          width: '100%', maxWidth: '480px',
+          overflow: 'hidden',
+          maxHeight: showMedicoForm ? '1400px' : '0',
+          transition: 'max-height 0.55s cubic-bezier(0.4,0,0.2,1)',
+          padding: showMedicoForm ? '0 2rem 3rem' : '0 2rem 0',
+        }}>
+          <div style={{
+            borderRadius: '18px', overflow: 'hidden',
+            border: '1px solid #e5e7eb',
+            boxShadow: '0 12px 36px rgba(0,0,0,0.1)',
+          }}>
+            {/* Header oscuro STIGA */}
+            <div style={{
+              background: 'linear-gradient(135deg, #0f2318 0%, #1a3a2e 100%)',
+              padding: '1.5rem 2rem',
+            }}>
+              <p style={{ margin: '0 0 0.15rem', color: 'rgba(255,255,255,0.4)', fontSize: '0.68rem', fontWeight: '700', letterSpacing: '2px', textTransform: 'uppercase' }}>
+                Solicitud de acceso
+              </p>
+              <h2 style={{ margin: 0, color: 'white', fontSize: '1.15rem', fontWeight: '700' }}>
+                Personal médico
+              </h2>
+              <p style={{ margin: '0.3rem 0 0', color: 'rgba(255,255,255,0.45)', fontSize: '0.8rem', lineHeight: 1.5 }}>
+                Completa el formulario y el equipo de STIGA evaluará tu solicitud para crear tu cuenta.
+              </p>
+            </div>
+
+            {/* Cuerpo del formulario */}
+            <div style={{ background: 'white', padding: '1.75rem 2rem' }}>
+              {medicoSuccess ? (
+                <div style={{ textAlign: 'center', padding: '1rem 0' }}>
+                  <div style={{
+                    width: '56px', height: '56px', borderRadius: '50%',
+                    background: '#f0fdf4', border: '2px solid #bbf7d0',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    margin: '0 auto 1rem'
+                  }}>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#15803d" strokeWidth="2.5">
+                      <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                  </div>
+                  <p style={{ margin: '0 0 0.4rem', fontWeight: '700', color: '#0f2318', fontSize: '1rem' }}>
+                    Solicitud enviada
+                  </p>
+                  <p style={{ margin: 0, color: '#6b7280', fontSize: '0.85rem', lineHeight: 1.6 }}>
+                    Hemos recibido tu información. El equipo de STIGA revisará tu solicitud y se comunicará contigo pronto.
+                  </p>
+                </div>
+              ) : (
+                <form onSubmit={handleMedicoSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#3a4a3e', marginBottom: '0.35rem' }}>
+                        Tipo de documento *
+                      </label>
+                      <select
+                        value={medicoForm.tipo_documento}
+                        onChange={e => setMedicoForm(f => ({ ...f, tipo_documento: e.target.value }))}
+                        required
+                        style={{ width: '100%', padding: '0.7rem 0.85rem', border: '1.5px solid #e2e8ee', borderRadius: '10px', fontSize: '0.88rem', color: '#1a2332', background: '#f8fafb', outline: 'none', fontFamily: 'inherit', cursor: 'pointer' }}
+                      >
+                        <option value="CC">Cédula de ciudadanía</option>
+                        <option value="CE">Cédula de extranjería</option>
+                        <option value="PA">Pasaporte</option>
+                        <option value="TI">Tarjeta de identidad</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#3a4a3e', marginBottom: '0.35rem' }}>
+                        Número de documento *
+                      </label>
+                      <input
+                        className="input-stiga"
+                        placeholder="Ej. 1023456789"
+                        value={medicoForm.numero_documento}
+                        onChange={e => setMedicoForm(f => ({ ...f, numero_documento: e.target.value }))}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#3a4a3e', marginBottom: '0.35rem' }}>
+                      Nombre completo *
+                    </label>
+                    <input
+                      className="input-stiga"
+                      placeholder="Ej. Dra. María Rodríguez"
+                      value={medicoForm.nombre}
+                      onChange={e => setMedicoForm(f => ({ ...f, nombre: e.target.value }))}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#3a4a3e', marginBottom: '0.35rem' }}>
+                      Centro de salud / IPS *
+                    </label>
+                    <input
+                      className="input-stiga"
+                      placeholder="Ej. Hospital San Rafael de Buriticá"
+                      value={medicoForm.centro_salud}
+                      onChange={e => setMedicoForm(f => ({ ...f, centro_salud: e.target.value }))}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#3a4a3e', marginBottom: '0.35rem' }}>
+                      Especialidad médica
+                    </label>
+                    <input
+                      className="input-stiga"
+                      placeholder="Ej. Medicina general, Urgenciología…"
+                      value={medicoForm.especialidad}
+                      onChange={e => setMedicoForm(f => ({ ...f, especialidad: e.target.value }))}
+                    />
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#3a4a3e', marginBottom: '0.35rem' }}>
+                        Teléfono de contacto *
+                      </label>
+                      <input
+                        className="input-stiga"
+                        placeholder="Ej. 3001234567"
+                        value={medicoForm.telefono}
+                        onChange={e => setMedicoForm(f => ({ ...f, telefono: e.target.value }))}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#3a4a3e', marginBottom: '0.35rem' }}>
+                        Correo electrónico *
+                      </label>
+                      <input
+                        className="input-stiga"
+                        type="email"
+                        placeholder="correo@ejemplo.com"
+                        value={medicoForm.email}
+                        onChange={e => setMedicoForm(f => ({ ...f, email: e.target.value }))}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {medicoError && (
+                    <div style={{ background: '#fff5f5', border: '1px solid #fecaca', borderRadius: '8px', padding: '0.65rem 1rem', color: '#c0392b', fontSize: '0.85rem' }}>
+                      {medicoError}
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={medicoSubmitting}
+                    style={{
+                      background: medicoSubmitting ? '#8aada0' : '#1a3a2e',
+                      color: 'white', border: 'none', borderRadius: '10px',
+                      padding: '0.82rem', fontSize: '0.93rem', fontWeight: '600',
+                      cursor: medicoSubmitting ? 'wait' : 'pointer',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+                      transition: 'background 0.2s', fontFamily: 'inherit',
+                      marginTop: '0.25rem',
+                    }}
+                  >
+                    {medicoSubmitting ? (
+                      <>
+                        <div style={{ width: '15px', height: '15px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+                        Enviando solicitud…
+                      </>
+                    ) : 'Enviar solicitud'}
+                  </button>
+                </form>
+              )}
+            </div>
+          </div>
+        </div>
+
       </div>
 
       {/* ── Pantalla de transición por rol ── */}

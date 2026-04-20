@@ -61,6 +61,39 @@ def send_verification_email(to_email: str, nombre: str, code: str, expire_minute
     _send(to_email, "STIGA — Código de verificación de cuenta", body)
 
 
+def send_solicitud_medico_email(datos: dict):
+    """Notifica al administrador del sistema sobre una nueva solicitud de acceso médico."""
+    if not EMAIL_USER:
+        logger.warning("EMAIL_USER no configurado — solicitud no notificada por correo")
+        return
+    body = f"""
+    <html><body style="font-family:Arial,sans-serif;color:#1a2332;">
+      <div style="{_CARD_STYLE}">
+        <div style="background:linear-gradient(135deg,#0f2318,#1a3a2e);border-radius:8px 8px 0 0;padding:20px 24px;margin:-32px -32px 24px;">
+          <h2 style="color:white;margin:0;font-size:1.15rem;">Nueva solicitud de acceso médico</h2>
+          <p style="color:rgba(255,255,255,0.5);margin:4px 0 0;font-size:0.82rem;">STIGA — Sistema de Triaje Inteligente</p>
+        </div>
+        <table style="width:100%;border-collapse:collapse;font-size:0.9rem;">
+          <tr><td style="padding:7px 0;color:#6b7280;width:40%;">Nombre</td><td style="padding:7px 0;font-weight:600;color:#06111f;">{datos['nombre']}</td></tr>
+          <tr style="background:#f9fafb;"><td style="padding:7px 6px;color:#6b7280;">Tipo de documento</td><td style="padding:7px 6px;font-weight:600;color:#06111f;">{datos['tipo_documento']}</td></tr>
+          <tr><td style="padding:7px 0;color:#6b7280;">Número de documento</td><td style="padding:7px 0;font-weight:600;color:#06111f;">{datos['numero_documento']}</td></tr>
+          <tr style="background:#f9fafb;"><td style="padding:7px 6px;color:#6b7280;">Centro de salud / IPS</td><td style="padding:7px 6px;font-weight:600;color:#06111f;">{datos['centro_salud']}</td></tr>
+          <tr><td style="padding:7px 0;color:#6b7280;">Especialidad</td><td style="padding:7px 0;font-weight:600;color:#06111f;">{datos.get('especialidad') or '—'}</td></tr>
+          <tr style="background:#f9fafb;"><td style="padding:7px 6px;color:#6b7280;">Teléfono de contacto</td><td style="padding:7px 6px;font-weight:600;color:#06111f;">{datos['telefono']}</td></tr>
+          <tr><td style="padding:7px 0;color:#6b7280;">Correo electrónico</td><td style="padding:7px 0;font-weight:600;color:#2e8fc0;">{datos['email']}</td></tr>
+        </table>
+        <div style="margin-top:24px;padding:14px 16px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;">
+          <p style="margin:0;color:#15803d;font-size:0.85rem;font-weight:600;">
+            Para aprobar esta solicitud, crea la cuenta desde el panel de administración en la pestaña <em>Usuarios</em>.
+          </p>
+        </div>
+        <p style="margin-top:20px;color:#9ca3af;font-size:0.75rem;">Universidad Católica Luis Amigó · STIGA 2025</p>
+      </div>
+    </body></html>
+    """
+    _send(EMAIL_USER, "STIGA — Nueva solicitud de acceso médico", body)
+
+
 def send_reset_email(to_email: str, nombre: str, code: str, expire_minutes: int):
     """Envía el código de recuperación de contraseña."""
     body = f"""

@@ -6,7 +6,7 @@ from fastapi import HTTPException, status
 
 from app.data.database import get_conn
 from app.validation.dependencies import hash_password, verify_password, create_jwt
-from app.validation.email_service import send_verification_email, send_reset_email
+from app.validation.email_service import send_verification_email, send_reset_email, send_solicitud_medico_email
 
 logger = logging.getLogger("stiga.auth_service")
 
@@ -257,6 +257,28 @@ def reset_password(email: str, code: str, new_password: str) -> dict:
 
     logger.info(f"Contraseña restablecida | {email}")
     return {"message": "Contraseña actualizada correctamente. Ya puede iniciar sesión."}
+
+
+def solicitar_acceso_medico(datos: dict) -> dict:
+    """Guarda la solicitud de acceso médico y notifica al administrador por correo."""
+    now = datetime.now(timezone.utc).isoformat()
+    with get_conn() as conn:
+        conn.execute(
+            """INSERT INTO solicitudes_medico
+               (tipo_documento, numero_documento, nombre, centro_salud, telefono, email, especialidad, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                datos["tipo_documento"], datos["numero_documento"], datos["nombre"],
+                datos["centro_salud"], datos["telefono"], datos["email"],
+                datos.get("especialidad"), now,
+            ),
+        )
+    try:
+        send_solicitud_medico_email(datos)
+    except Exception:
+        logger.warning(f"Solicitud guardada pero no se pudo notificar por correo | {datos['email']}")
+    logger.info(f"Solicitud de acceso médico recibida | {datos['email']}")
+    return {"message": "Solicitud enviada correctamente. El equipo de STIGA revisará tu información y se comunicará contigo pronto."}
 
 
 def get_profile(email: str) -> dict:

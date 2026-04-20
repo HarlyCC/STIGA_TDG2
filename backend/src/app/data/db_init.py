@@ -68,6 +68,21 @@ CREATE TABLE IF NOT EXISTS medico_horarios (
 )
 """
 
+_CREATE_SOLICITUDES_MEDICO = """
+CREATE TABLE IF NOT EXISTS solicitudes_medico (
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    tipo_documento   TEXT NOT NULL,
+    numero_documento TEXT NOT NULL,
+    nombre           TEXT NOT NULL,
+    centro_salud     TEXT NOT NULL,
+    telefono         TEXT NOT NULL,
+    email            TEXT NOT NULL,
+    especialidad     TEXT,
+    created_at       TEXT NOT NULL,
+    estado           TEXT NOT NULL DEFAULT 'pendiente'
+)
+"""
+
 # ── Inicialización ────────────────────────────────────────────────────────────
 
 def init_db():
@@ -80,6 +95,7 @@ def init_db():
         conn.execute(_CREATE_USERS)
         conn.execute(_CREATE_TRIAGE_RECORDS)
         conn.execute(_CREATE_MEDICO_HORARIOS)
+        conn.execute(_CREATE_SOLICITUDES_MEDICO)
         # Migración: agregar user_email si no existe
         try:
             conn.execute("ALTER TABLE triage_records ADD COLUMN user_email TEXT")
