@@ -8,7 +8,15 @@ from passlib.context import CryptContext
 
 # ── Configuración JWT ────────────────────────────────────────────────────────
 
-JWT_SECRET     = os.getenv("JWT_SECRET", "stiga_jwt_secret_key_2024")
+_WEAK_SECRETS = {"stiga_jwt_secret_key_2024", "", "secret", "changeme"}
+
+JWT_SECRET = os.getenv("JWT_SECRET", "")
+if not JWT_SECRET or JWT_SECRET in _WEAK_SECRETS:
+    raise RuntimeError(
+        "JWT_SECRET no está configurado o es inseguro. "
+        "Define una clave aleatoria de al menos 32 caracteres en el archivo .env."
+    )
+
 JWT_ALGORITHM  = os.getenv("JWT_ALGORITHM", "HS256")
 JWT_EXPIRE_MIN = int(os.getenv("JWT_EXPIRE_MINUTES", "480"))
 

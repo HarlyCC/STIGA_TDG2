@@ -158,18 +158,6 @@ export default function Login() {
         }
         .btn-primary:active:not(:disabled) { transform: scale(0.98); }
         .btn-primary:disabled { background: #8aada0; cursor: wait; }
-        .demo-row {
-          display: flex; align-items: center; gap: 0.75rem;
-          padding: 0.6rem 0.75rem; border-radius: 8px;
-          cursor: pointer;
-          transition: background 0.15s, transform 0.15s;
-          border: 1px solid transparent;
-        }
-        .demo-row:hover {
-          background: rgba(46,143,192,0.06);
-          border-color: rgba(46,143,192,0.15);
-          transform: translateX(3px);
-        }
       `}</style>
 
       {/* ── Panel izquierdo oscuro ── */}
@@ -398,59 +386,6 @@ export default function Login() {
               </button>
             </p>
           </form>
-
-          {/* Divisor */}
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: '1rem',
-            margin: '1.75rem 0',
-            animation: mounted ? 'fadeInRight 0.6s ease 0.4s both' : 'none'
-          }}>
-            <div style={{ flex: 1, height: '1px', background: '#edf0ec' }} />
-            <span style={{ color: '#b0c0b4', fontSize: '0.78rem', fontWeight: '500' }}>
-              accesos de prueba
-            </span>
-            <div style={{ flex: 1, height: '1px', background: '#edf0ec' }} />
-          </div>
-
-          {/* Usuarios demo */}
-          <div style={{ animation: mounted ? 'fadeInRight 0.6s ease 0.5s both' : 'none' }}>
-            {[
-              { email: 'paciente@stiga.co', label: 'Paciente',      role: 'P', color: '#3d7a5a' },
-              { email: 'medico@stiga.co',   label: 'Médico',        role: 'M', color: '#2e8fc0' },
-              { email: 'admin@stiga.co',    label: 'Administrador', role: 'A', color: '#374151' },
-            ].map(u => (
-              <div
-                key={u.email} className="demo-row"
-                onClick={() => { setEmail(u.email); setPassword('1234') }}
-              >
-                <div style={{
-                  width: '34px', height: '34px',
-                  background: u.color + '15',
-                  border: `1px solid ${u.color}30`,
-                  borderRadius: '8px',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '0.8rem', fontWeight: '700',
-                  color: u.color, flexShrink: 0
-                }}>
-                  {u.role}
-                </div>
-                <div>
-                  <p style={{ margin: 0, fontSize: '0.87rem', fontWeight: '600', color: '#1a2e1a' }}>
-                    {u.label}
-                  </p>
-                  <p style={{ margin: 0, fontSize: '0.78rem', color: '#8aaa8a' }}>
-                    {u.email}
-                  </p>
-                </div>
-                <span style={{
-                  marginLeft: 'auto', fontSize: '0.72rem',
-                  color: '#b0c0b4', fontWeight: '500'
-                }}>
-                  1234
-                </span>
-              </div>
-            ))}
-          </div>
 
           {/* Separador y botón de solicitud médica */}
           <div style={{
