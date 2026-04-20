@@ -261,7 +261,7 @@ export default function ForgotPassword() {
           color:'rgba(255,255,255,0.2)', fontSize:'0.75rem', margin:0,
           animation: mounted ? 'fadeInLeft 0.7s ease 0.4s both' : 'none'
         }}>
-          Universidad Católica Luis Amigó · 2025
+          Universidad Católica Luis Amigó · 2026
         </p>
       </div>
 

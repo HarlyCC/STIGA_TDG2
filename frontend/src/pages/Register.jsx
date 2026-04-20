@@ -370,7 +370,7 @@ export default function Register() {
           color: 'rgba(255,255,255,0.2)', fontSize: '0.72rem', margin: 0,
           animation: mounted ? 'fadeInLeft 0.7s ease 0.4s both' : 'none'
         }}>
-          Universidad Católica Luis Amigó · 2025
+          Universidad Católica Luis Amigó · 2026
         </p>
       </div>
 

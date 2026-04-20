@@ -87,7 +87,7 @@ def send_doctor_access_request_email(datos: dict):
             Para aprobar esta solicitud, crea la cuenta desde el panel de administración en la pestaña <em>Usuarios</em>.
           </p>
         </div>
-        <p style="margin-top:20px;color:#9ca3af;font-size:0.75rem;">Universidad Católica Luis Amigó · STIGA 2025</p>
+        <p style="margin-top:20px;color:#9ca3af;font-size:0.75rem;">Universidad Católica Luis Amigó · STIGA 2026</p>
       </div>
     </body></html>
     """
