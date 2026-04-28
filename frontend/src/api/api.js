@@ -16,7 +16,8 @@ client.interceptors.request.use((config) => {
 client.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    const isAuthEndpoint = error.config?.url?.startsWith('/auth/')
+    if (error.response?.status === 401 && !isAuthEndpoint) {
       localStorage.removeItem('stiga_token')
       localStorage.removeItem('stiga_user')
       window.location.href = '/login'
