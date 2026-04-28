@@ -249,6 +249,27 @@ def estadisticas(admin: dict = Depends(require_admin)):
             (fecha_ini_anterior, fecha_fin_anterior)
         ).fetchone()["total"]
 
+        por_ciudad_raw = conn.execute(
+            """SELECT ciudad, triage_color, COUNT(*) as total
+               FROM triage_records
+               WHERE ciudad IS NOT NULL AND ciudad != ''
+               GROUP BY ciudad, triage_color"""
+        ).fetchall()
+
+    SEVERITY = {"Verde": 1, "Amarillo": 2, "Naranja": 3, "Rojo": 4}
+    por_ciudad_agg: dict = {}
+    for row in por_ciudad_raw:
+        c = row["ciudad"]
+        if c not in por_ciudad_agg:
+            por_ciudad_agg[c] = {"total": 0, "peor_nivel": "Verde"}
+        por_ciudad_agg[c]["total"] += row["total"]
+        if SEVERITY.get(row["triage_color"], 0) > SEVERITY.get(por_ciudad_agg[c]["peor_nivel"], 0):
+            por_ciudad_agg[c]["peor_nivel"] = row["triage_color"]
+    por_ciudad = [
+        {"ciudad": c, "total": d["total"], "peor_nivel": d["peor_nivel"]}
+        for c, d in sorted(por_ciudad_agg.items(), key=lambda x: -x[1]["total"])
+    ]
+
     total_actual = sum(d["total"] for d in por_dia)
     cambio_pct = None
     if total_anterior > 0:
@@ -262,6 +283,7 @@ def estadisticas(admin: dict = Depends(require_admin)):
             "por_dia":         por_dia,
             "total_semana":    total_actual,
             "cambio_semanal":  cambio_pct,
+            "por_ciudad":      por_ciudad,
         },
     }
 

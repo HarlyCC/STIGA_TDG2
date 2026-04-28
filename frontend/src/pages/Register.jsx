@@ -123,7 +123,7 @@ export default function Register() {
     try {
       await client.post('/auth/verify', { email: form.email, code })
       showToast('success', '¡Cuenta verificada! Redirigiendo...')
-      setTimeout(() => navigate('/login'), 2200)
+      setTimeout(() => navigate('/login?verified=1'), 2200)
     } catch (err) {
       showToast('error', err.response?.data?.detail || 'Código incorrecto o expirado.')
     } finally {

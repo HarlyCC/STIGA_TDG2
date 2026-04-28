@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import client, { login as loginApi } from '../api/api'
 
@@ -21,6 +21,8 @@ export default function Login() {
   const [medicoError, setMedicoError] = useState('')
   const { login } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+  const justVerified = new URLSearchParams(location.search).get('verified') === '1'
 
   useEffect(() => { setTimeout(() => setMounted(true), 100) }, [])
 
@@ -296,6 +298,23 @@ export default function Login() {
               Ingresa tus credenciales para continuar
             </p>
           </div>
+
+          {/* Banner cuenta verificada */}
+          {justVerified && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: '0.7rem',
+              background: '#f0fdf4', border: '1px solid #bbf7d0',
+              borderRadius: '10px', padding: '0.75rem 1rem',
+              marginBottom: '1.5rem', animation: 'fadeInUp 0.4s ease'
+            }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#15803d" strokeWidth="2.5" style={{ flexShrink: 0 }}>
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              <p style={{ margin: 0, color: '#15803d', fontSize: '0.84rem', fontWeight: '500' }}>
+                ¡Cuenta verificada! Ya puedes iniciar sesión.
+              </p>
+            </div>
+          )}
 
           {/* Formulario */}
           <form onSubmit={handleSubmit} style={{

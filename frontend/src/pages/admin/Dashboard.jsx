@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import AccessibilityMenu from '../../components/shared/AccessibilityMenu'
 import client from '../../api/api'
+import 'leaflet/dist/leaflet.css'
 
 export default function AdminDashboard() {
   const { user, logout } = useAuth()
@@ -51,7 +52,8 @@ export default function AdminDashboard() {
   const [conflictError, setConflictError] = useState('')
 
   /* ── Mapa ── */
-  const [hoveredPoint, setHoveredPoint] = useState(null)
+  const mapContainerRef = useRef(null)
+  const leafletMapRef   = useRef(null)
 
   /* ── Helpers de mapeo ── */
   const CAP_ROLE = { paciente: 'Paciente', medico: 'Médico', admin: 'Admin' }
@@ -225,6 +227,80 @@ export default function AdminDashboard() {
     }
   }
 
+  /* ── Leaflet map: initialize/destroy when mapa tab is active ── */
+  useEffect(() => {
+    if (activeTab !== 'mapa') {
+      if (leafletMapRef.current) {
+        leafletMapRef.current.remove()
+        leafletMapRef.current = null
+      }
+      return
+    }
+    const el = mapContainerRef.current
+    if (!el) return
+
+    import('leaflet').then(({ default: L }) => {
+      if (!mapContainerRef.current) return
+      if (leafletMapRef.current) {
+        leafletMapRef.current.remove()
+        leafletMapRef.current = null
+      }
+
+      const map = L.map(mapContainerRef.current, {
+        center: [6.5, -75.6],
+        zoom: 8,
+        zoomControl: true,
+        attributionControl: true,
+      })
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© <a href="https://openstreetmap.org" target="_blank">OpenStreetMap</a>',
+        maxZoom: 16,
+      }).addTo(map)
+
+      mapaPoints.forEach(p => {
+        const radius = Math.max(3000, Math.min(p.count * 5000, 18000))
+        const color  = p.nivel
+        L.circle([p.lat, p.lng], {
+          radius,
+          color,
+          fillColor: color,
+          fillOpacity: 0.30,
+          weight: 2,
+          opacity: 0.85,
+        })
+        .bindPopup(`
+          <div style="font-family:'Segoe UI',sans-serif;min-width:160px;padding:2px 0">
+            <div style="font-weight:700;font-size:0.9rem;color:#1f2937;margin-bottom:5px">${p.nombre}</div>
+            <div style="font-size:0.82rem;color:#6b7280;margin-bottom:6px">${p.count} caso${p.count > 1 ? 's' : ''} registrado${p.count > 1 ? 's' : ''}</div>
+            <span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:0.74rem;font-weight:700;
+              background:${color}20;color:${color};border:1px solid ${color}40">
+              ${p.nivelLabel}
+            </span>
+          </div>
+        `)
+        .addTo(map)
+
+        L.circleMarker([p.lat, p.lng], {
+          radius: 5,
+          color: 'white',
+          fillColor: color,
+          fillOpacity: 1,
+          weight: 2,
+        }).addTo(map)
+      })
+
+      leafletMapRef.current = map
+    })
+
+    return () => {
+      if (leafletMapRef.current) {
+        leafletMapRef.current.remove()
+        leafletMapRef.current = null
+      }
+    }
+  }, [activeTab, mapaPoints.length])
+
   /* ── Horarios: carga médicos + todos sus horarios al abrir la pestaña ── */
   useEffect(() => {
     if (activeTab !== 'horarios') return
@@ -307,64 +383,123 @@ export default function AdminDashboard() {
   })()
 
   /* ── Mapa ── */
-  const MUNICIPIO_COORDS = {
-    'Buriticá':                { x: 38, y: 42 },
-    'Liborina':                { x: 32, y: 38 },
-    'Sabanalarga':             { x: 48, y: 34 },
-    'Olaya':                   { x: 36, y: 50 },
-    'Santa Fe de Antioquia':   { x: 42, y: 57 },
-    'Sta. Fe Ant.':            { x: 42, y: 57 },
-    'Sopetrán':                { x: 48, y: 55 },
-    'San Jerónimo':            { x: 53, y: 58 },
-    'Heliconia':               { x: 56, y: 63 },
-    'Ebéjico':                 { x: 48, y: 65 },
-    'Armenia':                 { x: 35, y: 63 },
-    'Anzá':                    { x: 40, y: 70 },
-    'Caicedo':                 { x: 28, y: 55 },
-    'Cañasgordas':             { x: 25, y: 48 },
-    'Dabeiba':                 { x: 20, y: 38 },
-    'Giraldo':                 { x: 30, y: 45 },
-    'Peque':                   { x: 30, y: 32 },
-    'Medellín':                { x: 65, y: 62 },
-    'Bello':                   { x: 63, y: 55 },
-    'Itagüí':                  { x: 65, y: 67 },
+  const NIVEL_DOT = { Verde: '#22c55e', Amarillo: '#f59e0b', Naranja: '#f97316', Rojo: '#ef4444' }
+
+  const MUNICIPIO_LATLNG = {
+    // Valle de Aburrá
+    'Medellín':                [6.252, -75.564],
+    'Bello':                   [6.337, -75.558],
+    'Itagüí':                  [6.184, -75.599],
+    'Envigado':                [6.171, -75.591],
+    'La Estrella':             [6.156, -75.641],
+    'Caldas':                  [6.094, -75.635],
+    'Sabaneta':                [6.150, -75.617],
+    'Copacabana':              [6.350, -75.500],
+    'Girardota':               [6.383, -75.450],
+    'Barbosa':                 [6.433, -75.333],
+
+    // Occidente
+    'Buriticá':                [6.717, -75.917],
+    'Liborina':                [6.683, -75.900],
+    'Sabanalarga':             [6.883, -75.767],
+    'Olaya':                   [6.617, -75.933],
+    'Santa Fe de Antioquia':   [6.556, -75.826],
+    'Sta. Fe Ant.':            [6.556, -75.826],
+    'Sopetrán':                [6.500, -75.783],
+    'San Jerónimo':            [6.483, -75.717],
+    'Heliconia':               [6.217, -75.733],
+    'Ebéjico':                 [6.317, -75.833],
+    'Armenia':                 [6.283, -75.900],
+    'Anzá':                    [6.317, -75.867],
+    'Caicedo':                 [6.383, -75.983],
+    'Cañasgordas':             [6.750, -76.017],
+    'Dabeiba':                 [7.000, -76.267],
+    'Giraldo':                 [6.783, -75.967],
+    'Peque':                   [6.967, -75.983],
+    'Urrao':                   [6.317, -76.133],
+
+    // Suroeste
+    'Támesis':                 [5.667, -75.717],
+    'Jericó':                  [5.790, -75.783],
+    'Andes':                   [5.656, -75.878],
+    'Ciudad Bolívar':          [5.853, -75.917],
+    'Jardín':                  [5.600, -75.817],
+    'Valparaíso':              [5.733, -75.583],
+    'Salgar':                  [5.959, -75.983],
+    'Betania':                 [5.750, -75.967],
+    'Betulia':                 [6.117, -75.983],
+    'Concordia':               [6.050, -75.917],
+    'Fredonia':                [5.933, -75.683],
+    'La Pintada':              [5.749, -75.603],
+    'Montebello':              [5.967, -75.517],
+    'Pueblorrico':             [5.867, -76.033],
+    'Santa Bárbara':           [5.867, -75.567],
+    'Tarso':                   [5.817, -75.817],
+    'Hispania':                [5.833, -75.933],
+
+    // Oriente
+    'Rionegro':                [6.154, -75.374],
+    'El Retiro':               [6.050, -75.500],
+    'El Santuario':            [6.133, -75.267],
+    'Marinilla':               [6.178, -75.333],
+    'El Carmen de Viboral':    [6.083, -75.342],
+    'La Ceja':                 [6.017, -75.433],
+    'La Unión':                [5.983, -75.367],
+    'Sonsón':                  [5.717, -75.317],
+    'Abejorral':               [5.800, -75.433],
+    'Argelia':                 [5.717, -75.167],
+    'Nariño':                  [5.817, -75.150],
+
+    // Norte
+    'Santa Rosa de Osos':      [6.617, -75.467],
+    'Yarumal':                 [7.000, -75.417],
+    'Ituango':                 [7.167, -75.767],
+    'Valdivia':                [7.117, -75.433],
+    'Angostura':               [6.883, -75.333],
+    'Campamento':              [7.000, -75.283],
+    'Don Matías':              [6.483, -75.400],
+    'Entrerríos':              [6.567, -75.417],
+    'Guadalupe':               [6.883, -75.233],
+    'San Pedro de los Milagros': [6.467, -75.567],
+    'Toledo':                  [7.317, -75.383],
+
+    // Nordeste
+    'Amalfi':                  [6.917, -75.083],
+    'Anorí':                   [7.083, -75.133],
+    'Segovia':                 [7.083, -74.700],
+    'Remedios':                [6.983, -74.683],
+    'Vegachí':                 [6.767, -74.800],
+
+    // Bajo Cauca
+    'Caucasia':                [7.983, -75.200],
+    'El Bagre':                [7.583, -74.817],
+    'Zaragoza':                [7.483, -74.867],
+    'Tarazá':                  [7.583, -75.400],
+
+    // Magdalena Medio
+    'Puerto Berrío':           [6.483, -74.400],
+    'Yondó':                   [6.817, -74.433],
+    'Puerto Nare':             [6.200, -74.583],
+    'Caracolí':                [6.433, -74.767],
   }
-  const NIVEL_PRIORITY = { Verde: 1, Amarillo: 2, Naranja: 3, Rojo: 4 }
-  const NIVEL_DOT      = { Verde: '#22c55e', Amarillo: '#f59e0b', Naranja: '#f97316', Rojo: '#ef4444' }
 
   const mapaPoints = (() => {
-    const grouped = {}
-    triajes.forEach(t => {
-      const ciudad = t.municipio && t.municipio !== '—' ? t.municipio : null
-      if (!ciudad) return
-      if (!grouped[ciudad]) grouped[ciudad] = { count: 0, worstLabel: 'Verde', worstPriority: 1 }
-      grouped[ciudad].count++
-      const priority = NIVEL_PRIORITY[t.nivel?.label] || 1
-      if (priority > grouped[ciudad].worstPriority) {
-        grouped[ciudad].worstLabel    = t.nivel?.label || 'Verde'
-        grouped[ciudad].worstPriority = priority
-      }
-    })
-    return Object.entries(grouped).map(([nombre, data], i) => {
-      const coords = MUNICIPIO_COORDS[nombre] || { x: 35 + (i % 5) * 7, y: 44 + Math.floor(i / 5) * 8 }
-      return {
-        id:         i + 1,
-        nombre,
-        x:          coords.x,
-        y:          coords.y,
-        nivel:      NIVEL_DOT[data.worstLabel] || '#22c55e',
-        nivelLabel: data.worstLabel,
-        teleconsulta: false,
-        count:      data.count,
-      }
-    })
+    const porCiudad = estadisticas?.triajes?.por_ciudad || []
+    return porCiudad
+      .filter(d => MUNICIPIO_LATLNG[d.ciudad])
+      .map((d, i) => {
+        const [lat, lng] = MUNICIPIO_LATLNG[d.ciudad]
+        return {
+          id:        i + 1,
+          nombre:    d.ciudad,
+          lat,
+          lng,
+          nivel:     NIVEL_DOT[d.peor_nivel] || '#22c55e',
+          nivelLabel: d.peor_nivel,
+          count:     d.total,
+        }
+      })
   })()
-
-  const getTooltipPos = (p) => {
-    const tx = Math.max(2, Math.min(p.x - 15, 65))
-    const ty = p.y > 28 ? p.y - 20 : p.y + 7
-    return { tx, ty, above: p.y > 28 }
-  }
 
   const rolColor = { Paciente: '#374151', Médico: '#1a5f8a' }
   const estadoBadge = {
@@ -382,6 +517,21 @@ export default function AdminDashboard() {
 
       <style>{`
         * { box-sizing: border-box; }
+
+        /* Leaflet popup customization */
+        .leaflet-popup-content-wrapper {
+          border-radius: 12px !important;
+          box-shadow: 0 8px 24px rgba(0,0,0,0.14) !important;
+          border: 1px solid #e5e7eb;
+          padding: 0;
+        }
+        .leaflet-popup-content { margin: 12px 14px !important; }
+        .leaflet-popup-tip-container { display: none; }
+        .leaflet-control-attribution {
+          font-size: 0.68rem !important;
+          background: rgba(255,255,255,0.85) !important;
+        }
+        .leaflet-container { font-family: 'Segoe UI', sans-serif; }
 
         @keyframes fadeInUp {
           from { opacity: 0; transform: translateY(16px); }
@@ -1211,111 +1361,65 @@ export default function AdminDashboard() {
                   Ubicación de pacientes activos
                 </p>
                 <p style={{ margin: 0, color: '#4b5563', fontSize: '0.82rem' }}>
-                  Occidente Antioqueño · {mapaPoints.length} municipios con actividad
+                  Antioquia · {mapaPoints.length} municipios con actividad
                 </p>
               </div>
-              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                {[{ color: '#ef4444', label: 'Triaje' }, { color: '#1a5f8a', label: 'Teleconsulta' }].map(l => (
-                  <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <div style={{ width: '10px', height: '10px', background: l.color, borderRadius: '50%' }} />
-                    <span style={{ fontSize: '0.78rem', color: '#4b5563', fontWeight: '500' }}>{l.label}</span>
-                  </div>
-                ))}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.78rem', color: '#9ca3af' }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                Clic en el círculo para ver detalles
               </div>
             </div>
 
             <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '16px', overflow: 'hidden' }}>
-              <svg
-                viewBox="0 0 100 100"
-                style={{ width: '100%', height: '420px', display: 'block' }}
-                preserveAspectRatio="xMidYMid meet"
-              >
-                <rect width="100" height="100" fill="#f8fafc"/>
-                <path
-                  d="M20 25 L45 18 L65 22 L72 35 L68 55 L58 68 L42 72 L28 65 L18 50 Z"
-                  fill="#e8f4fb" stroke="#b8d8ee" strokeWidth="0.5"
-                />
-                <path d="M25 40 Q35 45 50 42 Q60 40 70 48" fill="none" stroke="#90c4e0" strokeWidth="0.8" opacity="0.6"/>
-                <path d="M30 55 Q40 58 48 65" fill="none" stroke="#90c4e0" strokeWidth="0.6" opacity="0.5"/>
-                {[20,30,40,50,60,70,80].map(v => (
-                  <g key={v}>
-                    <line x1={v} y1="10" x2={v} y2="90" stroke="#f0f4f8" strokeWidth="0.3"/>
-                    <line x1="10" y1={v} x2="90" y2={v} stroke="#f0f4f8" strokeWidth="0.3"/>
-                  </g>
-                ))}
 
-                {/* Puntos interactivos */}
-                {mapaPoints.map(p => (
-                  <g
-                    key={p.id}
-                    style={{ cursor: 'pointer' }}
-                    onMouseEnter={() => setHoveredPoint(p)}
-                    onMouseLeave={() => setHoveredPoint(null)}
-                  >
-                    <circle cx={p.x} cy={p.y} r="6"
-                      fill={p.teleconsulta ? 'rgba(26,95,138,0.08)' : 'rgba(239,68,68,0.08)'}
-                      stroke="transparent"
-                    />
-                    <circle cx={p.x} cy={p.y} r="4.5"
-                      fill={p.teleconsulta ? 'rgba(26,95,138,0.15)' : 'rgba(239,68,68,0.12)'}
-                      stroke={p.teleconsulta ? '#1a5f8a' : p.nivel}
-                      strokeWidth={hoveredPoint?.id === p.id ? 0.8 : 0.4}
-                    />
-                    <circle cx={p.x} cy={p.y} r={hoveredPoint?.id === p.id ? 3 : 2.5}
-                      fill={p.teleconsulta ? '#1a5f8a' : p.nivel}
-                      style={{ transition: 'r 0.15s ease' }}
-                    />
-                    {p.count > 1 && (
-                      <text x={p.x + 3.5} y={p.y - 3} fontSize="3" fontWeight="700" fill="#374151">{p.count}</text>
-                    )}
-                    <text x={p.x} y={p.y + 7} fontSize="2.8" textAnchor="middle" fill="#374151" fontWeight="500">
-                      {p.nombre}
-                    </text>
-                  </g>
-                ))}
-
-                {/* Tooltip SVG */}
-                {hoveredPoint && (() => {
-                  const { tx, ty, above } = getTooltipPos(hoveredPoint)
-                  return (
-                    <g style={{ pointerEvents: 'none' }}>
-                      <rect x={tx} y={ty} width="30" height="14" rx="2" fill="#1f2937" opacity="0.96"/>
-                      <text x={tx + 15} y={ty + 5.5} fontSize="2.9" fontWeight="700" fill="white" textAnchor="middle">
-                        {hoveredPoint.nombre}
-                      </text>
-                      <text x={tx + 15} y={ty + 10.5} fontSize="2.4" fill="#9ca3af" textAnchor="middle">
-                        {hoveredPoint.count} caso{hoveredPoint.count > 1 ? 's' : ''} · {hoveredPoint.nivelLabel}
-                      </text>
-                      <path
-                        d={above
-                          ? `M${hoveredPoint.x - 2},${ty + 14} L${hoveredPoint.x},${ty + 17} L${hoveredPoint.x + 2},${ty + 14}`
-                          : `M${hoveredPoint.x - 2},${ty} L${hoveredPoint.x},${ty - 3} L${hoveredPoint.x + 2},${ty}`}
-                        fill="#1f2937" opacity="0.96"
-                      />
-                    </g>
-                  )
-                })()}
-
-                {/* Brújula */}
-                <g transform="translate(85, 15)">
-                  <circle cx="0" cy="0" r="5" fill="white" stroke="#e5e7eb" strokeWidth="0.4"/>
-                  <text x="0" y="-2" fontSize="3.5" textAnchor="middle" fill="#374151" fontWeight="700">N</text>
-                  <line x1="0" y1="-4" x2="0" y2="0" stroke="#374151" strokeWidth="0.5"/>
-                  <line x1="0" y1="0" x2="0" y2="4" stroke="#9ca3af" strokeWidth="0.5"/>
-                </g>
-              </svg>
-
-              <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid #f3f4f6', display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
-                {mapaPoints.map(p => (
-                  <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <div style={{ width: '8px', height: '8px', background: p.teleconsulta ? '#1a5f8a' : p.nivel, borderRadius: '50%' }} />
-                    <span style={{ fontSize: '0.8rem', color: '#374151', fontWeight: '500' }}>{p.nombre}</span>
-                    <span style={{ fontSize: '0.72rem', color: '#9ca3af', background: '#f3f4f6', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>
-                      {p.count} {p.count === 1 ? 'caso' : 'casos'}
-                    </span>
+              {/* Leyenda de niveles */}
+              <div style={{ padding: '0.75rem 1.25rem', borderBottom: '1px solid #f3f4f6', display: 'flex', gap: '1.25rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.75rem', color: '#9ca3af', fontWeight: '600', letterSpacing: '0.5px', textTransform: 'uppercase' }}>Nivel de triaje</span>
+                {[
+                  { color: '#22c55e', label: 'Verde' },
+                  { color: '#f59e0b', label: 'Amarillo' },
+                  { color: '#f97316', label: 'Naranja' },
+                  { color: '#ef4444', label: 'Rojo' },
+                ].map(n => (
+                  <div key={n.label} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <div style={{ width: '10px', height: '10px', background: n.color, borderRadius: '50%', flexShrink: 0 }} />
+                    <span style={{ fontSize: '0.78rem', color: '#4b5563', fontWeight: '500' }}>{n.label}</span>
                   </div>
                 ))}
+                <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: '#9ca3af' }}>
+                  {mapaPoints.length} municipio{mapaPoints.length !== 1 ? 's' : ''} · tamaño proporcional al volumen
+                </span>
               </div>
+
+              {/* Contenedor Leaflet */}
+              <div
+                ref={mapContainerRef}
+                style={{ width: '100%', height: '460px' }}
+              />
+
+              {/* Lista de municipios */}
+              {mapaPoints.length > 0 && (
+                <div style={{ padding: '0.85rem 1.25rem', borderTop: '1px solid #f3f4f6', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                  {mapaPoints.map(p => (
+                    <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                      <div style={{ width: '8px', height: '8px', background: p.nivel, borderRadius: '50%', flexShrink: 0 }} />
+                      <span style={{ fontSize: '0.8rem', color: '#374151', fontWeight: '500' }}>{p.nombre}</span>
+                      <span style={{ fontSize: '0.72rem', color: '#9ca3af', background: '#f3f4f6', padding: '0.1rem 0.45rem', borderRadius: '4px' }}>
+                        {p.count}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {mapaPoints.length === 0 && (
+                <div style={{ padding: '2.5rem', textAlign: 'center', color: '#9ca3af', fontSize: '0.88rem' }}>
+                  Sin triajes con ubicación registrada aún.
+                </div>
+              )}
             </div>
           </div>
         )}
