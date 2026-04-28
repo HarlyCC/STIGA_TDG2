@@ -345,14 +345,12 @@ export default function Login() {
             </div>
 
             {error && (
-              <div style={{
-                background: '#fff5f5', border: '1px solid #fecaca',
-                borderRadius: '8px', padding: '0.65rem 1rem',
-                marginBottom: '1rem', color: '#c0392b',
+              <p style={{
+                margin: '0 0 1rem', color: '#c0392b',
                 fontSize: '0.85rem', animation: 'fadeInUp 0.3s ease'
               }}>
                 {error}
-              </div>
+              </p>
             )}
 
             <button className="btn-primary" type="submit" disabled={loading}>
