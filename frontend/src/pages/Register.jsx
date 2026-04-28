@@ -52,8 +52,25 @@ export default function Register() {
     }
   }
 
+  const CAMPOS_OBLIGATORIOS = [
+    { key: 'nombre',           label: 'Nombre completo' },
+    { key: 'email',            label: 'Correo electrónico' },
+    { key: 'password',         label: 'Contraseña' },
+    { key: 'cedula',           label: 'Cédula' },
+    { key: 'telefono',         label: 'Teléfono' },
+    { key: 'ciudad',           label: 'Ciudad / Municipio' },
+    { key: 'fecha_nacimiento', label: 'Fecha de nacimiento' },
+  ]
+
+  const camposVacios = CAMPOS_OBLIGATORIOS.filter(c => !form[c.key]?.trim())
+  const formularioCompleto = camposVacios.length === 0
+
   const handleSubmit = async (e) => {
     e.preventDefault()
+    if (camposVacios.length > 0) {
+      showToast('error', `Campo obligatorio: ${camposVacios[0].label}`)
+      return
+    }
     if (!validator.isEmail(form.email)) {
       setEmailError('El correo ingresado no es válido.')
       showToast('error', 'El correo ingresado no es válido.')
@@ -434,14 +451,14 @@ export default function Register() {
 
                 {/* Cédula + Teléfono */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
-                  <Field label="Cédula">
+                  <Field label="Cédula *">
                     <input
                       className="input-stiga" name="cedula" required
                       value={form.cedula} onChange={handleChange}
                       placeholder="Número de cédula"
                     />
                   </Field>
-                  <Field label="Teléfono">
+                  <Field label="Teléfono *">
                     <input
                       className="input-stiga" name="telefono" required
                       value={form.telefono} onChange={handleChange}
@@ -468,7 +485,7 @@ export default function Register() {
                       placeholder="Ej. Sura, Coosalud"
                     />
                   </Field>
-                  <Field label="Ciudad / Municipio">
+                  <Field label="Ciudad / Municipio *">
                     <input
                       className="input-stiga" name="ciudad" required
                       value={form.ciudad} onChange={handleChange}
@@ -479,7 +496,7 @@ export default function Register() {
 
                 {/* Fecha nacimiento + Sexo */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
-                  <Field label="Fecha de nacimiento">
+                  <Field label="Fecha de nacimiento *">
                     <input
                       className="input-stiga" name="fecha_nacimiento" type="date" required
                       value={form.fecha_nacimiento} onChange={handleChange}
@@ -495,7 +512,7 @@ export default function Register() {
                   </Field>
                 </div>
 
-                <button className="btn-primary" type="submit" disabled={loading} style={{ marginTop: '0.5rem' }}>
+                <button className="btn-primary" type="submit" disabled={loading || !formularioCompleto} style={{ marginTop: '0.5rem' }}>
                   {loading ? (
                     <>
                       <div style={{

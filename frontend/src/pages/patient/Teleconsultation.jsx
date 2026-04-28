@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import AccessibilityMenu from '../../components/shared/AccessibilityMenu'
+import JitsiMeeting from '../../components/shared/JitsiMeeting'
 import client from '../../api/api'
 
 export default function PatientTeleconsultation() {
@@ -18,6 +19,9 @@ export default function PatientTeleconsultation() {
   const [confirming, setConfirming] = useState(false)
   const [slots, setSlots] = useState([])
   const [loadingSlots, setLoadingSlots] = useState(false)
+  const [citasConfirmadas, setCitasConfirmadas] = useState([])
+  const [activeMeeting, setActiveMeeting] = useState(null)
+
 
   const NIVEL_CFG = {
     Verde:    { label: 'Verde',    color: '#15803d', bg: '#f0fdf4', border: '#bbf7d0', dot: '#22c55e' },
@@ -57,6 +61,13 @@ export default function PatientTeleconsultation() {
   }, [selectedDate])
 
   useEffect(() => {
+    client.get('/medico/mis-citas')
+      .then(({ data }) => setCitasConfirmadas(data.filter(c => c.status === 'confirmada')))
+      .catch(() => {})
+  }, [])
+
+
+  useEffect(() => {
     setTimeout(() => setMounted(true), 100)
     client.get('/medico/mis-triajes')
       .then(({ data }) => setTriajes(data.map(r => {
@@ -72,6 +83,7 @@ export default function PatientTeleconsultation() {
   }, [])
 
   const handleLogout = () => { logout(); navigate('/login') }
+
 
   const doctor = { nombre: 'Pendiente de asignación', especialidad: 'Un médico revisará tu solicitud pronto', iniciales: '?' }
 
@@ -306,6 +318,58 @@ export default function PatientTeleconsultation() {
           </div>
           <AccessibilityMenu inline />
         </div>
+
+        {/* Citas confirmadas */}
+        {citasConfirmadas.length > 0 && step < 4 && (
+          <div style={{
+            marginBottom: '1.5rem',
+            animation: mounted ? 'fadeInUp 0.5s ease 0.02s both' : 'none',
+          }}>
+            {citasConfirmadas.map(cita => (
+              <div key={cita.id} style={{
+                background: 'white', borderRadius: '16px',
+                border: '1.5px solid #bbf7d0', padding: '1.1rem 1.5rem',
+                display: 'flex', alignItems: 'center', gap: '1rem',
+                marginBottom: '0.75rem',
+              }}>
+                <div style={{
+                  width: '42px', height: '42px', flexShrink: 0,
+                  background: '#dcfce7', borderRadius: '12px',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#15803d" strokeWidth="2">
+                    <polygon points="23 7 16 12 23 17 23 7"/>
+                    <rect x="1" y="5" width="15" height="14" rx="2"/>
+                  </svg>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <p style={{ margin: '0 0 0.1rem', fontWeight: '700', color: '#0f2318', fontSize: '0.92rem' }}>
+                    Teleconsulta confirmada
+                  </p>
+                  <p style={{ margin: 0, color: '#7a9080', fontSize: '0.8rem' }}>
+                    {cita.fecha_solicitada} · {cita.hora_solicitada}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setActiveMeeting(cita)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '0.4rem',
+                    background: 'linear-gradient(135deg, #15803d, #16a34a)',
+                    color: 'white', border: 'none', borderRadius: '10px',
+                    padding: '0.6rem 1.2rem', fontSize: '0.85rem', fontWeight: '700',
+                    cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
+                  }}
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+                    <polygon points="23 7 16 12 23 17 23 7"/>
+                    <rect x="1" y="5" width="15" height="14" rx="2"/>
+                  </svg>
+                  Unirse a la consulta
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Stepper */}
         {step < 4 && (
@@ -826,6 +890,14 @@ export default function PatientTeleconsultation() {
           </div>
         )}
       </main>
+
+      {activeMeeting && (
+        <JitsiMeeting
+          roomId={`stiga-cita-${activeMeeting.id}`}
+          displayName={user?.name ?? 'Paciente'}
+          onClose={() => setActiveMeeting(null)}
+        />
+      )}
     </div>
   )
 }

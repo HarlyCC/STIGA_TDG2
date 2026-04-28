@@ -79,6 +79,10 @@ export default function PatientResults() {
   const handleDescargarPDF = () => {
     const t = selectedTriaje
     const win = window.open('', '_blank')
+    if (!win) {
+      showToast('No se pudo abrir el PDF. Permite ventanas emergentes en tu navegador.')
+      return
+    }
     win.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
 <title>Resultado de Triaje STIGA</title>
 <style>

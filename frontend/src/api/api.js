@@ -12,6 +12,19 @@ client.interceptors.request.use((config) => {
   return config
 })
 
+// Si el token expira, limpia la sesión y redirige al login
+client.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('stiga_token')
+      localStorage.removeItem('stiga_user')
+      window.location.href = '/login'
+    }
+    return Promise.reject(error)
+  }
+)
+
 // ── Triaje / Chat ─────────────────────────────────────────
 export const startChat = (sessionId) =>
   client.post(`/chat/start/${sessionId}`)

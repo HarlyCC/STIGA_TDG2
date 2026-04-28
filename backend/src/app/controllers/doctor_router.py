@@ -217,6 +217,7 @@ def list_appointments(medico: dict = Depends(require_medico)):
         rows = conn.execute(
             """SELECT c.*,
                       u.nombre  AS paciente_nombre,
+                      u.cedula  AS paciente_cedula,
                       t.triage_color    AS triage_color,
                       t.symptoms        AS triaje_sintomas,
                       t.timestamp       AS triaje_fecha

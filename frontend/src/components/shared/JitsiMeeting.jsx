@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 
-export default function JitsiMeeting({ roomId, displayName, onClose, pacienteNombre, nivelLabel, nivelColor }) {
+export default function JitsiMeeting({ roomId, displayName, onClose, pacienteNombre, pacienteCedula, nivelLabel, nivelColor }) {
   const containerRef    = useRef(null)
   const apiRef          = useRef(null)
   const hospitalIframe  = useRef(null)
@@ -9,7 +9,7 @@ export default function JitsiMeeting({ roomId, displayName, onClose, pacienteNom
 
   // ── Historia clínica ──────────────────────────────────────
   const [panelOpen, setPanelOpen]         = useState(false)
-  const [cedulaInput, setCedulaInput]     = useState('')
+  const [cedulaInput, setCedulaInput]     = useState(pacienteCedula || '')
   const [busquedaState, setBusquedaState] = useState('idle') // idle | buscando | encontrado | no_encontrado
   const [pacienteHC, setPacienteHC]       = useState(null)
   const [iframeReady, setIframeReady]     = useState(false)
@@ -62,6 +62,7 @@ export default function JitsiMeeting({ roomId, displayName, onClose, pacienteNom
 
   // postMessage desde el hospital
   const handleMessage = useCallback((event) => {
+    if (event.origin !== window.location.origin) return
     if (!event.data?.type) return
     if (event.data.type === 'HSJD_RESULTADO') {
       if (event.data.data) {
@@ -90,13 +91,13 @@ export default function JitsiMeeting({ roomId, displayName, onClose, pacienteNom
     setBusquedaState('buscando')
     setPacienteHC(null)
     const send = () => {
-      hospitalIframe.current?.contentWindow?.postMessage({ type: 'HSJD_BUSCAR', cedula: cedulaInput.trim() }, '*')
+      hospitalIframe.current?.contentWindow?.postMessage({ type: 'HSJD_BUSCAR', cedula: cedulaInput.trim() }, window.location.origin)
     }
     if (iframeReady) { send() }
     else {
       const t = setInterval(() => { if (iframeReady) { clearInterval(t); send() } }, 100)
       setTimeout(() => clearInterval(t), 5000)
-      hospitalIframe.current?.contentWindow?.postMessage({ type: 'HSJD_BUSCAR', cedula: cedulaInput.trim() }, '*')
+      hospitalIframe.current?.contentWindow?.postMessage({ type: 'HSJD_BUSCAR', cedula: cedulaInput.trim() }, window.location.origin)
     }
   }
 
@@ -113,7 +114,7 @@ export default function JitsiMeeting({ roomId, displayName, onClose, pacienteNom
       recomendaciones: formConsulta.recomendaciones,
       proximaCita: formConsulta.proximaCita,
     }
-    hospitalIframe.current?.contentWindow?.postMessage({ type: 'HSJD_ACTUALIZAR', cedula: pacienteHC.cedula, consulta }, '*')
+    hospitalIframe.current?.contentWindow?.postMessage({ type: 'HSJD_ACTUALIZAR', cedula: pacienteHC.cedula, consulta }, window.location.origin)
   }
 
   const agregarMed = () => setFormConsulta(f => ({ ...f, medicamentos: [...f.medicamentos, { nombre: '', dosis: '', frecuencia: '' }] }))
