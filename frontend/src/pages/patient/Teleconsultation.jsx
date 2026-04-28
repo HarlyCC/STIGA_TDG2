@@ -348,7 +348,7 @@ export default function PatientTeleconsultation() {
                     Teleconsulta confirmada
                   </p>
                   <p style={{ margin: 0, color: '#7a9080', fontSize: '0.8rem' }}>
-                    {cita.fecha_solicitada} · {cita.hora_solicitada}
+                    {cita.fecha_solicitada ?? '—'} · {cita.hora_solicitada ?? '—'}
                   </p>
                 </div>
                 <button

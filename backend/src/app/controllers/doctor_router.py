@@ -221,7 +221,11 @@ def my_appointments(current_user: dict = Depends(get_current_user)):
     """Retorna las solicitudes de teleconsulta del paciente autenticado."""
     with get_conn() as conn:
         rows = conn.execute(
-            "SELECT * FROM citas WHERE paciente_email = ? ORDER BY creado_en DESC",
+            """SELECT c.*, u.nombre AS medico_nombre
+               FROM citas c
+               LEFT JOIN users u ON u.email = c.medico_email
+               WHERE c.paciente_email = ?
+               ORDER BY c.creado_en DESC""",
             (current_user["email"],),
         ).fetchall()
     return [dict(r) for r in rows]

@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import { useTeleconsultation } from '../../hooks/useTeleconsultation'
 import JitsiMeeting from '../../components/shared/JitsiMeeting'
 import AccessibilityMenu from '../../components/shared/AccessibilityMenu'
 import client from '../../api/api'
@@ -13,9 +12,8 @@ export default function PatientDashboard() {
   const [tipCollapsed, setTipCollapsed] = useState(false)
   const [greeting, setGreeting] = useState('')
   const [showMeeting, setShowMeeting] = useState(false)
-  const [countdown, setCountdown] = useState(60)
   const [triajes, setTriajes] = useState([])
-  const { meeting, closeRoom } = useTeleconsultation()
+  const [citaConfirmada, setCitaConfirmada] = useState(null)
 
   const tips = [
     'Tomar entre 6 y 8 vasos de agua al día ayuda a prevenir infecciones y mejora la circulación.',
@@ -34,22 +32,25 @@ export default function PatientDashboard() {
     else setGreeting('Buenas noches')
     const t = setTimeout(() => setTipCollapsed(true), 3500)
     client.get('/medico/mis-triajes').then(({ data }) => setTriajes(data)).catch(() => {})
+    client.get('/medico/mis-citas')
+      .then(({ data }) => {
+        const confirmadas = data.filter(c => c.status === 'confirmada')
+        setCitaConfirmada(confirmadas[0] ?? null)
+      })
+      .catch(() => {})
     return () => clearTimeout(t)
   }, [])
 
-  // Cuenta regresiva para unirse a la teleconsulta
-  useEffect(() => {
-    if (!meeting || showMeeting) return
-    setCountdown(60)
-    const iv = setInterval(() => setCountdown(c => Math.max(0, c - 1)), 1000)
-    return () => clearInterval(iv)
-  }, [meeting?.roomId, showMeeting])
-
-  useEffect(() => {
-    if (countdown === 0 && meeting && !showMeeting) closeRoom()
-  }, [countdown])
-
   const handleLogout = () => { logout(); navigate('/login') }
+
+  const formatFechaCorta = (iso) => {
+    if (!iso) return '—'
+    return new Date(iso + 'T12:00:00').toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })
+  }
+  const formatFechaLarga = (iso) => {
+    if (!iso) return '—'
+    return new Date(iso + 'T12:00:00').toLocaleDateString('es-CO', { weekday: 'short', day: 'numeric', month: 'long' })
+  }
 
   const NIVEL_COLOR = {
     Verde:    { color: '#15803d', bg: '#f0fdf4' },
@@ -302,8 +303,8 @@ export default function PatientDashboard() {
         overflowY: 'auto'
       }}>
 
-        {/* Banner teleconsulta activa */}
-        {meeting && !showMeeting && (
+        {/* Banner teleconsulta confirmada */}
+        {citaConfirmada && !showMeeting && (
           <div style={{
             marginBottom: '1.5rem',
             background: 'linear-gradient(135deg, #050f08, #0f2318, #071626)',
@@ -311,7 +312,6 @@ export default function PatientDashboard() {
             border: '1.5px solid rgba(34,197,94,0.2)',
             padding: '1.1rem 1.5rem',
             display: 'flex', alignItems: 'center', gap: '1rem',
-            animation: 'fadeInUp 0.4s ease',
             animationName: 'fadeInUp, bannerGlow',
             animationDuration: '0.4s, 3s',
             animationTimingFunction: 'ease, ease-in-out',
@@ -338,36 +338,26 @@ export default function PatientDashboard() {
                 fontWeight: '800', fontSize: '0.72rem',
                 textTransform: 'uppercase', letterSpacing: '1.2px'
               }}>
-                Su médico está esperando
+                Teleconsulta confirmada
               </p>
               <p style={{ margin: 0, color: 'white', fontWeight: '700', fontSize: '0.93rem' }}>
-                {meeting.medicoNombre} está listo para atenderle
+                {citaConfirmada.medico_nombre ?? 'Médico asignado'}
               </p>
             </div>
 
-            {/* Contador regresivo */}
+            {/* Chip fecha/hora */}
             <div style={{
               flexShrink: 0, textAlign: 'center',
               padding: '0.45rem 0.85rem',
-              background: countdown <= 15 ? 'rgba(220,38,38,0.18)' : 'rgba(255,255,255,0.06)',
-              border: `1.5px solid ${countdown <= 15 ? 'rgba(220,38,38,0.3)' : 'rgba(255,255,255,0.1)'}`,
+              background: 'rgba(255,255,255,0.06)',
+              border: '1.5px solid rgba(255,255,255,0.1)',
               borderRadius: '12px',
-              transition: 'all 0.5s ease'
             }}>
-              <p style={{
-                margin: 0, lineHeight: 1,
-                fontSize: '1.5rem', fontWeight: '900',
-                color: countdown <= 15 ? '#ef4444' : 'white',
-                fontVariantNumeric: 'tabular-nums',
-                transition: 'color 0.3s ease'
-              }}>
-                {countdown}
+              <p style={{ margin: 0, lineHeight: 1, fontSize: '1rem', fontWeight: '800', color: 'white' }}>
+                {citaConfirmada.hora_solicitada ?? '—'}
               </p>
-              <p style={{
-                margin: '2px 0 0', fontSize: '0.62rem',
-                color: 'rgba(255,255,255,0.35)', fontWeight: '600'
-              }}>
-                seg
+              <p style={{ margin: '3px 0 0', fontSize: '0.62rem', color: 'rgba(255,255,255,0.4)', fontWeight: '600' }}>
+                {formatFechaCorta(citaConfirmada.fecha_solicitada)}
               </p>
             </div>
 
@@ -556,33 +546,89 @@ export default function PatientDashboard() {
             <h3 style={{ margin: '0 0 1rem', fontSize: '0.92rem', fontWeight: '700', color: '#0f2318' }}>
               Próxima cita
             </h3>
-            <div style={{
-              flex: 1, background: '#f8fafb', borderRadius: '14px',
-              padding: '1.5rem', border: '1px dashed #d8e6dc',
-              display: 'flex', flexDirection: 'column',
-              alignItems: 'center', justifyContent: 'center', gap: '0.75rem',
-              textAlign: 'center'
-            }}>
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#c8d8cc" strokeWidth="1.5">
-                <rect x="3" y="4" width="18" height="18" rx="2"/>
-                <line x1="16" y1="2" x2="16" y2="6"/>
-                <line x1="8" y1="2" x2="8" y2="6"/>
-                <line x1="3" y1="10" x2="21" y2="10"/>
-              </svg>
-              <p style={{ margin: 0, color: '#aabcb0', fontSize: '0.83rem', lineHeight: 1.5 }}>
-                No tienes citas programadas.<br/>Solicita una teleconsulta desde Mis resultados.
-              </p>
-              <button
-                onClick={() => navigate('/paciente/teleconsulta')}
-                style={{
-                  background: 'none', border: '1px solid #3d7a5a', color: '#3d7a5a',
-                  borderRadius: '8px', padding: '0.4rem 1rem',
-                  fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer'
-                }}
-              >
-                Ir a Teleconsulta
-              </button>
-            </div>
+
+            {citaConfirmada ? (
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                  <div style={{
+                    width: '46px', height: '46px', flexShrink: 0,
+                    background: '#f0fdf4', border: '1.5px solid #bbf7d0',
+                    borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                  }}>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#15803d" strokeWidth="2">
+                      <polygon points="23 7 16 12 23 17 23 7"/>
+                      <rect x="1" y="5" width="15" height="14" rx="2"/>
+                    </svg>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ margin: '0 0 0.15rem', fontWeight: '700', color: '#0f2318', fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {citaConfirmada.medico_nombre ?? 'Médico asignado'}
+                    </p>
+                    <p style={{ margin: 0, color: '#7a9080', fontSize: '0.8rem' }}>
+                      {formatFechaLarga(citaConfirmada.fecha_solicitada)}
+                      {citaConfirmada.hora_solicitada ? ` · ${citaConfirmada.hora_solicitada}` : ''}
+                    </p>
+                  </div>
+                </div>
+
+                <span style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
+                  background: '#f0fdf4', color: '#15803d',
+                  fontSize: '0.75rem', fontWeight: '700',
+                  padding: '0.25rem 0.7rem', borderRadius: '20px',
+                  border: '1px solid #bbf7d0', width: 'fit-content'
+                }}>
+                  <div style={{ width: '6px', height: '6px', background: '#22c55e', borderRadius: '50%' }} />
+                  Confirmada
+                </span>
+
+                <button
+                  onClick={() => setShowMeeting(true)}
+                  style={{
+                    background: 'linear-gradient(135deg, #15803d, #16a34a)',
+                    color: 'white', border: 'none', borderRadius: '10px',
+                    padding: '0.6rem 1rem', fontSize: '0.85rem', fontWeight: '700',
+                    cursor: 'pointer', display: 'flex', alignItems: 'center',
+                    justifyContent: 'center', gap: '0.4rem', width: '100%',
+                    fontFamily: 'inherit', marginTop: 'auto'
+                  }}
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+                    <polygon points="23 7 16 12 23 17 23 7"/>
+                    <rect x="1" y="5" width="15" height="14" rx="2"/>
+                  </svg>
+                  Unirse a la consulta
+                </button>
+              </div>
+            ) : (
+              <div style={{
+                flex: 1, background: '#f8fafb', borderRadius: '14px',
+                padding: '1.5rem', border: '1px dashed #d8e6dc',
+                display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center', gap: '0.75rem',
+                textAlign: 'center'
+              }}>
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#c8d8cc" strokeWidth="1.5">
+                  <rect x="3" y="4" width="18" height="18" rx="2"/>
+                  <line x1="16" y1="2" x2="16" y2="6"/>
+                  <line x1="8" y1="2" x2="8" y2="6"/>
+                  <line x1="3" y1="10" x2="21" y2="10"/>
+                </svg>
+                <p style={{ margin: 0, color: '#aabcb0', fontSize: '0.83rem', lineHeight: 1.5 }}>
+                  No tienes citas programadas.<br/>Solicita una teleconsulta desde Mis resultados.
+                </p>
+                <button
+                  onClick={() => navigate('/paciente/teleconsulta')}
+                  style={{
+                    background: 'none', border: '1px solid #3d7a5a', color: '#3d7a5a',
+                    borderRadius: '8px', padding: '0.4rem 1rem',
+                    fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer'
+                  }}
+                >
+                  Ir a Teleconsulta
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -659,11 +705,11 @@ export default function PatientDashboard() {
       </main>
 
       {/* Jitsi Meeting */}
-      {showMeeting && meeting && (
+      {showMeeting && citaConfirmada && (
         <JitsiMeeting
-          roomId={meeting.roomId}
+          roomId={`stiga-cita-${citaConfirmada.id}`}
           displayName={user?.name}
-          onClose={() => { setShowMeeting(false); closeRoom() }}
+          onClose={() => setShowMeeting(false)}
         />
       )}
 
