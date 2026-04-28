@@ -246,23 +246,45 @@ export default function AdminDashboard() {
         leafletMapRef.current = null
       }
 
-      const BOUNDS = L.latLngBounds([5.30, -77.15], [8.90, -73.85])
+      const ANTIOQUIA_COORDS = [
+        [-77.05,8.88],[-76.60,8.75],[-76.10,8.62],[-75.65,8.48],
+        [-75.25,8.22],[-75.00,7.98],[-74.72,7.65],[-74.42,7.38],
+        [-74.18,7.05],[-74.05,6.65],[-74.00,6.25],[-74.12,5.95],
+        [-74.38,5.72],[-74.72,5.52],[-75.10,5.30],[-75.52,5.38],
+        [-75.90,5.60],[-76.22,5.88],[-76.52,6.15],[-76.78,6.48],
+        [-76.95,6.90],[-77.08,7.35],[-77.10,7.82],[-77.18,8.25],
+        [-77.12,8.58],[-77.05,8.88],
+      ]
+      const ANTIOQUIA_GEOJSON = {
+        type: 'Feature',
+        geometry: {
+          type: 'Polygon',
+          coordinates: [ANTIOQUIA_COORDS],
+        },
+      }
+      const geoLayer = L.geoJSON(ANTIOQUIA_GEOJSON, {
+        style: {
+          fillColor: '#e8f3fc',
+          fillOpacity: 0.85,
+          color: '#1a5f8a',
+          weight: 2.5,
+          opacity: 1,
+        },
+      })
+
+      const BOUNDS = geoLayer.getBounds().pad(0.05)
       const map = L.map(mapContainerRef.current, {
-        center: [6.5, -75.6],
+        center: BOUNDS.getCenter(),
         zoom: 8,
         minZoom: 7,
-        maxZoom: 14,
+        maxZoom: 13,
         maxBounds: BOUNDS,
         maxBoundsViscosity: 1.0,
         zoomControl: true,
-        attributionControl: true,
+        attributionControl: false,
       })
       map.fitBounds(BOUNDS)
-
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© <a href="https://openstreetmap.org" target="_blank">OpenStreetMap</a>',
-        maxZoom: 16,
-      }).addTo(map)
+      geoLayer.addTo(map)
 
       mapaPoints.forEach(p => {
         const radius = Math.max(3000, Math.min(p.count * 5000, 18000))
@@ -565,7 +587,11 @@ export default function AdminDashboard() {
       <style>{`
         * { box-sizing: border-box; }
 
-        /* Leaflet popup customization */
+        /* Leaflet customization */
+        .leaflet-container {
+          background: #f0f5fa !important;
+          font-family: 'Segoe UI', sans-serif;
+        }
         .leaflet-popup-content-wrapper {
           border-radius: 12px !important;
           box-shadow: 0 8px 24px rgba(0,0,0,0.14) !important;
@@ -574,11 +600,16 @@ export default function AdminDashboard() {
         }
         .leaflet-popup-content { margin: 12px 14px !important; }
         .leaflet-popup-tip-container { display: none; }
-        .leaflet-control-attribution {
-          font-size: 0.68rem !important;
-          background: rgba(255,255,255,0.85) !important;
+        .leaflet-control-zoom {
+          border: 1px solid #e5e7eb !important;
+          border-radius: 8px !important;
+          overflow: hidden;
         }
-        .leaflet-container { font-family: 'Segoe UI', sans-serif; }
+        .leaflet-control-zoom a {
+          color: #374151 !important;
+          border-color: #e5e7eb !important;
+        }
+        .leaflet-control-zoom a:hover { background: #f3f4f6 !important; }
 
         @keyframes fadeInUp {
           from { opacity: 0; transform: translateY(16px); }
