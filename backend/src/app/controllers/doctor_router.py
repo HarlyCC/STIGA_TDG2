@@ -30,17 +30,29 @@ def list_patients(
     medico:  dict = Depends(require_medico),
 ):
     """
-    Lista todos los triajes registrados con los datos del paciente y su clasificación.
-    Permite filtrar por color de triaje (Verde, Amarillo, Naranja, Rojo).
+    Admin: todos los triajes.
+    Médico: solo triajes de pacientes con cita confirmada con este médico.
+    Filtro opcional por color de triaje.
     """
-    query  = "SELECT * FROM triage_records"
-    params = []
-
-    if color:
-        query  += " WHERE triage_color = ?"
-        params.append(color)
-
-    query += " ORDER BY timestamp DESC"
+    if medico["role"] == "admin":
+        query  = "SELECT * FROM triage_records"
+        params = []
+        if color:
+            query  += " WHERE triage_color = ?"
+            params.append(color)
+        query += " ORDER BY timestamp DESC"
+    else:
+        query = """
+            SELECT DISTINCT t.*
+            FROM triage_records t
+            INNER JOIN citas c ON c.paciente_email = t.user_email
+            WHERE c.medico_email = ? AND c.status = 'confirmada'
+        """
+        params = [medico["email"]]
+        if color:
+            query += " AND t.triage_color = ?"
+            params.append(color)
+        query += " ORDER BY t.timestamp DESC"
 
     with get_conn() as conn:
         rows = conn.execute(query, params).fetchall()
@@ -86,12 +98,20 @@ def patient_detail(
 @router.get("/mis-triajes")
 def my_triages(current_user: dict = Depends(get_current_user)):
     """
-    Retorna el historial de triajes del paciente autenticado,
-    ordenados del más reciente al más antiguo.
+    Retorna el historial de triajes del paciente autenticado.
+    Incluye el nombre del médico asignado si hay una cita confirmada vinculada.
     """
     with get_conn() as conn:
         rows = conn.execute(
-            "SELECT * FROM triage_records WHERE user_email = ? ORDER BY timestamp DESC",
+            """SELECT t.*,
+                      (SELECT u.nombre
+                       FROM citas c
+                       JOIN users u ON u.email = c.medico_email
+                       WHERE c.triaje_id = t.id AND c.status = 'confirmada'
+                       LIMIT 1) AS medico_nombre
+               FROM triage_records t
+               WHERE t.user_email = ?
+               ORDER BY t.timestamp DESC""",
             (current_user["email"],),
         ).fetchall()
 

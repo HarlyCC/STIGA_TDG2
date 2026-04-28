@@ -52,6 +52,7 @@ function mapTriaje(r) {
     confianza:         r.confianza,
     escalado:          !!r.escalado,
     necesitaAmbulancia: !!r.necesita_ambulancia,
+    medico:            r.medico_nombre || null,
   }
 }
 

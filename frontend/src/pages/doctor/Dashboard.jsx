@@ -251,17 +251,12 @@ export default function DoctorDashboard() {
             </svg>
             Cola de triajes
           </div>
-          <div className="nav-item" style={{ opacity: 0.45, cursor: 'not-allowed' }}>
+          <div className="nav-item" onClick={() => navigate('/medico/teleconsultas')} style={{ cursor: 'pointer' }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
               <polyline points="14 2 14 8 20 8"/>
             </svg>
             Historia clínica
-            <span style={{
-              marginLeft: 'auto', fontSize: '0.65rem',
-              background: 'rgba(232,160,32,0.15)', color: '#e8a020',
-              padding: '0.15rem 0.4rem', borderRadius: '4px', fontWeight: '600'
-            }}>Pronto</span>
           </div>
           <div className="nav-item" onClick={() => navigate('/medico/teleconsultas')}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

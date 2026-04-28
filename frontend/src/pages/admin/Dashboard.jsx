@@ -100,10 +100,16 @@ export default function AdminDashboard() {
     else if (h < 18) setGreeting('Buenas tardes')
     else setGreeting('Buenas noches')
     const t = setTimeout(() => setTipCollapsed(true), 3500)
-    // Carga estadísticas generales al montar
+    // Carga estadísticas y alertas al montar
     client.get('/admin/estadisticas').then(({ data }) => setEstadisticas(data)).catch(() => {})
+    client.get('/admin/alertas').then(({ data }) => setAlertas(data.map(mapAlerta))).catch(() => {})
     return () => clearTimeout(t)
   }, [])
+
+  useEffect(() => {
+    if (activeTab !== 'alertas') return
+    client.get('/admin/alertas').then(({ data }) => setAlertas(data.map(mapAlerta))).catch(() => {})
+  }, [activeTab])
 
   useEffect(() => {
     if (activeTab !== 'usuarios') return
@@ -125,12 +131,16 @@ export default function AdminDashboard() {
 
   const handleLogout = () => { logout(); navigate('/login') }
 
+  /* ── Alertas separadas ── */
+  const alertasPendientes = alertas.filter(a => a.estado === 'pendiente')
+  const alertasHistorial  = alertas.filter(a => a.estado === 'atendida')
+
   /* ── Stats dinámicos ── */
   const stats = [
-    { label: 'Total triajes',    value: estadisticas?.triajes?.total                  ?? '…', color: '#374151' },
-    { label: 'Pacientes',        value: estadisticas?.usuarios?.paciente               ?? '…', color: '#1a5f8a' },
-    { label: 'Médicos',          value: estadisticas?.usuarios?.medico                 ?? '…', color: '#15803d' },
-    { label: 'Alertas activas',  value: alertas.length,                                        color: '#b91c1c' },
+    { label: 'Total triajes',    value: estadisticas?.triajes?.total     ?? '…', color: '#374151' },
+    { label: 'Pacientes',        value: estadisticas?.usuarios?.paciente  ?? '…', color: '#1a5f8a' },
+    { label: 'Médicos',          value: estadisticas?.usuarios?.medico    ?? '…', color: '#15803d' },
+    { label: 'Alertas activas',  value: alertasPendientes.length,                 color: '#b91c1c' },
   ]
 
   /* ── Nav unificado ── */
@@ -143,9 +153,35 @@ export default function AdminDashboard() {
     { key: 'horarios', label: 'Horarios médicos',   icon: 'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01' },
   ]
 
+  /* ── Helpers alertas ── */
+  const ALERTA_CFG = {
+    Naranja: { color: '#f97316', bg: '#fff7ed', border: '#fed7aa' },
+    Rojo:    { color: '#ef4444', bg: '#fef2f2', border: '#fecaca' },
+  }
+  const mapAlerta = (a) => {
+    const cfg = ALERTA_CFG[a.triage_color] || ALERTA_CFG.Rojo
+    return {
+      id:     a.id,
+      tipo:   'crítico',
+      estado: a.estado || 'pendiente',
+      titulo: `Triaje ${a.triage_color} — ${a.paciente_nombre || a.paciente_email}`,
+      desc:   `Paciente: ${a.paciente_nombre || '—'} · Tel: ${a.paciente_telefono || '—'} · ${a.ciudad || '—'}. Requiere atención de emergencia.`,
+      hora:   fmtFecha(a.created_at),
+      color:  cfg.color,
+      bg:     cfg.bg,
+      border: cfg.border,
+    }
+  }
+
   /* ── Handlers alertas ── */
-  const handleAtenderAlerta = (id) => setAlertas(prev => prev.filter(a => a.id !== id))
-  const handleIgnorarAlerta  = (id) => setAlertas(prev => prev.filter(a => a.id !== id))
+  const handleAtenderAlerta = async (id) => {
+    try { await client.put(`/admin/alertas/${id}/atender`) } catch {}
+    setAlertas(prev => prev.map(a => a.id === id ? { ...a, estado: 'atendida' } : a))
+  }
+  const handleIgnorarAlerta = async (id) => {
+    try { await client.delete(`/admin/alertas/${id}`) } catch {}
+    setAlertas(prev => prev.filter(a => a.id !== id))
+  }
 
   /* ── Handlers usuarios ── */
   const handleAccionEstado = (id) => {
@@ -597,12 +633,12 @@ export default function AdminDashboard() {
                 <path d={item.icon}/>
               </svg>
               {item.label}
-              {item.key === 'alertas' && alertas.length > 0 && (
+              {item.key === 'alertas' && alertasPendientes.length > 0 && (
                 <span style={{
                   marginLeft: 'auto', minWidth: '20px', height: '20px',
                   background: '#b91c1c', color: 'white', fontSize: '0.68rem', fontWeight: '700',
                   borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 5px'
-                }}>{alertas.length}</span>
+                }}>{alertasPendientes.length}</span>
               )}
             </div>
           ))}
@@ -671,8 +707,8 @@ export default function AdminDashboard() {
             Resumen del sistema
           </p>
           <p style={{ margin: 0, fontSize: '1.2rem', fontWeight: '600', color: 'white', lineHeight: 1.6 }}>
-            {alertas.length > 0
-              ? `Hay ${alertas.length} alerta${alertas.length > 1 ? 's' : ''} activa${alertas.length > 1 ? 's' : ''} hoy. ${alertas.find(a => a.tipo === 'crítico')?.desc ?? ''}`
+            {alertasPendientes.length > 0
+              ? `Hay ${alertasPendientes.length} alerta${alertasPendientes.length > 1 ? 's' : ''} activa${alertasPendientes.length > 1 ? 's' : ''} hoy. ${alertasPendientes[0]?.desc ?? ''}`
               : 'Todo está en orden. No hay alertas activas en este momento.'}
           </p>
         </div>
@@ -681,7 +717,7 @@ export default function AdminDashboard() {
         <div className={`tip-small ${tipCollapsed ? 'visible' : 'hidden'}`}>
           <div style={{
             background: 'white', border: '1px solid #e5e7eb',
-            borderLeft: `3px solid ${alertas.length > 0 ? '#b91c1c' : '#374151'}`,
+            borderLeft: `3px solid ${alertasPendientes.length > 0 ? '#b91c1c' : '#374151'}`,
             borderRadius: '12px', padding: '0.75rem 1.25rem',
             display: 'flex', alignItems: 'center', gap: '0.75rem'
           }}>
@@ -692,8 +728,8 @@ export default function AdminDashboard() {
             </svg>
             <p style={{ margin: 0, color: '#06111f', fontSize: '0.85rem', lineHeight: 1.5 }}>
               <strong style={{ color: '#374151' }}>Estado: </strong>
-              {alertas.length > 0
-                ? `${alertas.length} alerta${alertas.length > 1 ? 's' : ''} activa${alertas.length > 1 ? 's' : ''}.`
+              {alertasPendientes.length > 0
+                ? `${alertasPendientes.length} alerta${alertasPendientes.length > 1 ? 's' : ''} activa${alertasPendientes.length > 1 ? 's' : ''}.`
                 : 'Sin alertas activas.'}
             </p>
           </div>
@@ -730,7 +766,7 @@ export default function AdminDashboard() {
               className={`tab-btn ${activeTab === t.key ? 'active' : ''}`}
               onClick={() => setActiveTab(t.key)}
             >
-              {t.label}{t.key === 'alertas' && alertas.length > 0 ? ` (${alertas.length})` : ''}
+              {t.label}{t.key === 'alertas' && alertasPendientes.length > 0 ? ` (${alertasPendientes.length})` : ''}
             </button>
           ))}
         </div>
@@ -811,37 +847,34 @@ export default function AdminDashboard() {
         {/* ── TAB Alertas ── */}
         {activeTab === 'alertas' && (
           <div style={{ animation: 'tabSlide 0.35s ease' }}>
-            <p style={{ margin: '0 0 1rem', fontSize: '0.73rem', fontWeight: '700', color: '#4b5563', textTransform: 'uppercase', letterSpacing: '1.2px' }}>
-              {alertas.length} alerta{alertas.length !== 1 ? 's' : ''} activa{alertas.length !== 1 ? 's' : ''}
+
+            {/* Sección pendientes */}
+            <p style={{ margin: '0 0 0.75rem', fontSize: '0.73rem', fontWeight: '700', color: '#4b5563', textTransform: 'uppercase', letterSpacing: '1.2px' }}>
+              Activas · {alertasPendientes.length}
             </p>
-            {alertas.length === 0 && (
-              <div style={{
-                background: 'white', border: '1px solid #e5e7eb', borderRadius: '14px',
-                padding: '3rem', textAlign: 'center'
-              }}>
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" strokeWidth="1.5" style={{ marginBottom: '0.75rem' }}>
+            {alertasPendientes.length === 0 && (
+              <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '14px', padding: '2.5rem', textAlign: 'center', marginBottom: '1.5rem' }}>
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" strokeWidth="1.5" style={{ marginBottom: '0.6rem' }}>
                   <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
                 </svg>
-                <p style={{ margin: 0, color: '#9ca3af', fontSize: '0.9rem' }}>Sin alertas activas. El sistema opera con normalidad.</p>
+                <p style={{ margin: 0, color: '#9ca3af', fontSize: '0.88rem' }}>Sin alertas activas. El sistema opera con normalidad.</p>
               </div>
             )}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-              {alertas.map((a, i) => (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.75rem' }}>
+              {alertasPendientes.map((a, i) => (
                 <div key={a.id} className="alerta-card" style={{
                   border: `1px solid ${a.border}`, borderLeft: `3px solid ${a.color}`,
                   animation: `slideIn 0.4s ease ${i * 0.08}s both`
                 }}>
                   <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.9rem' }}>
                     <div style={{
-                      width: '36px', height: '36px', flexShrink: 0,
-                      background: a.bg, borderRadius: '10px',
+                      width: '36px', height: '36px', flexShrink: 0, background: a.bg, borderRadius: '10px',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      ...(a.tipo === 'crítico' ? { animation: 'pulse 2s ease-in-out infinite' } : {})
+                      animation: 'pulse 2s ease-in-out infinite'
                     }}>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={a.color} strokeWidth="2.5">
-                        {a.tipo === 'crítico'
-                          ? <><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></>
-                          : <><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></>}
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
                       </svg>
                     </div>
                     <div style={{ flex: 1 }}>
@@ -849,16 +882,77 @@ export default function AdminDashboard() {
                         <p style={{ margin: 0, fontWeight: '700', color: '#06111f', fontSize: '0.92rem' }}>{a.titulo}</p>
                         <span style={{ color: '#9ca3af', fontSize: '0.75rem', flexShrink: 0 }}>{a.hora}</span>
                       </div>
-                      <p style={{ margin: '0 0 0.85rem', color: '#374151', fontSize: '0.84rem', lineHeight: 1.5 }}>{a.desc}</p>
+                      <p style={{ margin: '0 0 0.75rem', color: '#374151', fontSize: '0.84rem', lineHeight: 1.5 }}>{a.desc}</p>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button className="btn-admin" onClick={() => handleAtenderAlerta(a.id)}>Atender</button>
-                        <button className="btn-outline-admin" onClick={() => handleIgnorarAlerta(a.id)}>Ignorar</button>
+                        {/* Chulito = atender */}
+                        <button
+                          title="Marcar como atendida"
+                          onClick={() => handleAtenderAlerta(a.id)}
+                          style={{
+                            width: '32px', height: '32px', borderRadius: '8px', border: '1.5px solid #bbf7d0',
+                            background: '#f0fdf4', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                          }}
+                        >
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5">
+                            <polyline points="20 6 9 17 4 12"/>
+                          </svg>
+                        </button>
+                        {/* X = ignorar y eliminar */}
+                        <button
+                          title="Ignorar y eliminar"
+                          onClick={() => handleIgnorarAlerta(a.id)}
+                          style={{
+                            width: '32px', height: '32px', borderRadius: '8px', border: '1.5px solid #fecaca',
+                            background: '#fef2f2', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                          }}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2.5">
+                            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                          </svg>
+                        </button>
                       </div>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
+
+            {/* Sección historial atendidas */}
+            {alertasHistorial.length > 0 && (
+              <>
+                <p style={{ margin: '0 0 0.75rem', fontSize: '0.73rem', fontWeight: '700', color: '#4b5563', textTransform: 'uppercase', letterSpacing: '1.2px' }}>
+                  Historial atendidas · {alertasHistorial.length}
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                  {alertasHistorial.map((a) => (
+                    <div key={a.id} style={{
+                      background: 'white', border: '1px solid #e5e7eb', borderLeft: '3px solid #d1d5db',
+                      borderRadius: '12px', padding: '0.85rem 1.1rem',
+                      display: 'flex', alignItems: 'center', gap: '0.85rem', opacity: 0.75
+                    }}>
+                      <div style={{
+                        width: '28px', height: '28px', flexShrink: 0, background: '#f0fdf4', borderRadius: '8px',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center'
+                      }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5">
+                          <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <p style={{ margin: 0, fontWeight: '600', color: '#374151', fontSize: '0.86rem' }}>{a.titulo}</p>
+                        <p style={{ margin: 0, color: '#6b7280', fontSize: '0.78rem' }}>{a.desc}</p>
+                      </div>
+                      <span style={{
+                        fontSize: '0.72rem', fontWeight: '600', color: '#16a34a',
+                        background: '#f0fdf4', border: '1px solid #bbf7d0',
+                        borderRadius: '6px', padding: '2px 8px', flexShrink: 0
+                      }}>Atendida</span>
+                      <span style={{ color: '#9ca3af', fontSize: '0.72rem', flexShrink: 0 }}>{a.hora}</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         )}
 
@@ -1215,8 +1309,8 @@ export default function AdminDashboard() {
           <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
           <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
         </svg>
-        {alertas.length > 0
-          ? `Ver alertas activas (${alertas.length})`
+        {alertasPendientes.length > 0
+          ? `Ver alertas activas (${alertasPendientes.length})`
           : 'Sin alertas activas'}
       </button>
 

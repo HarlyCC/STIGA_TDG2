@@ -748,11 +748,11 @@ window.addEventListener('message', function(event) {
   const src = event.source || window.parent;
   if (event.data.type === 'HSJD_BUSCAR') {
     const data = window.buscarHistoriaClinica(event.data.cedula);
-    src.postMessage({ type: 'HSJD_RESULTADO', data }, '*');
+    src.postMessage({ type: 'HSJD_RESULTADO', data }, event.origin);
   }
   if (event.data.type === 'HSJD_ACTUALIZAR') {
     const success = window.actualizarHistoriaClinica(event.data.cedula, event.data.consulta);
-    src.postMessage({ type: 'HSJD_GUARDADO', success }, '*');
+    src.postMessage({ type: 'HSJD_GUARDADO', success }, event.origin);
   }
 });
 

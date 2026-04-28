@@ -95,6 +95,20 @@ CREATE TABLE IF NOT EXISTS citas (
 )
 """
 
+_CREATE_ALERTAS_CRITICAS = """
+CREATE TABLE IF NOT EXISTS alertas_criticas (
+    id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+    triaje_id          INTEGER,
+    paciente_email     TEXT,
+    paciente_nombre    TEXT,
+    paciente_telefono  TEXT,
+    ciudad             TEXT,
+    triage_color       TEXT,
+    created_at         TEXT NOT NULL,
+    leida              INTEGER NOT NULL DEFAULT 0
+)
+"""
+
 # ── Inicialización ────────────────────────────────────────────────────────────
 
 def init_db():
@@ -109,6 +123,7 @@ def init_db():
         conn.execute(_CREATE_MEDICO_HORARIOS)
         conn.execute(_CREATE_SOLICITUDES_MEDICO)
         conn.execute(_CREATE_CITAS)
+        conn.execute(_CREATE_ALERTAS_CRITICAS)
         # Migración: agregar user_email si no existe
         try:
             conn.execute("ALTER TABLE triage_records ADD COLUMN user_email TEXT")
@@ -134,4 +149,9 @@ def init_db():
                 conn.execute(col_def)
             except Exception:
                 pass
-    logger.info("Base de datos inicializada | tablas: users, triage_records, medico_horarios, citas")
+        # Migración: estado de la alerta crítica
+        try:
+            conn.execute("ALTER TABLE alertas_criticas ADD COLUMN estado TEXT NOT NULL DEFAULT 'pendiente'")
+        except Exception:
+            pass
+    logger.info("Base de datos inicializada | tablas: users, triage_records, medico_horarios, citas, alertas_criticas")

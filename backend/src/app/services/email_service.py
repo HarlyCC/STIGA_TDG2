@@ -94,6 +94,42 @@ def send_doctor_access_request_email(datos: dict):
     _send(EMAIL_USER, "STIGA — Nueva solicitud de acceso médico", body)
 
 
+def send_critical_triage_alert(paciente_nombre: str, paciente_email: str,
+                               paciente_telefono: str, ciudad: str, triage_color: str):
+    """Notifies the admin about a critical (Naranja/Rojo) triage result."""
+    if not EMAIL_USER:
+        logger.warning("EMAIL_USER not configured — critical alert not sent by email")
+        return
+    color_hex = '#f97316' if triage_color == 'Naranja' else '#ef4444'
+    body = f"""
+    <html><body style="font-family:Arial,sans-serif;color:#1a2332;">
+      <div style="{_CARD_STYLE}">
+        <div style="background:linear-gradient(135deg,{color_hex},{color_hex}cc);border-radius:8px 8px 0 0;padding:20px 24px;margin:-32px -32px 24px;">
+          <h2 style="color:white;margin:0;font-size:1.15rem;">⚠ Triaje Crítico — Nivel {triage_color}</h2>
+          <p style="color:rgba(255,255,255,0.7);margin:4px 0 0;font-size:0.82rem;">STIGA — Acción requerida</p>
+        </div>
+        <p style="margin:0 0 1rem;color:#374151;font-size:0.9rem;">
+          Se ha registrado un triaje de nivel <strong style="color:{color_hex};">{triage_color}</strong>
+          que requiere atención de emergencia. Por favor contacte al paciente y coordine traslado si es necesario.
+        </p>
+        <table style="width:100%;border-collapse:collapse;font-size:0.9rem;">
+          <tr><td style="padding:7px 0;color:#6b7280;width:40%;">Paciente</td><td style="padding:7px 0;font-weight:600;color:#06111f;">{paciente_nombre or '—'}</td></tr>
+          <tr style="background:#f9fafb;"><td style="padding:7px 6px;color:#6b7280;">Correo</td><td style="padding:7px 6px;color:#2e8fc0;">{paciente_email}</td></tr>
+          <tr><td style="padding:7px 0;color:#6b7280;">Teléfono</td><td style="padding:7px 0;font-weight:600;color:#06111f;">{paciente_telefono or '—'}</td></tr>
+          <tr style="background:#f9fafb;"><td style="padding:7px 6px;color:#6b7280;">Ciudad</td><td style="padding:7px 6px;font-weight:600;color:#06111f;">{ciudad or '—'}</td></tr>
+        </table>
+        <div style="margin-top:20px;padding:14px 16px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;">
+          <p style="margin:0;color:#b91c1c;font-size:0.85rem;font-weight:600;">
+            Revisar la alerta en el panel de administración → pestaña Alertas.
+          </p>
+        </div>
+        <p style="margin-top:20px;color:#9ca3af;font-size:0.75rem;">Universidad Católica Luis Amigó · STIGA 2026</p>
+      </div>
+    </body></html>
+    """
+    _send(EMAIL_USER, f"STIGA — ⚠ Triaje {triage_color}: {paciente_nombre or paciente_email}", body)
+
+
 def send_reset_email(to_email: str, nombre: str, code: str, expire_minutes: int):
     """Sends the password recovery code."""
     body = f"""

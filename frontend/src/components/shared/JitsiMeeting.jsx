@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 
-export default function JitsiMeeting({ roomId, displayName, onClose, pacienteNombre, pacienteCedula, nivelLabel, nivelColor }) {
+export default function JitsiMeeting({ roomId, displayName, onClose, pacienteNombre, pacienteCedula, nivelLabel, nivelColor, isDoctor }) {
   const containerRef    = useRef(null)
   const apiRef          = useRef(null)
   const hospitalIframe  = useRef(null)
@@ -201,11 +201,13 @@ export default function JitsiMeeting({ roomId, displayName, onClose, pacienteNom
         </div>
 
         <div style={{ display:'flex', alignItems:'center', gap:'0.75rem' }}>
-          {/* Botón Historia clínica */}
-          <button className={`hc-btn${panelOpen ? ' active' : ''}`} onClick={() => panelOpen ? cerrarPanel() : setPanelOpen(true)}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-            Historia clínica
-          </button>
+          {/* Botón Historia clínica — solo médico */}
+          {isDoctor && (
+            <button className={`hc-btn${panelOpen ? ' active' : ''}`} onClick={() => panelOpen ? cerrarPanel() : setPanelOpen(true)}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              Historia clínica
+            </button>
+          )}
           <button className="end-btn" onClick={() => setShowConfirm(true)}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             Terminar consulta

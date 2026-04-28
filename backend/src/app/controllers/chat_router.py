@@ -9,6 +9,7 @@ from app.data.database import get_conn
 from app.services.gemma_service import GemmaService
 from app.services.predictor import Predictor
 from app.core.security import get_current_user
+from app.services import email_service
 
 logger = logging.getLogger("stiga.chat")
 
@@ -111,8 +112,13 @@ def sync_forward(
 ):
     """Store & Forward — persiste el registro de triaje en SQLite."""
     try:
+        triage_color      = request.triage_result.get("color")
+        paciente_nombre   = request.patient_data.get("nombre")
+        paciente_telefono = request.patient_data.get("telefono")
+        ciudad            = request.patient_data.get("ciudad")
+
         with get_conn() as conn:
-            conn.execute("""
+            cur = conn.execute("""
                 INSERT INTO triage_records (
                     session_id, timestamp, user_email,
                     nombre, cedula, telefono, direccion, eps,
@@ -126,9 +132,9 @@ def sync_forward(
                 request.session_id,
                 datetime.now().isoformat(),
                 current_user["email"],
-                request.patient_data.get("nombre"),
+                paciente_nombre,
                 request.patient_data.get("cedula"),
-                request.patient_data.get("telefono"),
+                paciente_telefono,
                 request.patient_data.get("direccion"),
                 request.patient_data.get("eps"),
                 request.patient_data.get("age"),
@@ -141,14 +147,39 @@ def sync_forward(
                 request.patient_data.get("cholesterol"),
                 request.patient_data.get("symptoms"),
                 request.patient_data.get("symptom_severity"),
-                request.patient_data.get("ciudad"),
+                ciudad,
                 int(request.patient_data.get("tiene_transporte") or 0),
                 int(request.patient_data.get("necesita_ambulancia") or 0),
                 request.triage_result.get("nivel"),
-                request.triage_result.get("color"),
+                triage_color,
                 request.triage_result.get("confianza"),
                 int(request.triage_result.get("escalado") or 0),
             ))
+            triaje_id = cur.lastrowid
+
+            if triage_color in ("Naranja", "Rojo"):
+                conn.execute(
+                    """INSERT INTO alertas_criticas
+                       (triaje_id, paciente_email, paciente_nombre, paciente_telefono, ciudad, triage_color, created_at, leida)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, 0)""",
+                    (triaje_id, current_user["email"], paciente_nombre, paciente_telefono,
+                     ciudad, triage_color, datetime.now().isoformat()),
+                )
+                logger.warning(
+                    f"Alerta crítica | triaje_id: {triaje_id} | color: {triage_color} | paciente: {current_user['email']}"
+                )
+
+        if triage_color in ("Naranja", "Rojo"):
+            try:
+                email_service.send_critical_triage_alert(
+                    paciente_nombre=paciente_nombre,
+                    paciente_email=current_user["email"],
+                    paciente_telefono=paciente_telefono,
+                    ciudad=ciudad,
+                    triage_color=triage_color,
+                )
+            except Exception as email_err:
+                logger.error(f"No se pudo enviar email de alerta crítica: {email_err}")
 
         logger.info(f"Registro sincronizado | sesión: {request.session_id} | usuario: {current_user['email']}")
         return {"status": "ok", "message": "Registro guardado correctamente."}

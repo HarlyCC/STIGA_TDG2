@@ -577,6 +577,7 @@ export default function DoctorTeleconsultations() {
           pacienteCedula={activeMeeting.pacienteCedula}
           nivelLabel={activeMeeting.triaje?.nivel?.label}
           nivelColor={activeMeeting.triaje?.nivel?.dot}
+          isDoctor
           onClose={() => setActiveMeeting(null)}
         />
       )}

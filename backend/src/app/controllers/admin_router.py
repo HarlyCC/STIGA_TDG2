@@ -311,3 +311,42 @@ def delete_horario_medico(
 
     logger.info(f"Horario eliminado por admin | médico: {email} | día {dia_semana} | por: {admin['email']}")
     return {"message": "Horario eliminado correctamente."}
+
+
+# ── Alertas de triaje crítico ─────────────────────────────────────────────────
+
+@router.get("/alertas")
+def list_alertas(admin: dict = Depends(require_admin)):
+    """Retorna todas las alertas: pendientes primero, luego el historial de atendidas."""
+    with get_conn() as conn:
+        rows = conn.execute(
+            "SELECT * FROM alertas_criticas ORDER BY leida ASC, created_at DESC"
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+@router.put("/alertas/{alerta_id}/atender")
+def atender_alerta(alerta_id: int, admin: dict = Depends(require_admin)):
+    """Marca una alerta como atendida — queda en el historial."""
+    with get_conn() as conn:
+        affected = conn.execute(
+            "UPDATE alertas_criticas SET leida = 1, estado = 'atendida' WHERE id = ?",
+            (alerta_id,),
+        ).rowcount
+    if affected == 0:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Alerta no encontrada.")
+    logger.info(f"Alerta {alerta_id} atendida | admin: {admin['email']}")
+    return {"ok": True}
+
+
+@router.delete("/alertas/{alerta_id}")
+def ignorar_alerta(alerta_id: int, admin: dict = Depends(require_admin)):
+    """Elimina una alerta por completo (ignorar)."""
+    with get_conn() as conn:
+        affected = conn.execute(
+            "DELETE FROM alertas_criticas WHERE id = ?", (alerta_id,)
+        ).rowcount
+    if affected == 0:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Alerta no encontrada.")
+    logger.info(f"Alerta {alerta_id} eliminada (ignorada) | admin: {admin['email']}")
+    return {"ok": True}
