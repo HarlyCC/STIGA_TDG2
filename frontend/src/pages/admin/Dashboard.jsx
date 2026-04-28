@@ -246,12 +246,18 @@ export default function AdminDashboard() {
         leafletMapRef.current = null
       }
 
+      const BOUNDS = L.latLngBounds([5.30, -77.15], [8.90, -73.85])
       const map = L.map(mapContainerRef.current, {
         center: [6.5, -75.6],
         zoom: 8,
+        minZoom: 7,
+        maxZoom: 14,
+        maxBounds: BOUNDS,
+        maxBoundsViscosity: 1.0,
         zoomControl: true,
         attributionControl: true,
       })
+      map.fitBounds(BOUNDS)
 
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© <a href="https://openstreetmap.org" target="_blank">OpenStreetMap</a>',
@@ -299,7 +305,7 @@ export default function AdminDashboard() {
         leafletMapRef.current = null
       }
     }
-  }, [activeTab, mapaPoints.length])
+  }, [activeTab, estadisticas?.triajes?.por_ciudad?.length ?? 0])
 
   /* ── Horarios: carga médicos + todos sus horarios al abrir la pestaña ── */
   useEffect(() => {
@@ -469,18 +475,59 @@ export default function AdminDashboard() {
     'Segovia':                 [7.083, -74.700],
     'Remedios':                [6.983, -74.683],
     'Vegachí':                 [6.767, -74.800],
+    'Cisneros':                [6.533, -74.983],
+    'Yalí':                    [6.983, -75.017],
+    'Yolombó':                 [6.600, -75.017],
 
     // Bajo Cauca
     'Caucasia':                [7.983, -75.200],
     'El Bagre':                [7.583, -74.817],
     'Zaragoza':                [7.483, -74.867],
     'Tarazá':                  [7.583, -75.400],
+    'Cáceres':                 [7.583, -75.333],
+    'Nechí':                   [8.100, -74.767],
 
     // Magdalena Medio
     'Puerto Berrío':           [6.483, -74.400],
     'Yondó':                   [6.817, -74.433],
     'Puerto Nare':             [6.200, -74.583],
     'Caracolí':                [6.433, -74.767],
+    'Maceo':                   [6.550, -74.783],
+    'Puerto Triunfo':          [5.883, -74.617],
+
+    // Oriente adicionales
+    'Cocorná':                 [6.067, -75.183],
+    'Concepción':              [6.383, -75.267],
+    'El Peñol':                [6.217, -75.233],
+    'Granada':                 [6.150, -75.200],
+    'Guarne':                  [6.283, -75.450],
+    'Guatapé':                 [6.233, -75.167],
+    'San Carlos':              [6.183, -74.983],
+    'San Francisco':           [6.000, -75.100],
+    'San Luis':                [6.033, -74.983],
+    'San Rafael':              [6.283, -75.017],
+    'San Vicente Ferrer':      [6.367, -75.333],
+    'Alejandría':              [6.367, -75.083],
+
+    // Occidente adicionales
+    'Abriaquí':                [6.633, -76.100],
+    'Frontino':                [6.783, -76.133],
+    'Uramita':                 [6.883, -76.167],
+
+    // Suroeste adicionales
+    'Angelópolis':             [6.117, -75.717],
+    'Venecia':                 [5.983, -75.767],
+
+    // Norte adicionales
+    'Belmira':                 [6.600, -75.667],
+    'Briceño':                 [7.100, -75.583],
+    'Carolina del Príncipe':   [6.750, -75.333],
+    'Gómez Plata':             [6.717, -75.200],
+    'San Andrés de Cuerquia':  [6.983, -75.817],
+    'San José de la Montaña':  [6.817, -75.683],
+
+    // Valle de Aburrá adicionales
+    'Sabaneta':                [6.150, -75.617],
   }
 
   const mapaPoints = (() => {

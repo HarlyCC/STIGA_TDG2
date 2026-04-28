@@ -4,6 +4,36 @@ import validator from 'validator'
 import { register as registerApi } from '../api/api'
 import client from '../api/api'
 
+const MUNICIPIOS_ANTIOQUIA = [
+  // Bajo Cauca
+  'Cáceres','Caucasia','El Bagre','Nechí','Tarazá','Zaragoza',
+  // Magdalena Medio
+  'Caracolí','Maceo','Puerto Berrío','Puerto Nare','Puerto Triunfo','Yondó',
+  // Nordeste
+  'Amalfi','Anorí','Cisneros','Remedios','Segovia','Vegachí','Yalí','Yolombó',
+  // Norte
+  'Angostura','Belmira','Briceño','Campamento','Carolina del Príncipe','Don Matías',
+  'Entrerríos','Gómez Plata','Guadalupe','Ituango','San Andrés de Cuerquia',
+  'San José de la Montaña','San Pedro de los Milagros','Santa Rosa de Osos',
+  'Toledo','Valdivia','Yarumal',
+  // Occidente
+  'Abriaquí','Anzá','Armenia','Buriticá','Caicedo','Cañasgordas','Dabeiba',
+  'Ebéjico','Frontino','Giraldo','Heliconia','Liborina','Olaya','Peque',
+  'Sabanalarga','San Jerónimo','Santa Fe de Antioquia','Sopetrán','Uramita','Urrao',
+  // Oriente
+  'Abejorral','Alejandría','Argelia','Cocorná','Concepción','El Carmen de Viboral',
+  'El Peñol','El Retiro','El Santuario','Granada','Guarne','Guatapé','La Ceja',
+  'La Unión','Marinilla','Nariño','Rionegro','San Carlos','San Francisco','San Luis',
+  'San Rafael','San Vicente Ferrer','Sonsón',
+  // Suroeste
+  'Andes','Angelópolis','Betania','Betulia','Ciudad Bolívar','Concordia','Fredonia',
+  'Hispania','Jardín','Jericó','La Pintada','Montebello','Pueblorrico','Salgar',
+  'Santa Bárbara','Támesis','Tarso','Valparaíso','Venecia',
+  // Valle de Aburrá
+  'Barbosa','Bello','Caldas','Copacabana','Envigado','Girardota','Itagüí',
+  'La Estrella','Medellín','Sabaneta',
+].sort()
+
 const GENDER_OPTIONS = [
   { value: 0, label: 'Femenino' },
   { value: 1, label: 'Masculino' },
@@ -486,11 +516,15 @@ export default function Register() {
                     />
                   </Field>
                   <Field label="Ciudad / Municipio *">
-                    <input
+                    <select
                       className="input-stiga" name="ciudad" required
                       value={form.ciudad} onChange={handleChange}
-                      placeholder="Ej. Buriticá"
-                    />
+                    >
+                      <option value="">Selecciona tu municipio…</option>
+                      {MUNICIPIOS_ANTIOQUIA.map(m => (
+                        <option key={m} value={m}>{m}</option>
+                      ))}
+                    </select>
                   </Field>
                 </div>
 
