@@ -347,7 +347,8 @@ export default function Login() {
             {error && (
               <p style={{
                 margin: '0 0 1rem', color: '#c0392b',
-                fontSize: '0.85rem', animation: 'fadeInUp 0.3s ease'
+                fontSize: '0.85rem', animation: 'fadeInUp 0.3s ease',
+                textAlign: 'center'
               }}>
                 {error}
               </p>
