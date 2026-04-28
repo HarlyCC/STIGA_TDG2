@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hospital San Juan de Dios — Santa Fe de Antioquia</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --primary: #1a56a0;
+      --primary-dark: #123e7a;
+      --primary-light: #dbeafe;
+      --primary-xlight: #eff6ff;
+      --success: #16a34a;
+      --danger: #dc2626;
+      --warning: #d97706;
+      --text: #1e293b;
+      --text-mid: #475569;
+      --text-light: #94a3b8;
+      --border: #e2e8f0;
+      --bg: #f0f4f8;
+      --white: #ffffff;
+      --shadow: 0 2px 12px rgba(26,86,160,0.10);
+      --shadow-md: 0 6px 24px rgba(26,86,160,0.14);
+    }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* ── Header ─────────────────────────────────────────── */
+    header {
+      background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+      padding: 0 2rem;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.18);
+      position: sticky; top: 0; z-index: 100;
+    }
+    .header-inner {
+      max-width: 1280px; margin: 0 auto;
+      display: flex; align-items: center; gap: 1.25rem;
+      height: 72px;
+    }
+    .hospital-logo {
+      width: 44px; height: 44px; flex-shrink: 0;
+      background: rgba(255,255,255,0.12);
+      border: 1.5px solid rgba(255,255,255,0.22);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .header-title { flex: 1; }
+    .header-title h1 {
+      color: white; font-size: 1.05rem; font-weight: 700; line-height: 1.2;
+    }
+    .header-title p {
+      color: rgba(255,255,255,0.55); font-size: 0.72rem; margin-top: 1px;
+      letter-spacing: 0.5px; text-transform: uppercase;
+    }
+    .header-badge {
+      background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 20px; padding: 0.3rem 0.85rem;
+      color: rgba(255,255,255,0.75); font-size: 0.72rem; font-weight: 600;
+      letter-spacing: 0.5px; white-space: nowrap;
+    }
+
+    /* ── Nav ─────────────────────────────────────────────── */
+    nav {
+      background: white;
+      border-bottom: 1px solid var(--border);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    .nav-inner {
+      max-width: 1280px; margin: 0 auto;
+      display: flex; gap: 0; overflow-x: auto;
+    }
+    .nav-btn {
+      display: flex; align-items: center; gap: 0.5rem;
+      padding: 0.9rem 1.4rem;
+      background: none; border: none; border-bottom: 3px solid transparent;
+      color: var(--text-mid); font-size: 0.875rem; font-weight: 500;
+      cursor: pointer; white-space: nowrap; transition: all 0.18s ease;
+      font-family: inherit;
+    }
+    .nav-btn:hover { color: var(--primary); background: var(--primary-xlight); }
+    .nav-btn.active {
+      color: var(--primary); border-bottom-color: var(--primary);
+      font-weight: 700; background: var(--primary-xlight);
+    }
+
+    /* ── Main layout ─────────────────────────────────────── */
+    main { max-width: 1280px; margin: 0 auto; padding: 2rem; }
+    .section { display: none; }
+    .section.active { display: block; }
+
+    /* ── Cards / Stats ───────────────────────────────────── */
+    .stats-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.25rem; margin-bottom: 2rem;
+    }
+    .stat-card {
+      background: white; border-radius: 14px; padding: 1.5rem;
+      box-shadow: var(--shadow); border: 1px solid var(--border);
+      display: flex; align-items: center; gap: 1rem;
+    }
+    .stat-icon {
+      width: 48px; height: 48px; flex-shrink: 0;
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .stat-icon.blue { background: var(--primary-light); }
+    .stat-icon.green { background: #dcfce7; }
+    .stat-icon.amber { background: #fef3c7; }
+    .stat-icon.red { background: #fee2e2; }
+    .stat-value { font-size: 1.75rem; font-weight: 800; color: var(--primary); line-height: 1; }
+    .stat-label { font-size: 0.78rem; color: var(--text-mid); margin-top: 3px; }
+
+    /* ── Search bar ───────────────────────────────────────── */
+    .search-bar {
+      background: white; border-radius: 12px; padding: 1.25rem 1.5rem;
+      box-shadow: var(--shadow); border: 1px solid var(--border);
+      display: flex; gap: 0.75rem; margin-bottom: 1.5rem; align-items: center;
+    }
+    .search-input {
+      flex: 1; border: 1.5px solid var(--border); border-radius: 9px;
+      padding: 0.65rem 1rem; font-size: 0.9rem; font-family: inherit;
+      color: var(--text); transition: border-color 0.2s, box-shadow 0.2s;
+      background: var(--bg);
+    }
+    .search-input:focus {
+      outline: none; border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(26,86,160,0.12); background: white;
+    }
+    .search-input::placeholder { color: var(--text-light); }
+    .btn {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      border: none; border-radius: 9px; padding: 0.65rem 1.25rem;
+      font-size: 0.875rem; font-weight: 600; cursor: pointer;
+      transition: all 0.18s ease; font-family: inherit; white-space: nowrap;
+    }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-dark); box-shadow: 0 4px 12px rgba(26,86,160,0.3); }
+    .btn-sm { padding: 0.45rem 0.9rem; font-size: 0.8rem; }
+    .btn-outline { background: white; color: var(--primary); border: 1.5px solid var(--primary); }
+    .btn-outline:hover { background: var(--primary-light); }
+    .btn-success { background: var(--success); color: white; }
+    .btn-success:hover { background: #15803d; }
+
+    /* ── Table ────────────────────────────────────────────── */
+    .table-card {
+      background: white; border-radius: 14px; overflow: hidden;
+      box-shadow: var(--shadow); border: 1px solid var(--border);
+    }
+    .table-header {
+      padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .table-header h3 { font-size: 0.95rem; font-weight: 700; color: var(--text); }
+    .table-header span { font-size: 0.78rem; color: var(--text-light); }
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      background: var(--bg); padding: 0.8rem 1rem;
+      text-align: left; font-size: 0.75rem; font-weight: 700;
+      color: var(--text-mid); text-transform: uppercase; letter-spacing: 0.5px;
+      border-bottom: 1px solid var(--border);
+    }
+    tbody tr {
+      border-bottom: 1px solid var(--border); transition: background 0.15s;
+      cursor: pointer;
+    }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--primary-xlight); }
+    tbody td { padding: 0.9rem 1rem; font-size: 0.875rem; color: var(--text); }
+    td.nombre-cell { font-weight: 600; }
+    .badge {
+      display: inline-block; padding: 0.2rem 0.6rem;
+      border-radius: 20px; font-size: 0.72rem; font-weight: 700;
+    }
+    .badge-blue { background: var(--primary-light); color: var(--primary-dark); }
+    .badge-green { background: #dcfce7; color: #15803d; }
+    .badge-red { background: #fee2e2; color: #b91c1c; }
+    .badge-amber { background: #fef3c7; color: #92400e; }
+    .no-results {
+      text-align: center; padding: 3rem; color: var(--text-light); font-size: 0.9rem;
+    }
+
+    /* ── Modal ────────────────────────────────────────────── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; z-index: 200;
+      background: rgba(15,30,60,0.55); backdrop-filter: blur(4px);
+      align-items: flex-start; justify-content: center; padding: 1.5rem;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: white; border-radius: 18px; width: 100%; max-width: 820px;
+      max-height: 90vh; overflow-y: auto;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.25);
+      animation: modalIn 0.28s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes modalIn {
+      from { opacity: 0; transform: scale(0.93) translateY(16px); }
+      to   { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .modal-head {
+      background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+      padding: 1.5rem 2rem; border-radius: 18px 18px 0 0;
+      display: flex; align-items: flex-start; justify-content: space-between;
+    }
+    .modal-head h2 { color: white; font-size: 1.1rem; font-weight: 700; }
+    .modal-head p { color: rgba(255,255,255,0.6); font-size: 0.8rem; margin-top: 2px; }
+    .modal-close {
+      background: rgba(255,255,255,0.12); border: none; border-radius: 8px;
+      width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; color: white; transition: background 0.18s; flex-shrink: 0;
+    }
+    .modal-close:hover { background: rgba(255,255,255,0.22); }
+    .modal-body { padding: 1.75rem 2rem; }
+
+    /* ── Historia sections ────────────────────────────────── */
+    .hc-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 1.5rem;
+    }
+    @media (max-width: 600px) { .hc-grid { grid-template-columns: 1fr; } }
+    .hc-card {
+      background: var(--bg); border-radius: 12px; padding: 1.25rem;
+      border: 1px solid var(--border);
+    }
+    .hc-card h4 {
+      font-size: 0.72rem; font-weight: 700; color: var(--primary);
+      text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.85rem;
+      display: flex; align-items: center; gap: 0.4rem;
+    }
+    .hc-field { margin-bottom: 0.55rem; }
+    .hc-field label { font-size: 0.72rem; color: var(--text-mid); display: block; margin-bottom: 1px; }
+    .hc-field span { font-size: 0.875rem; font-weight: 600; color: var(--text); }
+    .tag-list { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.2rem; }
+    .tag {
+      background: white; border: 1px solid var(--border);
+      border-radius: 20px; padding: 0.18rem 0.65rem;
+      font-size: 0.75rem; font-weight: 500; color: var(--text-mid);
+    }
+    .tag.red { background: #fee2e2; border-color: #fca5a5; color: #b91c1c; }
+    .tag.blue { background: var(--primary-light); border-color: #93c5fd; color: var(--primary-dark); }
+
+    .hc-section-title {
+      font-size: 0.8rem; font-weight: 700; color: var(--text);
+      text-transform: uppercase; letter-spacing: 1px;
+      margin: 1.5rem 0 0.85rem; padding-bottom: 0.5rem;
+      border-bottom: 2px solid var(--primary-light);
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    .consulta-item {
+      background: white; border: 1px solid var(--border); border-radius: 10px;
+      padding: 1rem 1.25rem; margin-bottom: 0.75rem;
+      border-left: 3px solid var(--primary);
+    }
+    .consulta-item.stiga { border-left-color: #059669; }
+    .consulta-meta {
+      display: flex; gap: 1rem; flex-wrap: wrap;
+      margin-bottom: 0.6rem;
+    }
+    .consulta-meta span { font-size: 0.75rem; color: var(--text-mid); }
+    .consulta-meta strong { color: var(--text); }
+    .consulta-row { font-size: 0.83rem; margin-bottom: 0.35rem; color: var(--text-mid); }
+    .consulta-row strong { color: var(--text); margin-right: 4px; }
+
+    .med-table { width: 100%; font-size: 0.83rem; }
+    .med-table th {
+      text-align: left; font-size: 0.72rem; text-transform: uppercase;
+      letter-spacing: 0.5px; color: var(--text-light); padding: 0.35rem 0.5rem;
+    }
+    .med-table td { padding: 0.45rem 0.5rem; border-top: 1px solid var(--border); }
+
+    /* ── Welcome section ─────────────────────────────────── */
+    .welcome-banner {
+      background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 60%, #0ea5e9 100%);
+      border-radius: 18px; padding: 2.5rem 2.5rem;
+      margin-bottom: 2rem; position: relative; overflow: hidden;
+    }
+    .welcome-banner::after {
+      content: ''; position: absolute; right: -60px; top: -60px;
+      width: 280px; height: 280px; border-radius: 50%;
+      background: rgba(255,255,255,0.05); pointer-events: none;
+    }
+    .welcome-banner h2 { color: white; font-size: 1.5rem; font-weight: 800; margin-bottom: 0.4rem; }
+    .welcome-banner p { color: rgba(255,255,255,0.65); font-size: 0.9rem; max-width: 520px; }
+
+    /* ── Doctor / Citas list ─────────────────────────────── */
+    .list-card {
+      background: white; border-radius: 14px; padding: 1.5rem;
+      box-shadow: var(--shadow); border: 1px solid var(--border);
+      margin-bottom: 1rem;
+    }
+    .list-card h3 { font-size: 0.95rem; font-weight: 700; color: var(--text); margin-bottom: 0.2rem; }
+    .list-card p { font-size: 0.82rem; color: var(--text-mid); }
+    .divider { height: 1px; background: var(--border); margin: 1rem 0; }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<header>
+  <div class="header-inner">
+    <div class="hospital-logo">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <rect x="9" y="2" width="6" height="20" rx="1" fill="white" opacity="0.9"/>
+        <rect x="2" y="9" width="20" height="6" rx="1" fill="white" opacity="0.9"/>
+      </svg>
+    </div>
+    <div class="header-title">
+      <h1>Hospital San Juan de Dios</h1>
+      <p>Santa Fe de Antioquia · Sistema de Gestión Clínica</p>
+    </div>
+    <div class="header-badge">ESE · Nivel II</div>
+  </div>
+</header>
+
+<!-- ── Nav ── -->
+<nav>
+  <div class="nav-inner">
+    <button class="nav-btn active" onclick="showSection('inicio', this)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Inicio
+    </button>
+    <button class="nav-btn" onclick="showSection('pacientes', this)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Pacientes
+    </button>
+    <button class="nav-btn" onclick="showSection('historias', this)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      Historias Clínicas
+    </button>
+    <button class="nav-btn" onclick="showSection('medicos', this)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+      Médicos
+    </button>
+    <button class="nav-btn" onclick="showSection('citas', this)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Citas
+    </button>
+  </div>
+</nav>
+
+<!-- ── Main ── -->
+<main>
+
+  <!-- INICIO -->
+  <section class="section active" id="sec-inicio">
+    <div class="welcome-banner">
+      <h2>Bienvenido al Sistema Clínico</h2>
+      <p>Hospital San Juan de Dios · Santa Fe de Antioquia. Gestione historias clínicas, pacientes, médicos y citas desde un solo lugar.</p>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon blue">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1a56a0" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+        </div>
+        <div><div class="stat-value" id="stat-pacientes">10</div><div class="stat-label">Pacientes registrados</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon green">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        </div>
+        <div><div class="stat-value" id="stat-consultas" style="color:#16a34a">—</div><div class="stat-label">Consultas en historial</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon amber">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <div><div class="stat-value" id="stat-stiga" style="color:#d97706">—</div><div class="stat-label">Teleconsultas STIGA</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon red">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2"><rect x="9" y="2" width="6" height="20" rx="1"/><rect x="2" y="9" width="20" height="6" rx="1"/></svg>
+        </div>
+        <div><div class="stat-value" style="color:#dc2626">4</div><div class="stat-label">Médicos activos</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PACIENTES -->
+  <section class="section" id="sec-pacientes">
+    <div class="search-bar">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" style="flex-shrink:0"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input class="search-input" id="pac-search" type="text" placeholder="Buscar por nombre o cédula…" oninput="filtrarPacientes()">
+      <button class="btn btn-primary btn-sm" onclick="filtrarPacientes()">Buscar</button>
+    </div>
+    <div class="table-card">
+      <div class="table-header">
+        <h3>Registro de pacientes</h3>
+        <span id="pac-count">10 pacientes</span>
+      </div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead>
+            <tr>
+              <th>Cédula</th><th>Nombre completo</th><th>F. Nacimiento</th>
+              <th>Sexo</th><th>Municipio</th><th>Grupo</th><th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="pac-tbody"></tbody>
+        </table>
+        <div class="no-results" id="pac-empty" style="display:none">No se encontraron pacientes con ese criterio de búsqueda.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HISTORIAS CLÍNICAS -->
+  <section class="section" id="sec-historias">
+    <div class="search-bar">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" style="flex-shrink:0"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input class="search-input" id="hc-search" type="text" placeholder="Buscar por cédula o nombre para ver historia clínica…" oninput="filtrarHistorias()">
+      <button class="btn btn-primary btn-sm" onclick="filtrarHistorias()">Buscar</button>
+    </div>
+    <div class="table-card">
+      <div class="table-header"><h3>Historias clínicas</h3><span id="hc-count">10 registros</span></div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead>
+            <tr><th>Cédula</th><th>Paciente</th><th>Enf. Crónicas</th><th>Alergias</th><th>Consultas</th><th>Ver</th></tr>
+          </thead>
+          <tbody id="hc-tbody"></tbody>
+        </table>
+        <div class="no-results" id="hc-empty" style="display:none">No se encontraron registros.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MÉDICOS -->
+  <section class="section" id="sec-medicos">
+    <div class="stats-grid" style="grid-template-columns:repeat(auto-fill,minmax(280px,1fr))">
+      <div class="list-card">
+        <div style="display:flex;align-items:center;gap:1rem">
+          <div class="stat-icon blue" style="width:46px;height:46px;flex-shrink:0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a56a0" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+          <div><h3>Dr. Ramiro Salazar Vélez</h3><p>Medicina General · Ext. 301</p></div>
+        </div>
+        <div class="divider"></div>
+        <p style="font-size:0.8rem;color:var(--text-light)">L–V · 7:00 am – 3:00 pm</p>
+      </div>
+      <div class="list-card">
+        <div style="display:flex;align-items:center;gap:1rem">
+          <div class="stat-icon blue" style="width:46px;height:46px;flex-shrink:0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a56a0" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+          <div><h3>Dra. Consuelo Arango Restrepo</h3><p>Urgenciología · Ext. 302</p></div>
+        </div>
+        <div class="divider"></div>
+        <p style="font-size:0.8rem;color:var(--text-light)">L–D · Turnos rotativos</p>
+      </div>
+      <div class="list-card">
+        <div style="display:flex;align-items:center;gap:1rem">
+          <div class="stat-icon blue" style="width:46px;height:46px;flex-shrink:0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a56a0" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+          <div><h3>Dr. Hernán Muñoz Cardona</h3><p>Medicina Interna · Ext. 303</p></div>
+        </div>
+        <div class="divider"></div>
+        <p style="font-size:0.8rem;color:var(--text-light)">L–V · 8:00 am – 4:00 pm</p>
+      </div>
+      <div class="list-card">
+        <div style="display:flex;align-items:center;gap:1rem">
+          <div class="stat-icon blue" style="width:46px;height:46px;flex-shrink:0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a56a0" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+          <div><h3>Dra. Liliana Ospina Palacio</h3><p>Pediatría · Ext. 304</p></div>
+        </div>
+        <div class="divider"></div>
+        <p style="font-size:0.8rem;color:var(--text-light)">L–V · 7:00 am – 1:00 pm</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CITAS -->
+  <section class="section" id="sec-citas">
+    <div class="table-card">
+      <div class="table-header"><h3>Agenda de citas</h3><span>Próximas y recientes</span></div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>Fecha</th><th>Paciente</th><th>Cédula</th><th>Médico</th><th>Motivo</th><th>Estado</th></tr></thead>
+          <tbody id="citas-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ── Modal historia clínica ── -->
+<div class="modal-overlay" id="modal-overlay" onclick="cerrarModal(event)">
+  <div class="modal" id="modal-content">
+    <div class="modal-head">
+      <div>
+        <h2 id="modal-nombre">—</h2>
+        <p id="modal-cedula">Cédula: —</p>
+      </div>
+      <button class="modal-close" onclick="cerrarModal(null, true)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  BASE DE DATOS INICIAL
+// ═══════════════════════════════════════════════════════════
+const STORAGE_KEY = 'hospital_hsjd_pacientes';
+
+const PACIENTES_INICIALES = [
+  {
+    cedula: "1023456789",
+    nombre: "Carlos Andrés Mejía Restrepo",
+    fechaNacimiento: "1985-03-15",
+    sexo: "M",
+    municipio: "Medellín",
+    telefono: "3014567890",
+    grupoSanguineo: "O+",
+    alergias: ["Penicilina", "Aspirina"],
+    enfermedadesCronicas: ["Diabetes tipo 2", "Hipertensión arterial"],
+    medicamentosActuales: [
+      { nombre: "Metformina", dosis: "850 mg", frecuencia: "2 veces al día" },
+      { nombre: "Enalapril",  dosis: "10 mg",  frecuencia: "1 vez al día"   }
+    ],
+    consultasPrevias: [
+      { fecha: "2024-11-20", medico: "Dr. Ramiro Salazar", motivo: "Control de diabetes", diagnostico: "Diabetes tipo 2 controlada", tratamiento: "Continuar Metformina 850 mg, dieta baja en carbohidratos" },
+      { fecha: "2025-02-10", medico: "Dra. Consuelo Arango", motivo: "Dolor de pecho", diagnostico: "Hipertensión arterial no controlada", tratamiento: "Ajuste de dosis Enalapril, control en 15 días" }
+    ],
+    consultasStiga: []
+  },
+  {
+    cedula: "43567891",
+    nombre: "María Fernanda Zapata Gil",
+    fechaNacimiento: "1992-07-28",
+    sexo: "F",
+    municipio: "Santa Fe de Antioquia",
+    telefono: "3107654321",
+    grupoSanguineo: "A+",
+    alergias: ["Ibuprofeno"],
+    enfermedadesCronicas: ["Asma bronquial"],
+    medicamentosActuales: [
+      { nombre: "Salbutamol (inhalador)", dosis: "100 mcg", frecuencia: "SOS (al necesitarlo)" },
+      { nombre: "Fluticasona",           dosis: "250 mcg", frecuencia: "2 veces al día"       }
+    ],
+    consultasPrevias: [
+      { fecha: "2025-01-08", medico: "Dra. Consuelo Arango", motivo: "Crisis asmática", diagnostico: "Asma bronquial moderada persistente", tratamiento: "Fluticasona 250 mcg c/12h, control con neumólogo" }
+    ],
+    consultasStiga: []
+  },
+  {
+    cedula: "71234567",
+    nombre: "Jorge Luis Cano Montoya",
+    fechaNacimiento: "1958-11-03",
+    sexo: "M",
+    municipio: "Buriticá",
+    telefono: "3208891234",
+    grupoSanguineo: "B+",
+    alergias: [],
+    enfermedadesCronicas: ["EPOC", "Tabaquismo crónico"],
+    medicamentosActuales: [
+      { nombre: "Tiotropio (Spiriva)", dosis: "18 mcg", frecuencia: "1 vez al día" },
+      { nombre: "Ipratropio",          dosis: "20 mcg", frecuencia: "3 veces al día" }
+    ],
+    consultasPrevias: [
+      { fecha: "2024-09-14", medico: "Dr. Hernán Muñoz", motivo: "Disnea y tos crónica", diagnostico: "EPOC exacerbado", tratamiento: "Tiotropio 18 mcg, oxígeno suplementario nocturno" },
+      { fecha: "2025-03-01", medico: "Dr. Ramiro Salazar", motivo: "Control EPOC", diagnostico: "EPOC moderado estable", tratamiento: "Mantener esquema broncodilatador, abandonar tabaquismo" }
+    ],
+    consultasStiga: []
+  },
+  {
+    cedula: "32456789",
+    nombre: "Luz Marina Quintero Arias",
+    fechaNacimiento: "1975-04-22",
+    sexo: "F",
+    municipio: "Caucasia",
+    telefono: "3154321098",
+    grupoSanguineo: "AB+",
+    alergias: ["Sulfas", "Látex"],
+    enfermedadesCronicas: ["Hipotiroidismo", "Obesidad grado II"],
+    medicamentosActuales: [
+      { nombre: "Levotiroxina", dosis: "75 mcg", frecuencia: "En ayunas, 1 vez al día" }
+    ],
+    consultasPrevias: [
+      { fecha: "2024-12-05", medico: "Dr. Hernán Muñoz", motivo: "Control tiroides", diagnostico: "Hipotiroidismo compensado", tratamiento: "Continuar levotiroxina, TSH en 3 meses" }
+    ],
+    consultasStiga: []
+  },
+  {
+    cedula: "15678234",
+    nombre: "Pedro Antonio Herrera Castaño",
+    fechaNacimiento: "2000-08-17",
+    sexo: "M",
+    municipio: "Turbo",
+    telefono: "3001237654",
+    grupoSanguineo: "O-",
+    alergias: [],
+    enfermedadesCronicas: [],
+    medicamentosActuales: [],
+    consultasPrevias: [
+      { fecha: "2025-01-20", medico: "Dra. Liliana Ospina", motivo: "Fiebre y malestar general", diagnostico: "Faringoamigdalitis viral", tratamiento: "Acetaminofén 500 mg c/8h, reposo, hidratación" }
+    ],
+    consultasStiga: []
+  },
+  {
+    cedula: "43891234",
+    nombre: "Ana Lucía Giraldo Henao",
+    fechaNacimiento: "1988-02-11",
+    sexo: "F",
+    municipio: "Santa Rosa de Osos",
+    telefono: "3189876543",
+    grupoSanguineo: "A-",
+    alergias: ["Carbamazepina"],
+    enfermedadesCronicas: ["Epilepsia focal"],
+    medicamentosActuales: [
+      { nombre: "Ácido valproico", dosis: "500 mg", frecuencia: "2 veces al día" }
+    ],
+    consultasPrevias: [
+      { fecha: "2024-10-30", medico: "Dr. Hernán Muñoz", motivo: "Crisis convulsiva", diagnostico: "Epilepsia focal no controlada", tratamiento: "Ajuste ácido valproico, EEG urgente, neurología" },
+      { fecha: "2025-02-18", medico: "Dr. Ramiro Salazar", motivo: "Control neurológico", diagnostico: "Epilepsia focal controlada", tratamiento: "Mantener valproato 500 mg c/12h" }
+    ],
+    consultasStiga: []
+  },
+  {
+    cedula: "1040123456",
+    nombre: "Diego Alejandro Vargas Torres",
+    fechaNacimiento: "1995-12-29",
+    sexo: "M",
+    municipio: "Sopetrán",
+    telefono: "3025678901",
+    grupoSanguineo: "B-",
+    alergias: ["Codeína"],
+    enfermedadesCronicas: ["Hipertensión arterial esencial"],
+    medicamentosActuales: [
+      { nombre: "Losartán", dosis: "50 mg", frecuencia: "1 vez al día" },
+      { nombre: "Amlodipino", dosis: "5 mg", frecuencia: "1 vez al día" }
+    ],
+    consultasPrevias: [
+      { fecha: "2025-03-12", medico: "Dra. Consuelo Arango", motivo: "Cefalea y visión borrosa", diagnostico: "HTA en urgencia hipertensiva", tratamiento: "Amlodipino 5 mg, dieta hiposódica, control en 1 semana" }
+    ],
+    consultasStiga: []
+  },
+  {
+    cedula: "22345678",
+    nombre: "Martha Cecilia Orozco Salazar",
+    fechaNacimiento: "1970-06-08",
+    sexo: "F",
+    municipio: "Dabeiba",
+    telefono: "3134567812",
+    grupoSanguineo: "O+",
+    alergias: ["AINES"],
+    enfermedadesCronicas: ["Fibromialgia", "Síndrome de intestino irritable"],
+    medicamentosActuales: [
+      { nombre: "Pregabalina", dosis: "75 mg", frecuencia: "2 veces al día" },
+      { nombre: "Mebeverina", dosis: "135 mg", frecuencia: "3 veces al día" }
+    ],
+    consultasPrevias: [
+      { fecha: "2024-08-22", medico: "Dr. Hernán Muñoz", motivo: "Dolor musculoesquelético difuso", diagnostico: "Fibromialgia", tratamiento: "Pregabalina 75 mg c/12h, fisioterapia, manejo del estrés" },
+      { fecha: "2024-11-14", medico: "Dr. Ramiro Salazar", motivo: "Cólicos abdominales", diagnostico: "SII tipo mixto", tratamiento: "Mebeverina 135 mg c/8h, dieta FODMAP baja" }
+    ],
+    consultasStiga: []
+  },
+  {
+    cedula: "71890456",
+    nombre: "Juan Carlos Ríos Londoño",
+    fechaNacimiento: "1962-09-05",
+    sexo: "M",
+    municipio: "Santa Fe de Antioquia",
+    telefono: "3063219876",
+    grupoSanguineo: "AB-",
+    alergias: ["Contraste yodado", "Metotrexato"],
+    enfermedadesCronicas: ["Insuficiencia renal crónica estadio 3", "Diabetes tipo 2", "Hipertensión arterial"],
+    medicamentosActuales: [
+      { nombre: "Insulina glargina", dosis: "20 UI", frecuencia: "Noche, 1 vez al día"  },
+      { nombre: "Furosemida",        dosis: "40 mg", frecuencia: "En la mañana"         },
+      { nombre: "Carvedilol",        dosis: "6.25 mg", frecuencia: "2 veces al día"    },
+      { nombre: "Calcio + Vit D",    dosis: "500 mg / 400 UI", frecuencia: "1 vez al día" }
+    ],
+    consultasPrevias: [
+      { fecha: "2024-07-10", medico: "Dr. Hernán Muñoz", motivo: "Control nefrológico", diagnostico: "IRC estadio 3, creatinina 2.1 mg/dL", tratamiento: "Furosemida, dieta hipoproteica, nefrología cada 3 meses" },
+      { fecha: "2025-01-25", medico: "Dr. Ramiro Salazar", motivo: "Control multimorbilidad", diagnostico: "IRC estable, DM2 subcontrolada", tratamiento: "Ajuste insulina, HbA1c objetivo <7.5%" }
+    ],
+    consultasStiga: []
+  },
+  {
+    cedula: "32890123",
+    nombre: "Gloria Elena Arbeláez Mora",
+    fechaNacimiento: "1980-01-19",
+    sexo: "F",
+    municipio: "Buriticá",
+    telefono: "3178905432",
+    grupoSanguineo: "A+",
+    alergias: [],
+    enfermedadesCronicas: ["Trastorno de ansiedad generalizada", "Episodio depresivo mayor"],
+    medicamentosActuales: [
+      { nombre: "Sertralina",   dosis: "50 mg",  frecuencia: "1 vez al día (mañana)" },
+      { nombre: "Clonazepam",   dosis: "0.5 mg", frecuencia: "En la noche, SOS"      }
+    ],
+    consultasPrevias: [
+      { fecha: "2024-10-03", medico: "Dra. Consuelo Arango", motivo: "Crisis de ansiedad", diagnostico: "TAG con crisis de pánico", tratamiento: "Sertralina 50 mg, psicoterapia, técnicas de relajación" },
+      { fecha: "2025-02-28", medico: "Dr. Ramiro Salazar", motivo: "Control psiquiátrico", diagnostico: "TAD en remisión parcial", tratamiento: "Mantener sertralina, continuar psicoterapia mensual" }
+    ],
+    consultasStiga: []
+  }
+];
+
+// ═══════════════════════════════════════════════════════════
+//  FUNCIONES DE PERSISTENCIA
+// ═══════════════════════════════════════════════════════════
+function cargarPacientes() {
+  try {
+    const data = localStorage.getItem(STORAGE_KEY);
+    if (data) return JSON.parse(data);
+  } catch(e) {}
+  guardarPacientes(PACIENTES_INICIALES);
+  return PACIENTES_INICIALES;
+}
+
+function guardarPacientes(pacientes) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(pacientes));
+    return true;
+  } catch(e) { return false; }
+}
+
+// Inicializar si no existe
+if (!localStorage.getItem(STORAGE_KEY)) {
+  guardarPacientes(PACIENTES_INICIALES);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  FUNCIONES GLOBALES (API para STIGA)
+// ═══════════════════════════════════════════════════════════
+window.buscarHistoriaClinica = function(cedula) {
+  const pacientes = cargarPacientes();
+  return pacientes.find(p => p.cedula === String(cedula)) || null;
+};
+
+window.actualizarHistoriaClinica = function(cedula, nuevaConsulta) {
+  try {
+    const pacientes = cargarPacientes();
+    const idx = pacientes.findIndex(p => p.cedula === String(cedula));
+    if (idx === -1) return false;
+    pacientes[idx].consultasStiga = pacientes[idx].consultasStiga || [];
+    pacientes[idx].consultasStiga.push({
+      ...nuevaConsulta,
+      fecha: nuevaConsulta.fecha || new Date().toISOString().split('T')[0],
+      source: 'STIGA',
+      via: 'Teleconsulta STIGA'
+    });
+    return guardarPacientes(pacientes);
+  } catch(e) { return false; }
+};
+
+// ═══════════════════════════════════════════════════════════
+//  LISTENER postMessage (comunicación con iframe de STIGA)
+// ═══════════════════════════════════════════════════════════
+window.addEventListener('message', function(event) {
+  if (!event.data || !event.data.type) return;
+  const src = event.source || window.parent;
+  if (event.data.type === 'HSJD_BUSCAR') {
+    const data = window.buscarHistoriaClinica(event.data.cedula);
+    src.postMessage({ type: 'HSJD_RESULTADO', data }, '*');
+  }
+  if (event.data.type === 'HSJD_ACTUALIZAR') {
+    const success = window.actualizarHistoriaClinica(event.data.cedula, event.data.consulta);
+    src.postMessage({ type: 'HSJD_GUARDADO', success }, '*');
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
+//  UI — Navegación
+// ═══════════════════════════════════════════════════════════
+function showSection(id, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('sec-' + id).classList.add('active');
+  if (btn) btn.classList.add('active');
+  if (id === 'pacientes')  renderPacientes(cargarPacientes());
+  if (id === 'historias')  renderHistorias(cargarPacientes());
+  if (id === 'inicio')     renderStats();
+  if (id === 'citas')      renderCitas();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  UI — Stats
+// ═══════════════════════════════════════════════════════════
+function renderStats() {
+  const pacs = cargarPacientes();
+  const totalConsultas = pacs.reduce((a, p) => a + p.consultasPrevias.length, 0);
+  const totalStiga     = pacs.reduce((a, p) => a + (p.consultasStiga || []).length, 0);
+  document.getElementById('stat-pacientes').textContent = pacs.length;
+  document.getElementById('stat-consultas').textContent = totalConsultas;
+  document.getElementById('stat-stiga').textContent     = totalStiga || '0';
+}
+
+// ═══════════════════════════════════════════════════════════
+//  UI — Tabla pacientes
+// ═══════════════════════════════════════════════════════════
+function calcEdad(fecha) {
+  const hoy = new Date(), nac = new Date(fecha);
+  let edad = hoy.getFullYear() - nac.getFullYear();
+  const m = hoy.getMonth() - nac.getMonth();
+  if (m < 0 || (m === 0 && hoy.getDate() < nac.getDate())) edad--;
+  return edad;
+}
+
+function renderPacientes(lista) {
+  const tbody = document.getElementById('pac-tbody');
+  const empty = document.getElementById('pac-empty');
+  const count = document.getElementById('pac-count');
+  tbody.innerHTML = '';
+  count.textContent = lista.length + ' paciente' + (lista.length !== 1 ? 's' : '');
+  if (!lista.length) { empty.style.display = ''; return; }
+  empty.style.display = 'none';
+  lista.forEach(p => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${p.cedula}</td>
+      <td class="nombre-cell">${p.nombre}</td>
+      <td>${p.fechaNacimiento} <span style="color:var(--text-light);font-size:0.78rem">(${calcEdad(p.fechaNacimiento)} años)</span></td>
+      <td>${p.sexo === 'F' ? 'Femenino' : 'Masculino'}</td>
+      <td>${p.municipio}</td>
+      <td><span class="badge badge-blue">${p.grupoSanguineo}</span></td>
+      <td><button class="btn btn-outline btn-sm" onclick="abrirHistoria('${p.cedula}')">Ver historia</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function filtrarPacientes() {
+  const q = document.getElementById('pac-search').value.toLowerCase().trim();
+  const todos = cargarPacientes();
+  const filtrados = q ? todos.filter(p =>
+    p.cedula.includes(q) || p.nombre.toLowerCase().includes(q)
+  ) : todos;
+  renderPacientes(filtrados);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  UI — Tabla historias
+// ═══════════════════════════════════════════════════════════
+function renderHistorias(lista) {
+  const tbody = document.getElementById('hc-tbody');
+  const empty = document.getElementById('hc-empty');
+  const count = document.getElementById('hc-count');
+  tbody.innerHTML = '';
+  count.textContent = lista.length + ' registros';
+  if (!lista.length) { empty.style.display = ''; return; }
+  empty.style.display = 'none';
+  lista.forEach(p => {
+    const totalC = p.consultasPrevias.length + (p.consultasStiga || []).length;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${p.cedula}</td>
+      <td class="nombre-cell">${p.nombre}</td>
+      <td>${p.enfermedadesCronicas.length ? p.enfermedadesCronicas.map(e=>`<span class="badge badge-amber">${e}</span>`).join(' ') : '<span style="color:var(--text-light);font-size:0.8rem">Ninguna</span>'}</td>
+      <td>${p.alergias.length ? p.alergias.map(a=>`<span class="badge badge-red">${a}</span>`).join(' ') : '<span style="color:var(--text-light);font-size:0.8rem">Ninguna</span>'}</td>
+      <td><span class="badge badge-blue">${totalC}</span></td>
+      <td><button class="btn btn-primary btn-sm" onclick="abrirHistoria('${p.cedula}')">Ver</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function filtrarHistorias() {
+  const q = document.getElementById('hc-search').value.toLowerCase().trim();
+  const todos = cargarPacientes();
+  const filtrados = q ? todos.filter(p =>
+    p.cedula.includes(q) || p.nombre.toLowerCase().includes(q)
+  ) : todos;
+  renderHistorias(filtrados);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  UI — Modal historia clínica
+// ═══════════════════════════════════════════════════════════
+function abrirHistoria(cedula) {
+  const p = window.buscarHistoriaClinica(cedula);
+  if (!p) return;
+  document.getElementById('modal-nombre').textContent = p.nombre;
+  document.getElementById('modal-cedula').textContent = 'C.C. ' + p.cedula + ' · ' + p.municipio;
+
+  const alergiasTags = p.alergias.length
+    ? p.alergias.map(a => `<span class="tag red">${a}</span>`).join('')
+    : '<span style="color:var(--text-light);font-size:0.82rem">Sin alergias conocidas</span>';
+
+  const enfTags = p.enfermedadesCronicas.length
+    ? p.enfermedadesCronicas.map(e => `<span class="tag blue">${e}</span>`).join('')
+    : '<span style="color:var(--text-light);font-size:0.82rem">Ninguna</span>';
+
+  const medsRows = p.medicamentosActuales.length
+    ? p.medicamentosActuales.map(m =>
+        `<tr><td><strong>${m.nombre}</strong></td><td>${m.dosis}</td><td>${m.frecuencia}</td></tr>`
+      ).join('')
+    : '<tr><td colspan="3" style="color:var(--text-light);font-size:0.82rem">Sin medicación actual registrada</td></tr>';
+
+  const consultasHTML = [...p.consultasPrevias].reverse().map(c => `
+    <div class="consulta-item">
+      <div class="consulta-meta">
+        <span><strong>Fecha:</strong> ${c.fecha}</span>
+        <span><strong>Médico:</strong> ${c.medico}</span>
+      </div>
+      <div class="consulta-row"><strong>Motivo:</strong> ${c.motivo}</div>
+      <div class="consulta-row"><strong>Diagnóstico:</strong> ${c.diagnostico}</div>
+      <div class="consulta-row"><strong>Tratamiento:</strong> ${c.tratamiento}</div>
+    </div>
+  `).join('') || '<p style="color:var(--text-light);font-size:0.85rem">Sin consultas previas registradas.</p>';
+
+  const stigaHTML = (p.consultasStiga || []).length
+    ? [...p.consultasStiga].reverse().map(c => `
+        <div class="consulta-item stiga">
+          <div class="consulta-meta">
+            <span><strong>Fecha:</strong> ${c.fecha}</span>
+            <span><strong>Médico:</strong> ${c.medico || '—'}</span>
+            <span style="background:#dcfce7;color:#15803d;padding:1px 8px;border-radius:20px;font-size:0.72rem;font-weight:700">STIGA</span>
+          </div>
+          <div class="consulta-row"><strong>Motivo:</strong> ${c.motivo || '—'}</div>
+          ${c.hallazgos ? `<div class="consulta-row"><strong>Hallazgos:</strong> ${c.hallazgos}</div>` : ''}
+          <div class="consulta-row"><strong>Diagnóstico:</strong> ${c.diagnostico || '—'}</div>
+          ${c.recomendaciones ? `<div class="consulta-row"><strong>Recomendaciones:</strong> ${c.recomendaciones}</div>` : ''}
+          ${c.proximaCita ? `<div class="consulta-row"><strong>Próxima cita:</strong> ${c.proximaCita}</div>` : ''}
+        </div>
+      `).join('')
+    : '<p style="color:var(--text-light);font-size:0.85rem">Sin teleconsultas STIGA registradas.</p>';
+
+  document.getElementById('modal-body').innerHTML = `
+    <div class="hc-grid">
+      <div class="hc-card">
+        <h4>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          Datos personales
+        </h4>
+        <div class="hc-field"><label>Fecha de nacimiento</label><span>${p.fechaNacimiento} (${calcEdad(p.fechaNacimiento)} años)</span></div>
+        <div class="hc-field"><label>Sexo biológico</label><span>${p.sexo === 'F' ? 'Femenino' : 'Masculino'}</span></div>
+        <div class="hc-field"><label>Municipio</label><span>${p.municipio}</span></div>
+        <div class="hc-field"><label>Teléfono</label><span>${p.telefono}</span></div>
+        <div class="hc-field"><label>Grupo sanguíneo</label><span>${p.grupoSanguineo}</span></div>
+      </div>
+      <div class="hc-card">
+        <h4>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Condiciones clínicas
+        </h4>
+        <div class="hc-field"><label>Alergias</label><div class="tag-list">${alergiasTags}</div></div>
+        <div class="hc-field" style="margin-top:0.75rem"><label>Enfermedades crónicas</label><div class="tag-list">${enfTags}</div></div>
+      </div>
+    </div>
+
+    <p class="hc-section-title">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+      Medicamentos actuales
+    </p>
+    <div style="background:white;border:1px solid var(--border);border-radius:10px;overflow:hidden">
+      <table class="med-table">
+        <thead><tr><th>Medicamento</th><th>Dosis</th><th>Frecuencia</th></tr></thead>
+        <tbody>${medsRows}</tbody>
+      </table>
+    </div>
+
+    <p class="hc-section-title">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Consultas previas en hospital
+    </p>
+    ${consultasHTML}
+
+    <p class="hc-section-title">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><path d="M12 2L3 7v10l9 5 9-5V7L12 2z"/></svg>
+      Teleconsultas vía STIGA
+    </p>
+    ${stigaHTML}
+  `;
+
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function cerrarModal(event, force) {
+  if (force || !event || event.target === document.getElementById('modal-overlay')) {
+    document.getElementById('modal-overlay').classList.remove('open');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  UI — Citas
+// ═══════════════════════════════════════════════════════════
+function renderCitas() {
+  const citas = [
+    { fecha: "2026-04-26", paciente: "Carlos Andrés Mejía", cedula: "1023456789", medico: "Dr. Ramiro Salazar", motivo: "Control diabetes", estado: "confirmada" },
+    { fecha: "2026-04-27", paciente: "María Fernanda Zapata", cedula: "43567891", medico: "Dra. Consuelo Arango", motivo: "Control asma", estado: "pendiente" },
+    { fecha: "2026-04-28", paciente: "Ana Lucía Giraldo", cedula: "43891234", medico: "Dr. Hernán Muñoz", motivo: "Control epilepsia", estado: "confirmada" },
+    { fecha: "2026-04-29", paciente: "Juan Carlos Ríos", cedula: "71890456", medico: "Dr. Ramiro Salazar", motivo: "Control nefrológico", estado: "pendiente" },
+    { fecha: "2026-04-30", paciente: "Gloria Elena Arbeláez", cedula: "32890123", medico: "Dra. Consuelo Arango", motivo: "Seguimiento psiquiátrico", estado: "confirmada" },
+  ];
+  const tbody = document.getElementById('citas-tbody');
+  tbody.innerHTML = citas.map(c => `
+    <tr>
+      <td>${c.fecha}</td>
+      <td class="nombre-cell">${c.paciente}</td>
+      <td>${c.cedula}</td>
+      <td>${c.medico}</td>
+      <td>${c.motivo}</td>
+      <td><span class="badge ${c.estado === 'confirmada' ? 'badge-green' : 'badge-amber'}">${c.estado}</span></td>
+    </tr>
+  `).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════════
+renderStats();
+renderPacientes(cargarPacientes());
+</script>
+</body>
+</html>

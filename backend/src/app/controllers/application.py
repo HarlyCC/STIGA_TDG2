@@ -1,8 +1,10 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.controllers.auth_router import router as auth_router
 from app.controllers.chat_router import router as chat_router
@@ -37,3 +39,7 @@ app.include_router(auth_router)
 app.include_router(chat_router)
 app.include_router(doctor_router)
 app.include_router(admin_router)
+
+_HOSPITAL_DIR = Path(__file__).resolve().parents[4] / "hospital"
+if _HOSPITAL_DIR.exists():
+    app.mount("/hospital", StaticFiles(directory=str(_HOSPITAL_DIR), html=True), name="hospital")
