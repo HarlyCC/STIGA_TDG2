@@ -778,43 +778,61 @@ export default function AdminDashboard() {
               background: 'white', border: '1px solid #e5e7eb',
               borderRadius: '16px', padding: '1.5rem', marginBottom: '1.25rem'
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                <div>
-                  <p style={{ margin: '0 0 0.2rem', fontWeight: '700', color: '#06111f', fontSize: '0.97rem' }}>
-                    Triajes por día — últimos 7 días
-                  </p>
-                  <p style={{ margin: 0, color: '#6b7280', fontSize: '0.82rem' }}>
-                    Total: 142 triajes esta semana
-                  </p>
-                </div>
-                <span style={{
-                  background: '#f0fdf4', color: '#15803d', fontSize: '0.78rem', fontWeight: '700',
-                  padding: '0.3rem 0.8rem', borderRadius: '8px', border: '1px solid #bbf7d0'
-                }}>↑ 18% vs semana anterior</span>
-              </div>
-              {[
-                { dia: 'Lun', valor: 16, max: 30 },
-                { dia: 'Mar', valor: 22, max: 30 },
-                { dia: 'Mié', valor: 18, max: 30 },
-                { dia: 'Jue', valor: 28, max: 30 },
-                { dia: 'Vie', valor: 24, max: 30 },
-                { dia: 'Sáb', valor: 10, max: 30 },
-                { dia: 'Hoy', valor: 24, max: 30 },
-              ].map((b, i) => (
-                <div key={b.dia} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: i < 6 ? '0.75rem' : 0 }}>
-                  <span style={{ minWidth: '30px', fontSize: '0.78rem', fontWeight: '600', color: '#6b7280', textAlign: 'right' }}>{b.dia}</span>
-                  <div style={{ flex: 1, height: '28px', background: '#f3f4f6', borderRadius: '6px', overflow: 'hidden' }}>
-                    <div style={{
-                      height: '100%', width: `${(b.valor / b.max) * 100}%`,
-                      background: b.dia === 'Hoy' ? 'linear-gradient(90deg, #1f2937, #374151)' : 'linear-gradient(90deg, #9ca3af, #d1d5db)',
-                      borderRadius: '6px', transition: 'width 1s cubic-bezier(0.4,0,0.2,1)',
-                      display: 'flex', alignItems: 'center', paddingLeft: '0.6rem'
-                    }}>
-                      <span style={{ color: 'white', fontSize: '0.75rem', fontWeight: '700' }}>{b.valor}</span>
+              {(() => {
+                const porDia = estadisticas?.triajes?.por_dia || []
+                const totalSemana = estadisticas?.triajes?.total_semana ?? 0
+                const cambio = estadisticas?.triajes?.cambio_semanal
+                const maxVal = Math.max(...porDia.map(d => d.total), 1)
+                const hoyISO = new Date().toISOString().split('T')[0]
+                const DIAS = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb']
+                return (
+                  <>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                      <div>
+                        <p style={{ margin: '0 0 0.2rem', fontWeight: '700', color: '#06111f', fontSize: '0.97rem' }}>
+                          Triajes por día — últimos 7 días
+                        </p>
+                        <p style={{ margin: 0, color: '#6b7280', fontSize: '0.82rem' }}>
+                          Total: {totalSemana} triaje{totalSemana !== 1 ? 's' : ''} esta semana
+                        </p>
+                      </div>
+                      {cambio !== null && cambio !== undefined ? (
+                        <span style={{
+                          background: cambio >= 0 ? '#f0fdf4' : '#fef2f2',
+                          color: cambio >= 0 ? '#15803d' : '#dc2626',
+                          fontSize: '0.78rem', fontWeight: '700',
+                          padding: '0.3rem 0.8rem', borderRadius: '8px',
+                          border: `1px solid ${cambio >= 0 ? '#bbf7d0' : '#fecaca'}`
+                        }}>
+                          {cambio >= 0 ? '↑' : '↓'} {Math.abs(cambio)}% vs semana anterior
+                        </span>
+                      ) : (
+                        <span style={{ color: '#9ca3af', fontSize: '0.78rem' }}>Sin datos anteriores</span>
+                      )}
                     </div>
-                  </div>
-                </div>
-              ))}
+                    {porDia.map((b, i) => {
+                      const esHoy = b.fecha === hoyISO
+                      const label = esHoy ? 'Hoy' : DIAS[new Date(b.fecha + 'T12:00:00').getDay()]
+                      return (
+                        <div key={b.fecha} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: i < 6 ? '0.75rem' : 0 }}>
+                          <span style={{ minWidth: '30px', fontSize: '0.78rem', fontWeight: '600', color: '#6b7280', textAlign: 'right' }}>{label}</span>
+                          <div style={{ flex: 1, height: '28px', background: '#f3f4f6', borderRadius: '6px', overflow: 'hidden' }}>
+                            <div style={{
+                              height: '100%', width: `${(b.total / maxVal) * 100}%`,
+                              background: esHoy ? 'linear-gradient(90deg, #1f2937, #374151)' : 'linear-gradient(90deg, #9ca3af, #d1d5db)',
+                              borderRadius: '6px', transition: 'width 1s cubic-bezier(0.4,0,0.2,1)',
+                              display: 'flex', alignItems: 'center', paddingLeft: '0.6rem',
+                              minWidth: b.total > 0 ? '28px' : '0'
+                            }}>
+                              {b.total > 0 && <span style={{ color: 'white', fontSize: '0.75rem', fontWeight: '700' }}>{b.total}</span>}
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </>
+                )
+              })()}
             </div>
 
             <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '16px', padding: '1.5rem' }}>

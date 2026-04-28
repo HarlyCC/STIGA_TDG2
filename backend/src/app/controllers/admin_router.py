@@ -3,7 +3,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, EmailStr, field_validator
 from app.data.database import get_conn
-from datetime import datetime, timezone
+from datetime import date as date_type, datetime, timedelta, timezone
 from app.services.auth_service import CODE_EXPIRE_MINUTES
 from app.core.security import (
     get_current_user,
@@ -218,6 +218,11 @@ def estadisticas(admin: dict = Depends(require_admin)):
     Resumen general del sistema: total de usuarios por rol,
     total de triajes y distribución por color de clasificación.
     """
+    hoy = date_type.today()
+    dias_actuales = [(hoy - timedelta(days=i)).isoformat() for i in range(6, -1, -1)]
+    fecha_ini_anterior = (hoy - timedelta(days=14)).isoformat()
+    fecha_fin_anterior = (hoy - timedelta(days=7)).isoformat()
+
     with get_conn() as conn:
         usuarios_por_rol = conn.execute(
             "SELECT role, COUNT(*) as total FROM users GROUP BY role"
@@ -231,11 +236,32 @@ def estadisticas(admin: dict = Depends(require_admin)):
             "SELECT triage_color, COUNT(*) as total FROM triage_records GROUP BY triage_color"
         ).fetchall()
 
+        por_dia = []
+        for fecha in dias_actuales:
+            count = conn.execute(
+                "SELECT COUNT(*) as total FROM triage_records WHERE DATE(timestamp) = ?",
+                (fecha,)
+            ).fetchone()["total"]
+            por_dia.append({"fecha": fecha, "total": count})
+
+        total_anterior = conn.execute(
+            "SELECT COUNT(*) as total FROM triage_records WHERE DATE(timestamp) >= ? AND DATE(timestamp) < ?",
+            (fecha_ini_anterior, fecha_fin_anterior)
+        ).fetchone()["total"]
+
+    total_actual = sum(d["total"] for d in por_dia)
+    cambio_pct = None
+    if total_anterior > 0:
+        cambio_pct = round(((total_actual - total_anterior) / total_anterior) * 100)
+
     return {
         "usuarios": {r["role"]: r["total"] for r in usuarios_por_rol},
         "triajes": {
-            "total":       total_triajes,
-            "por_color":   {r["triage_color"]: r["total"] for r in triajes_por_color},
+            "total":           total_triajes,
+            "por_color":       {r["triage_color"]: r["total"] for r in triajes_por_color},
+            "por_dia":         por_dia,
+            "total_semana":    total_actual,
+            "cambio_semanal":  cambio_pct,
         },
     }
 
