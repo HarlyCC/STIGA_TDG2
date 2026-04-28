@@ -17,6 +17,7 @@ export default function PatientTeleconsultation() {
   const [triajes, setTriajes] = useState([])
   const [loadingTriajes, setLoadingTriajes] = useState(true)
   const [confirming, setConfirming] = useState(false)
+  const [confirmError, setConfirmError] = useState('')
   const [slots, setSlots] = useState([])
   const [loadingSlots, setLoadingSlots] = useState(false)
   const [citasConfirmadas, setCitasConfirmadas] = useState([])
@@ -32,6 +33,7 @@ export default function PatientTeleconsultation() {
 
   const handleConfirmar = async () => {
     setConfirming(true)
+    setConfirmError('')
     try {
       const { data } = await client.post('/medico/mis-citas', {
         triaje_id:        selectedTriaje?.id ?? null,
@@ -41,8 +43,7 @@ export default function PatientTeleconsultation() {
       setConfirmedId(data.id)
       setStep(4)
     } catch {
-      setConfirmedId(`TC-${Math.floor(10000 + Math.random() * 90000)}`)
-      setStep(4)
+      setConfirmError('No se pudo registrar la solicitud. Verifica tu conexión e intenta de nuevo.')
     } finally {
       setConfirming(false)
     }
@@ -745,6 +746,11 @@ export default function PatientTeleconsultation() {
               </div>
             </div>
 
+            {confirmError && (
+              <p style={{ margin: '0 0 0.75rem', fontSize: '0.83rem', color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', padding: '0.6rem 0.85rem' }}>
+                {confirmError}
+              </p>
+            )}
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <button className="btn-outline" onClick={() => setStep(2)}>← Editar</button>
               <button className="btn-primary" onClick={handleConfirmar} disabled={confirming}>
@@ -864,7 +870,7 @@ export default function PatientTeleconsultation() {
                     <polyline points="22 4 12 14.01 9 11.01"/>
                   </svg>
                   <p style={{ margin: 0, color: '#15803d', fontSize: '0.82rem', lineHeight: 1.5 }}>
-                    Recibirás el enlace de videollamada por correo electrónico 15 minutos antes de la cita.
+                    Un médico revisará tu solicitud y la confirmará. Cuando esté confirmada, podrás unirte a la consulta desde la sección <strong>Mis Teleconsultas</strong>.
                   </p>
                 </div>
 

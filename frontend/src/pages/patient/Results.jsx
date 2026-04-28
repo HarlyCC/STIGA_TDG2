@@ -791,7 +791,7 @@ ${t.confianza!=null?`<p class="meta">Confianza del modelo: ${Math.round(t.confia
               {/* Acciones */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 {selectedTriaje.requierePresencial && (
-                  <button className="btn-blue" style={{ justifyContent: 'center' }}>
+                  <button className="btn-blue" style={{ justifyContent: 'center' }} onClick={() => navigate('/paciente/teleconsulta')}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                     </svg>
