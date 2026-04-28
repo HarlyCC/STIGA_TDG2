@@ -494,7 +494,7 @@
 // ═══════════════════════════════════════════════════════════
 //  BASE DE DATOS INICIAL
 // ═══════════════════════════════════════════════════════════
-const STORAGE_KEY = 'hospital_hsjd_pacientes';
+const STORAGE_KEY = 'hospital_hsjd_pacientes_v2';
 
 const PACIENTES_INICIALES = [
   {
@@ -687,6 +687,27 @@ const PACIENTES_INICIALES = [
     consultasPrevias: [
       { fecha: "2024-10-03", medico: "Dra. Consuelo Arango", motivo: "Crisis de ansiedad", diagnostico: "TAG con crisis de pánico", tratamiento: "Sertralina 50 mg, psicoterapia, técnicas de relajación" },
       { fecha: "2025-02-28", medico: "Dr. Ramiro Salazar", motivo: "Control psiquiátrico", diagnostico: "TAD en remisión parcial", tratamiento: "Mantener sertralina, continuar psicoterapia mensual" }
+    ],
+    consultasStiga: []
+  },
+  {
+    cedula: "3645682",
+    nombre: "Eleazar Corliz Martínez",
+    fechaNacimiento: "1990-06-14",
+    sexo: "M",
+    municipio: "Medellín",
+    telefono: "3124890567",
+    grupoSanguineo: "O+",
+    alergias: ["Penicilina"],
+    enfermedadesCronicas: ["Gastritis crónica", "Migraña sin aura"],
+    medicamentosActuales: [
+      { nombre: "Omeprazol",    dosis: "20 mg",  frecuencia: "1 vez al día, en ayunas" },
+      { nombre: "Sumatriptán",  dosis: "50 mg",  frecuencia: "SOS en crisis de migraña" }
+    ],
+    consultasPrevias: [
+      { fecha: "2024-09-03", medico: "Dr. Ramiro Salazar", motivo: "Dolor epigástrico recurrente", diagnostico: "Gastritis crónica antral leve", tratamiento: "Omeprazol 20 mg en ayunas por 8 semanas, dieta blanda, evitar AINES" },
+      { fecha: "2025-01-17", medico: "Dra. Consuelo Arango", motivo: "Cefalea intensa con náuseas y fotofobia", diagnostico: "Migraña sin aura, episódica de frecuencia moderada", tratamiento: "Sumatriptán 50 mg SOS, evitar desencadenantes, control en 3 meses" },
+      { fecha: "2025-04-02", medico: "Dr. Hernán Muñoz", motivo: "Control gastroenterología", diagnostico: "Gastritis crónica en remisión", tratamiento: "Reducir omeprazol a dosis de mantenimiento, endoscopia de control en 6 meses" }
     ],
     consultasStiga: []
   }
