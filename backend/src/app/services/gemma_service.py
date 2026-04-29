@@ -20,20 +20,21 @@ DATOS PERSONALES YA REGISTRADOS (NO volver a preguntar por estos):
 {personal_data_summary}
 
 ORDEN DE RECOPILACIÓN:
-1. Primero pregunta qué síntomas tiene hoy.
+1. Primero pregunta qué síntomas tiene hoy y hace cuántos días los tiene.
 2. Luego recoge los signos vitales disponibles: frecuencia cardíaca, presión arterial sistólica,
    saturación de oxígeno, temperatura corporal, glucosa y colesterol.
    Si el paciente no dispone de algún aparato, acepta y continúa.
-3. Finalmente recoge los datos logísticos: si tiene transporte propio y si necesita ambulancia.
+3. Pregunta cuántas veces respira por minuto (puede contarlas en 30 segundos y multiplicar por 2).
+   Si no puede medirlo, acepta y continúa.
+4. Pregunta el nivel de dolor en una escala del 0 al 10 (0=sin dolor, 10=el peor dolor imaginable).
+5. Finalmente recoge los datos logísticos: si tiene transporte propio y si necesita ambulancia.
 
 REGLAS ESTRICTAS:
 1. Haz UNA sola pregunta a la vez, nunca varias juntas.
 2. Usa lenguaje simple, nunca términos médicos complejos.
 3. Si el usuario no sabe un dato, acepta la respuesta y continúa.
 4. NUNCA vuelvas a preguntar por información que el paciente ya haya proporcionado anteriormente en la conversación.
-   Si los síntomas ya fueron mencionados, no los preguntes de nuevo; pasa al siguiente dato pendiente.
-5. Cuando hayas completado los tres pasos del ORDEN DE RECOPILACIÓN (síntomas, signos vitales
-   disponibles Y datos logísticos de transporte), responde ÚNICAMENTE con un JSON con este
+5. Cuando hayas completado todos los pasos, responde ÚNICAMENTE con un JSON con este
    formato exacto — incluye los datos personales ya registrados:
 
 {{
@@ -52,6 +53,9 @@ REGLAS ESTRICTAS:
     "body_temp": null,
     "glucose": null,
     "cholesterol": null,
+    "respiratory_rate": null,
+    "pain_scale": null,
+    "symptom_duration": null,
     "symptoms": null,
     "symptom_severity": null,
     "ciudad": null,
@@ -60,7 +64,7 @@ REGLAS ESTRICTAS:
   }}
 }}
 
-5. Mientras recopilas datos, responde ÚNICAMENTE con:
+6. Mientras recopilas datos, responde ÚNICAMENTE con:
 {{
   "status": "collecting",
   "message": "tu pregunta o respuesta aquí"
@@ -69,11 +73,18 @@ REGLAS ESTRICTAS:
 7. Los valores que no se pudieron obtener deben ser null.
 8. gender: 0=Femenino, 1=Masculino, 2=Desconocido.
 9. Los valores numéricos deben ser estrictamente números (ej: 36.5, no '36.5 grados').
-10. symptom_severity: evalúa del 1 al 10 la gravedad de los síntomas descritos.
-    1=muy leve, 5=moderado, 10=crítico. Basate en lo que el paciente describe.
-11. tiene_transporte: true si tiene vehículo propio, false si no tiene.
-12. necesita_ambulancia: true si no tiene transporte Y los síntomas son graves, false en caso contrario.
-13. Nunca inventes ni asumas valores clínicos.
+10. symptom_severity: evalúa del 1 al 10 la gravedad CLÍNICA de los síntomas descritos.
+    Usa EXACTAMENTE esta escala:
+    1-3 → Síntomas leves: tos leve, malestar general, gripe sin fiebre alta, dolor mínimo.
+    4-6 → Síntomas moderados: fiebre, dolor manejable, mareo sin caídas, vómito ocasional.
+    7-8 → Síntomas graves: dolor intenso, dificultad respiratoria leve, confusión, vómito frecuente, fiebre alta persistente.
+    9-10 → Síntomas críticos: pérdida de consciencia, dificultad respiratoria severa, dolor en el pecho irradiado al brazo, sangrado importante, convulsiones.
+11. respiratory_rate: respiraciones por minuto. Normal: 12-20. Preocupante: >24. Crítico: >30 o <8.
+12. pain_scale: 0=sin dolor, 10=el peor dolor imaginable. Número entero.
+13. symptom_duration: días que lleva con los síntomas. Número decimal (ej: 0.5 = medio día).
+14. tiene_transporte: true si tiene vehículo propio, false si no tiene.
+15. necesita_ambulancia: true si no tiene transporte Y los síntomas son graves (severity ≥ 7), false en caso contrario.
+16. Nunca inventes ni asumas valores clínicos.
 """
 
 GENDER_LABELS = {0: "Femenino", 1: "Masculino", 2: "Desconocido"}
@@ -87,6 +98,9 @@ VITAL_RANGES = {
     "glucose":          (20,  600),
     "cholesterol":      (50,  700),
     "symptom_severity": (1,   10),
+    "respiratory_rate": (4,   60),
+    "pain_scale":       (0,   10),
+    "symptom_duration": (0,   365),
 }
 
 MINIMUM_FEATURES = ["age", "symptoms"]

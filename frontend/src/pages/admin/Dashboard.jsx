@@ -368,8 +368,9 @@ export default function AdminDashboard() {
     if (activeTab !== 'horarios') return
     client.get('/admin/usuarios?role=medico')
       .then(({ data }) => {
-        setMedicos(data)
-        data.forEach(m => {
+        const lista = data.items ?? data
+        setMedicos(lista)
+        lista.forEach(m => {
           client.get(`/admin/medicos/${encodeURIComponent(m.email)}/horarios`)
             .then(({ data: hs }) => setAllHorarios(prev => ({ ...prev, [m.email]: hs })))
             .catch(() => setAllHorarios(prev => ({ ...prev, [m.email]: [] })))

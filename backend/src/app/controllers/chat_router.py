@@ -125,9 +125,10 @@ def sync_forward(
                     age, gender, heart_rate, systolic_bp,
                     o2_sat, body_temp, glucose, cholesterol,
                     symptoms, symptom_severity,
+                    respiratory_rate, pain_scale, symptom_duration,
                     ciudad, tiene_transporte, necesita_ambulancia,
                     triage_level, triage_color, confianza, escalado
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 request.session_id,
                 datetime.now().isoformat(),
@@ -147,6 +148,9 @@ def sync_forward(
                 request.patient_data.get("cholesterol"),
                 request.patient_data.get("symptoms"),
                 request.patient_data.get("symptom_severity"),
+                request.patient_data.get("respiratory_rate"),
+                request.patient_data.get("pain_scale"),
+                request.patient_data.get("symptom_duration"),
                 ciudad,
                 int(request.patient_data.get("tiene_transporte") or 0),
                 int(request.patient_data.get("necesita_ambulancia") or 0),

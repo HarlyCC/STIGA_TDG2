@@ -47,6 +47,9 @@ CREATE TABLE IF NOT EXISTS triage_records (
     cholesterol         REAL,
     symptoms            TEXT,
     symptom_severity    REAL,
+    respiratory_rate    REAL,
+    pain_scale          REAL,
+    symptom_duration    REAL,
     ciudad              TEXT,
     tiene_transporte    INTEGER,
     necesita_ambulancia INTEGER,
@@ -143,6 +146,9 @@ def init_db():
             "ALTER TABLE citas ADD COLUMN fecha_confirmada TEXT",
             "ALTER TABLE citas ADD COLUMN hora_confirmada TEXT",
             "ALTER TABLE alertas_criticas ADD COLUMN estado TEXT NOT NULL DEFAULT 'pendiente'",
+            "ALTER TABLE triage_records ADD COLUMN respiratory_rate REAL",
+            "ALTER TABLE triage_records ADD COLUMN pain_scale REAL",
+            "ALTER TABLE triage_records ADD COLUMN symptom_duration REAL",
         ]
         for sql in _migrations:
             try:
