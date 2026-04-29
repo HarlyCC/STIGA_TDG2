@@ -1737,7 +1737,7 @@ export default function AdminDashboard() {
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
                       <div style={{ width: '12px', height: '12px', border: '1.5px dashed #d1d5db', borderRadius: '3px' }} />
-                      <span style={{ fontSize: '0.74rem', color: '#6b7280' }}>Día libre — clic para asignar franja</span>
+                      <span style={{ fontSize: '0.74rem', color: '#6b7280' }}>Día libre — clic para asignar turno</span>
                     </div>
                   </div>
                 )}
