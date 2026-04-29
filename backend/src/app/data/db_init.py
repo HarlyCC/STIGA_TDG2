@@ -149,6 +149,7 @@ def init_db():
             "ALTER TABLE triage_records ADD COLUMN respiratory_rate REAL",
             "ALTER TABLE triage_records ADD COLUMN pain_scale REAL",
             "ALTER TABLE triage_records ADD COLUMN symptom_duration REAL",
+            "ALTER TABLE triage_records ADD COLUMN medico_email TEXT",
         ]
         for sql in _migrations:
             try:
