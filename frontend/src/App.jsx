@@ -57,6 +57,7 @@ import PatientDashboard from './pages/patient/Dashboard'
 import PatientChat from './pages/patient/Chat'
 import PatientResults from './pages/patient/Results'
 import PatientTeleconsultation from './pages/patient/Teleconsultation'
+import PatientProfile from './pages/patient/Profile'
 import DoctorDashboard from './pages/doctor/Dashboard'
 import DoctorTeleconsultations from './pages/doctor/Teleconsultations'
 import AdminDashboard from './pages/admin/Dashboard'
@@ -83,6 +84,9 @@ function AnimatedRoutes() {
         } />
         <Route path="/paciente/teleconsulta" element={
           <ProtectedRoute role="paciente"><PatientTeleconsultation /></ProtectedRoute>
+        } />
+        <Route path="/paciente/perfil" element={
+          <ProtectedRoute role="paciente"><PatientProfile /></ProtectedRoute>
         } />
         <Route path="/medico" element={
           <ProtectedRoute role="medico"><DoctorDashboard /></ProtectedRoute>

@@ -50,12 +50,20 @@ export default function DoctorDashboard() {
   const [loadingData, setLoadingData] = useState(true)
   const { meeting, createRoom, closeRoom } = useTeleconsultation()
 
-  useEffect(() => {
-    setTimeout(() => setMounted(true), 100)
+  const fetchPacientes = () => {
+    setLoadingData(true)
     client.get('/medico/pacientes')
       .then(({ data }) => setPacientes(data.map(mapRecord)))
       .catch(() => {})
       .finally(() => setLoadingData(false))
+  }
+
+  useEffect(() => {
+    setTimeout(() => setMounted(true), 100)
+    fetchPacientes()
+    const onVisible = () => { if (document.visibilityState === 'visible') fetchPacientes() }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
   }, [])
 
   const handleLogout = () => { logout(); navigate('/login') }
@@ -97,6 +105,10 @@ export default function DoctorDashboard() {
         @keyframes fadeInUp {
           from { opacity: 0; transform: translateY(16px); }
           to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to   { transform: rotate(360deg); }
         }
         @keyframes fadeInLeft {
           from { opacity: 0; transform: translateX(-20px); }
@@ -345,9 +357,31 @@ export default function DoctorDashboard() {
           justifyContent: 'space-between', marginBottom: '1rem',
           animation: mounted ? 'fadeInUp 0.5s ease 0.2s both' : 'none'
         }}>
-          <h2 style={{ margin: 0, fontSize: '0.95rem', fontWeight: '700', color: '#0f2318' }}>
-            Pacientes en espera
-          </h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <h2 style={{ margin: 0, fontSize: '0.95rem', fontWeight: '700', color: '#0f2318' }}>
+              Pacientes en espera
+            </h2>
+            <button
+              onClick={fetchPacientes}
+              disabled={loadingData}
+              title="Actualizar lista"
+              style={{
+                display: 'flex', alignItems: 'center', gap: '0.35rem',
+                padding: '0.3rem 0.65rem', borderRadius: '8px',
+                border: '1px solid #d1fae5', background: '#f0fdf4',
+                color: '#15803d', fontSize: '0.75rem', fontWeight: '600',
+                cursor: loadingData ? 'not-allowed' : 'pointer',
+                opacity: loadingData ? 0.6 : 1, transition: 'all 0.18s'
+              }}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+                style={{ animation: loadingData ? 'spin 0.8s linear infinite' : 'none' }}>
+                <polyline points="23 4 23 10 17 10"/>
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+              </svg>
+              {loadingData ? 'Actualizando…' : 'Actualizar'}
+            </button>
+          </div>
           <div style={{ display: 'flex', gap: '0.4rem' }}>
             {['todos', 'rojo', 'naranja', 'amarillo', 'verde'].map(f => (
               <button

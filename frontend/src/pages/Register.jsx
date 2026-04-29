@@ -29,9 +29,14 @@ const MUNICIPIOS_ANTIOQUIA = [
   'Andes','Angelópolis','Betania','Betulia','Ciudad Bolívar','Concordia','Fredonia',
   'Hispania','Jardín','Jericó','La Pintada','Montebello','Pueblorrico','Salgar',
   'Santa Bárbara','Támesis','Tarso','Valparaíso','Venecia',
+  // Urabá
+  'Apartadó','Arboletes','Carepa','Chigorodó','Murindó','Mutatá','Necoclí',
+  'San Juan de Urabá','San Pedro de Urabá','Turbo','Vigía del Fuerte',
   // Valle de Aburrá
   'Barbosa','Bello','Caldas','Copacabana','Envigado','Girardota','Itagüí',
   'La Estrella','Medellín','Sabaneta',
+  // Otros
+  'Amagá','Caramanta','San Roque','Santo Domingo','Titiribí',
 ].sort()
 
 const GENDER_OPTIONS = [
