@@ -6,7 +6,7 @@ import client from '../../api/api'
 const MUNICIPIOS_ANTIOQUIA = [
   'Abejorral','Abriaquí','Alejandría','Amagá','Amalfi','Andes','Angelópolis',
   'Angostura','Anorí','Anzá','Apartadó','Arboletes','Argelia','Armenia',
-  'Barbosa','Bello','Betania','Betulia','Briceño','Buriticá','Cáceres',
+  'Barbosa','Bello','Belmira','Betania','Betulia','Briceño','Buriticá','Cáceres',
   'Caicedo','Caldas','Campamento','Cañasgordas','Caracolí','Caramanta',
   'Carepa','Carolina del Príncipe','Caucasia','Chigorodó','Cisneros',
   'Cocorná','Concepción','Concordia','Copacabana','Dabeiba','Don Matías',
@@ -14,6 +14,7 @@ const MUNICIPIOS_ANTIOQUIA = [
   'El Santuario','Entrerríos','Envigado','Fredonia','Frontino','Giraldo',
   'Girardota','Gómez Plata','Granada','Guadalupe','Guarne','Guatapé',
   'Heliconia','Hispania','Itagüí','Ituango','Jardín','Jericó','La Ceja',
+  'Ciudad Bolívar',
   'La Estrella','La Pintada','La Unión','Liborina','Maceo','Marinilla',
   'Medellín','Montebello','Murindó','Mutatá','Nariño','Nechí','Necoclí',
   'Olaya','Peque','Pueblorrico','Puerto Berrío','Puerto Nare','Puerto Triunfo',
