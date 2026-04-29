@@ -512,7 +512,7 @@ export default function DoctorDashboard() {
               border: '1px solid #edf0ec'
             }}>
               <p style={{ margin: 0, color: '#aabcb0', fontSize: '0.9rem' }}>
-                No hay pacientes con nivel {filtro} en espera
+                {filtro === 'todos' ? 'No hay pacientes en espera' : `No hay pacientes con nivel ${filtro} en espera`}
               </p>
             </div>
           )}
