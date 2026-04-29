@@ -1,17 +1,33 @@
 # src/app/services/predictor.py
 import joblib
 import logging
+import warnings
 import numpy as np
 import pandas as pd
 from config.paths import MODELS_DIR
+
+# CalibratedClassifierCV passes numpy arrays to LightGBM internally; suppress the
+# sklearn feature-name mismatch warning that arises from that interaction.
+warnings.filterwarnings(
+    "ignore",
+    message="X does not have valid feature names",
+    category=UserWarning,
+)
 
 logger = logging.getLogger("stiga.predictor")
 
 MODEL_PATH = MODELS_DIR / "stiga_triage_model.pkl"
 
 FEATURES = [
-    'age', 'gender', 'heart_rate', 'systolic_bp',
-    'o2_sat', 'body_temp', 'glucose', 'cholesterol',
+    "age",
+    "heart_rate",
+    "systolic_bp",
+    "o2_sat",
+    "body_temp",
+    "glucose",
+    "respiratory_rate",
+    "pain_scale",
+    "symptom_severity",
 ]
 
 TRIAGE_LABELS = {
