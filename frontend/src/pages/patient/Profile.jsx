@@ -2,31 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import client from '../../api/api'
-
-const MUNICIPIOS_ANTIOQUIA = [
-  'Abejorral','Abriaquí','Alejandría','Amagá','Amalfi','Andes','Angelópolis',
-  'Angostura','Anorí','Anzá','Apartadó','Arboletes','Argelia','Armenia',
-  'Barbosa','Bello','Belmira','Betania','Betulia','Briceño','Buriticá','Cáceres',
-  'Caicedo','Caldas','Campamento','Cañasgordas','Caracolí','Caramanta',
-  'Carepa','Carolina del Príncipe','Caucasia','Chigorodó','Cisneros',
-  'Cocorná','Concepción','Concordia','Copacabana','Dabeiba','Don Matías',
-  'Ebéjico','El Bagre','El Carmen de Viboral','El Peñol','El Retiro',
-  'El Santuario','Entrerríos','Envigado','Fredonia','Frontino','Giraldo',
-  'Girardota','Gómez Plata','Granada','Guadalupe','Guarne','Guatapé',
-  'Heliconia','Hispania','Itagüí','Ituango','Jardín','Jericó','La Ceja',
-  'Ciudad Bolívar',
-  'La Estrella','La Pintada','La Unión','Liborina','Maceo','Marinilla',
-  'Medellín','Montebello','Murindó','Mutatá','Nariño','Nechí','Necoclí',
-  'Olaya','Peque','Pueblorrico','Puerto Berrío','Puerto Nare','Puerto Triunfo',
-  'Remedios','Rionegro','Sabanalarga','Sabaneta','Salgar','San Andrés de Cuerquia',
-  'San Carlos','San Francisco','San Jerónimo','San José de la Montaña',
-  'San Juan de Urabá','San Luis','San Pedro de los Milagros','San Pedro de Urabá',
-  'San Rafael','San Roque','San Vicente Ferrer','Santa Bárbara',
-  'Santa Fe de Antioquia','Santa Rosa de Osos','Santo Domingo','Segovia',
-  'Sonsón','Sopetrán','Támesis','Tarazá','Tarso','Titiribí','Toledo',
-  'Turbo','Uramita','Urrao','Valdivia','Valparaíso','Vegachí','Venecia',
-  'Vigía del Fuerte','Yalí','Yarumal','Yolombó','Yondó','Zaragoza',
-].sort()
+import { MUNICIPIOS_ANTIOQUIA } from '../../constants/municipios'
 
 export default function PatientProfile() {
   const { user, logout } = useAuth()
@@ -36,6 +12,11 @@ export default function PatientProfile() {
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
+
+  const [pwForm, setPwForm] = useState({ current: '', nueva: '', confirmar: '' })
+  const [pwSaving, setPwSaving] = useState(false)
+  const [pwSuccess, setPwSuccess] = useState(false)
+  const [pwError, setPwError] = useState('')
 
   const [form, setForm] = useState({
     nombre: '',
@@ -77,19 +58,17 @@ export default function PatientProfile() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!form.nombre.trim()) { setError('El nombre es obligatorio.'); return }
     setSaving(true)
     setError('')
     setSuccess(false)
     try {
       const payload = {
-        nombre:           form.nombre.trim()           || undefined,
-        cedula:           form.cedula.trim()            || undefined,
-        telefono:         form.telefono.trim()          || undefined,
-        direccion:        form.direccion.trim()         || undefined,
-        eps:              form.eps.trim()               || undefined,
-        ciudad:           form.ciudad                   || undefined,
-        fecha_nacimiento: form.fecha_nacimiento         || undefined,
+        cedula:           form.cedula.trim()    || undefined,
+        telefono:         form.telefono.trim()  || undefined,
+        direccion:        form.direccion.trim() || undefined,
+        eps:              form.eps.trim()       || undefined,
+        ciudad:           form.ciudad           || undefined,
+        fecha_nacimiento: form.fecha_nacimiento || undefined,
         gender:           form.gender !== '' ? Number(form.gender) : undefined,
       }
       await client.put('/auth/profile', payload)
@@ -98,6 +77,24 @@ export default function PatientProfile() {
       setError(err.response?.data?.detail || 'Error al guardar los cambios.')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handlePasswordChange = async (e) => {
+    e.preventDefault()
+    if (pwForm.nueva !== pwForm.confirmar) { setPwError('Las contraseñas nuevas no coinciden.'); return }
+    if (pwForm.nueva.length < 6) { setPwError('La nueva contraseña debe tener al menos 6 caracteres.'); return }
+    setPwSaving(true)
+    setPwError('')
+    setPwSuccess(false)
+    try {
+      await client.put('/auth/change-password', { current_password: pwForm.current, new_password: pwForm.nueva })
+      setPwSuccess(true)
+      setPwForm({ current: '', nueva: '', confirmar: '' })
+    } catch (err) {
+      setPwError(err.response?.data?.detail || 'Error al cambiar la contraseña.')
+    } finally {
+      setPwSaving(false)
     }
   }
 
@@ -304,7 +301,8 @@ export default function PatientProfile() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.2rem' }}>
                   <div style={{ gridColumn: '1 / -1' }}>
                     <label className="field-label">Nombre completo</label>
-                    <input className="field-input" name="nombre" value={form.nombre} onChange={handleChange} placeholder="Tu nombre completo" required />
+                    <input className="field-input" value={form.nombre} disabled placeholder="—" />
+                    <p style={{ margin: '0.3rem 0 0', fontSize: '0.75rem', color: '#9ca3af' }}>El nombre no se puede modificar.</p>
                   </div>
 
                   <div style={{ gridColumn: '1 / -1' }}>
@@ -400,6 +398,66 @@ export default function PatientProfile() {
               </div>
             </form>
           )}
+
+          {/* ── Cambiar contraseña ── */}
+          <form onSubmit={handlePasswordChange} style={{ marginTop: '2rem' }}>
+            <div style={{
+              background: 'white', borderRadius: '16px',
+              border: '1px solid #e5e7eb', padding: '2rem',
+              marginBottom: '1.5rem'
+            }}>
+              <h3 style={{ margin: '0 0 1.5rem', fontSize: '0.95rem', fontWeight: '700', color: '#374151' }}>
+                Cambiar contraseña
+              </h3>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.2rem' }}>
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label className="field-label">Contraseña actual</label>
+                  <input className="field-input" type="password" value={pwForm.current}
+                    onChange={e => setPwForm(p => ({ ...p, current: e.target.value }))}
+                    placeholder="Tu contraseña actual" required />
+                </div>
+                <div>
+                  <label className="field-label">Nueva contraseña</label>
+                  <input className="field-input" type="password" value={pwForm.nueva}
+                    onChange={e => setPwForm(p => ({ ...p, nueva: e.target.value }))}
+                    placeholder="Mínimo 6 caracteres" required />
+                </div>
+                <div>
+                  <label className="field-label">Confirmar nueva contraseña</label>
+                  <input className="field-input" type="password" value={pwForm.confirmar}
+                    onChange={e => setPwForm(p => ({ ...p, confirmar: e.target.value }))}
+                    placeholder="Repite la nueva contraseña" required />
+                </div>
+              </div>
+
+              {pwError && (
+                <div style={{
+                  padding: '0.75rem 1rem', borderRadius: '10px',
+                  background: '#fef2f2', border: '1px solid #fecaca',
+                  color: '#dc2626', fontSize: '0.85rem', marginTop: '1rem'
+                }}>{pwError}</div>
+              )}
+              {pwSuccess && (
+                <div style={{
+                  padding: '0.75rem 1rem', borderRadius: '10px',
+                  background: '#f0fdf4', border: '1px solid #bbf7d0',
+                  color: '#15803d', fontSize: '0.85rem', marginTop: '1rem',
+                  display: 'flex', alignItems: 'center', gap: '0.5rem'
+                }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <polyline points="20 6 9 17 4 12"/>
+                  </svg>
+                  Contraseña actualizada correctamente.
+                </div>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button className="btn-save" type="submit" disabled={pwSaving}>
+                {pwSaving ? 'Actualizando…' : 'Cambiar contraseña'}
+              </button>
+            </div>
+          </form>
         </div>
       </main>
     </div>

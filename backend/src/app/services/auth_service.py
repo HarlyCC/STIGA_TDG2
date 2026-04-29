@@ -284,6 +284,41 @@ def request_doctor_access(datos: dict) -> dict:
     return {"message": "Solicitud enviada correctamente. El equipo de STIGA revisará tu información y se comunicará contigo pronto."}
 
 
+def change_password(email: str, current_password: str, new_password: str) -> dict:
+    """Validates the current password and sets a new one for the authenticated user."""
+    if len(new_password) < 6:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="La nueva contraseña debe tener al menos 6 caracteres.",
+        )
+
+    with get_conn() as conn:
+        user = conn.execute(
+            "SELECT hashed_password FROM users WHERE email = ?", (email,)
+        ).fetchone()
+
+    if not user or not verify_password(current_password, user["hashed_password"]):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La contraseña actual es incorrecta.",
+        )
+
+    if verify_password(new_password, user["hashed_password"]):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La nueva contraseña debe ser diferente a la actual.",
+        )
+
+    with get_conn() as conn:
+        conn.execute(
+            "UPDATE users SET hashed_password = ? WHERE email = ?",
+            (hash_password(new_password), email),
+        )
+
+    logger.info(f"Password changed | {email}")
+    return {"message": "Contraseña actualizada correctamente."}
+
+
 def get_profile(email: str) -> dict:
     """Returns the authenticated user's profile data."""
     with get_conn() as conn:

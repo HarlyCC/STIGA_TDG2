@@ -122,7 +122,7 @@ export default function AdminDashboard() {
     if (activeTab !== 'usuarios') return
     setLoadingUsuarios(true)
     client.get('/admin/usuarios')
-      .then(({ data }) => setUsuarios(data.map(mapUsuario)))
+      .then(({ data }) => setUsuarios((data.items ?? data).map(mapUsuario)))
       .catch((e) => { console.error('Error cargando usuarios:', e) })
       .finally(() => setLoadingUsuarios(false))
   }, [activeTab])
@@ -131,7 +131,7 @@ export default function AdminDashboard() {
     if (activeTab !== 'triajes') return
     setLoadingTriajes(true)
     client.get('/medico/pacientes')
-      .then(({ data }) => setTriajes(data.map(mapTriaje)))
+      .then(({ data }) => setTriajes((data.items ?? data).map(mapTriaje)))
       .catch((e) => { console.error('Error cargando triajes:', e) })
       .finally(() => setLoadingTriajes(false))
   }, [activeTab])

@@ -120,28 +120,35 @@ def create_user(
 
 @router.get("/usuarios")
 def list_users(
-    role:  Optional[str] = None,
-    admin: dict = Depends(require_admin),
+    role:   Optional[str] = None,
+    limit:  int = 100,
+    offset: int = 0,
+    admin:  dict = Depends(require_admin),
 ):
     """
-    Lista todos los usuarios del sistema.
-    Filtro opcional por rol: ?role=medico | paciente | admin
+    Lista usuarios del sistema con paginación.
+    ?role=medico|paciente|admin  ?limit=100  ?offset=0
     """
-    query  = """SELECT id, nombre, email, role, is_verified,
-                       cedula, telefono, ciudad, created_at
-                FROM users"""
-    params = []
-
+    conditions, params = [], []
     if role:
-        query  += " WHERE role = ?"
+        conditions.append("role = ?")
         params.append(role)
 
-    query += " ORDER BY created_at DESC"
+    where = f" WHERE {' AND '.join(conditions)}" if conditions else ""
+    query = f"""SELECT id, nombre, email, role, is_verified,
+                       cedula, telefono, ciudad, created_at
+                FROM users{where}
+                ORDER BY created_at DESC
+                LIMIT ? OFFSET ?"""
+    params += [min(limit, 500), max(offset, 0)]
 
     with get_conn() as conn:
+        total = conn.execute(
+            f"SELECT COUNT(*) FROM users{where}", params[:-2]
+        ).fetchone()[0]
         rows = conn.execute(query, params).fetchall()
 
-    return [dict(r) for r in rows]
+    return {"total": total, "items": [dict(r) for r in rows]}
 
 
 @router.get("/usuarios/{email}")

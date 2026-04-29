@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, Request, status
 from pydantic import BaseModel, EmailStr, field_validator
 
 from app.services.auth_service import (
+    change_password,
     forgot_password,
     get_profile,
     login_user,
@@ -72,6 +73,11 @@ class DoctorAccessRequest(BaseModel):
     especialidad:     Optional[str] = None
 
 
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password:     str
+
+
 class UpdateProfileRequest(BaseModel):
     nombre:           Optional[str] = None
     cedula:           Optional[str] = None
@@ -139,5 +145,12 @@ def get_profile_handler(current_user: dict = Depends(get_current_user)):
 @router.put("/profile")
 def update_profile_handler(body: UpdateProfileRequest,
                             current_user: dict = Depends(get_current_user)):
-    updates = {k: v for k, v in body.model_dump().items() if v is not None}
-    return update_profile(current_user["email"], updates)
+    allowed = {k: v for k, v in body.model_dump().items()
+               if v is not None and k != "nombre"}
+    return update_profile(current_user["email"], allowed)
+
+
+@router.put("/change-password")
+def change_password_handler(body: ChangePasswordRequest,
+                             current_user: dict = Depends(get_current_user)):
+    return change_password(current_user["email"], body.current_password, body.new_password)

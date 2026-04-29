@@ -27,22 +27,27 @@ def require_medico(current_user: dict = Depends(get_current_user)) -> dict:
 @router.get("/pacientes")
 def list_patients(
     color:   Optional[str] = None,
+    limit:   int = 100,
+    offset:  int = 0,
     medico:  dict = Depends(require_medico),
 ):
     """
-    Admin: todos los triajes.
-    Médico: solo triajes de pacientes con cita confirmada con este médico.
-    Filtro opcional por color de triaje.
+    Admin: todos los triajes. Médico: triajes de pacientes con cita confirmada.
+    ?color=Verde|Amarillo|Naranja|Rojo  ?limit=100  ?offset=0
     """
+    limit  = min(limit, 500)
+    offset = max(offset, 0)
+
     if medico["role"] == "admin":
-        query  = "SELECT * FROM triage_records"
-        params = []
+        conditions, params = [], []
         if color:
-            query  += " WHERE triage_color = ?"
+            conditions.append("triage_color = ?")
             params.append(color)
-        query += " ORDER BY timestamp DESC"
+        where = f" WHERE {' AND '.join(conditions)}" if conditions else ""
+        count_q = f"SELECT COUNT(*) FROM triage_records{where}"
+        query   = f"SELECT * FROM triage_records{where} ORDER BY timestamp DESC LIMIT ? OFFSET ?"
     else:
-        query = """
+        base = """
             SELECT DISTINCT t.*
             FROM triage_records t
             INNER JOIN citas c ON c.paciente_email = t.user_email
@@ -50,14 +55,16 @@ def list_patients(
         """
         params = [medico["email"]]
         if color:
-            query += " AND t.triage_color = ?"
+            base += " AND t.triage_color = ?"
             params.append(color)
-        query += " ORDER BY t.timestamp DESC"
+        count_q = f"SELECT COUNT(*) FROM ({base}) sub"
+        query   = base + " ORDER BY t.timestamp DESC LIMIT ? OFFSET ?"
 
     with get_conn() as conn:
-        rows = conn.execute(query, params).fetchall()
+        total = conn.execute(count_q, params).fetchone()[0]
+        rows  = conn.execute(query, params + [limit, offset]).fetchall()
 
-    return [dict(r) for r in rows]
+    return {"total": total, "items": [dict(r) for r in rows]}
 
 
 @router.get("/pacientes/{cedula}")

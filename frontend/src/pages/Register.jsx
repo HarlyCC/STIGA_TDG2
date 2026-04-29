@@ -3,41 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import validator from 'validator'
 import { register as registerApi } from '../api/api'
 import client from '../api/api'
-
-const MUNICIPIOS_ANTIOQUIA = [
-  // Bajo Cauca
-  'Cáceres','Caucasia','El Bagre','Nechí','Tarazá','Zaragoza',
-  // Magdalena Medio
-  'Caracolí','Maceo','Puerto Berrío','Puerto Nare','Puerto Triunfo','Yondó',
-  // Nordeste
-  'Amalfi','Anorí','Cisneros','Remedios','Segovia','Vegachí','Yalí','Yolombó',
-  // Norte
-  'Angostura','Belmira','Briceño','Campamento','Carolina del Príncipe','Don Matías',
-  'Entrerríos','Gómez Plata','Guadalupe','Ituango','San Andrés de Cuerquia',
-  'San José de la Montaña','San Pedro de los Milagros','Santa Rosa de Osos',
-  'Toledo','Valdivia','Yarumal',
-  // Occidente
-  'Abriaquí','Anzá','Armenia','Buriticá','Caicedo','Cañasgordas','Dabeiba',
-  'Ebéjico','Frontino','Giraldo','Heliconia','Liborina','Olaya','Peque',
-  'Sabanalarga','San Jerónimo','Santa Fe de Antioquia','Sopetrán','Uramita','Urrao',
-  // Oriente
-  'Abejorral','Alejandría','Argelia','Cocorná','Concepción','El Carmen de Viboral',
-  'El Peñol','El Retiro','El Santuario','Granada','Guarne','Guatapé','La Ceja',
-  'La Unión','Marinilla','Nariño','Rionegro','San Carlos','San Francisco','San Luis',
-  'San Rafael','San Vicente Ferrer','Sonsón',
-  // Suroeste
-  'Andes','Angelópolis','Betania','Betulia','Ciudad Bolívar','Concordia','Fredonia',
-  'Hispania','Jardín','Jericó','La Pintada','Montebello','Pueblorrico','Salgar',
-  'Santa Bárbara','Támesis','Tarso','Valparaíso','Venecia',
-  // Urabá
-  'Apartadó','Arboletes','Carepa','Chigorodó','Murindó','Mutatá','Necoclí',
-  'San Juan de Urabá','San Pedro de Urabá','Turbo','Vigía del Fuerte',
-  // Valle de Aburrá
-  'Barbosa','Bello','Caldas','Copacabana','Envigado','Girardota','Itagüí',
-  'La Estrella','Medellín','Sabaneta',
-  // Otros
-  'Amagá','Caramanta','San Roque','Santo Domingo','Titiribí',
-].sort()
+import { MUNICIPIOS_ANTIOQUIA } from '../constants/municipios'
 
 const GENDER_OPTIONS = [
   { value: 0, label: 'Femenino' },
