@@ -458,60 +458,83 @@ export default function PatientTeleconsultation() {
                     No tienes triajes registrados. Inicia un triaje primero.
                   </p>
                 )}
-                {triajes.map(t => (
-                  <div
-                    key={t.id}
-                    className={`triaje-card ${selectedTriaje?.id === t.id ? 'selected' : ''}`}
-                    onClick={() => setSelectedTriaje(t)}
-                  >
-                    {/* Indicador de selección */}
-                    <div style={{
-                      width: '20px', height: '20px', borderRadius: '50%', flexShrink: 0, marginTop: '2px',
-                      border: `2px solid ${selectedTriaje?.id === t.id ? '#3d7a5a' : '#d0dcd4'}`,
-                      background: selectedTriaje?.id === t.id ? '#3d7a5a' : 'transparent',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      transition: 'all 0.2s ease',
-                    }}>
-                      {selectedTriaje?.id === t.id && (
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5">
-                          <polyline points="20 6 9 17 4 12"/>
-                        </svg>
+                {triajes.map(t => {
+                  const esCritico = t.nivel.label === 'Naranja' || t.nivel.label === 'Rojo'
+                  return (
+                    <div key={t.id}>
+                      <div
+                        className={`triaje-card ${selectedTriaje?.id === t.id && !esCritico ? 'selected' : ''}`}
+                        onClick={() => !esCritico && setSelectedTriaje(t)}
+                        style={{ opacity: esCritico ? 0.7 : 1, cursor: esCritico ? 'not-allowed' : 'pointer' }}
+                      >
+                        {/* Indicador de selección */}
+                        <div style={{
+                          width: '20px', height: '20px', borderRadius: '50%', flexShrink: 0, marginTop: '2px',
+                          border: `2px solid ${selectedTriaje?.id === t.id && !esCritico ? '#3d7a5a' : '#d0dcd4'}`,
+                          background: selectedTriaje?.id === t.id && !esCritico ? '#3d7a5a' : 'transparent',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          transition: 'all 0.2s ease',
+                        }}>
+                          {selectedTriaje?.id === t.id && !esCritico && (
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5">
+                              <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                          )}
+                        </div>
+
+                        {/* Dot de nivel */}
+                        <div style={{
+                          width: '10px', height: '10px', borderRadius: '50%', flexShrink: 0, marginTop: '5px',
+                          background: t.nivel.dot, boxShadow: `0 0 6px ${t.nivel.dot}80`,
+                        }} />
+
+                        {/* Info */}
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                            <p style={{ margin: 0, fontWeight: '700', color: '#0f2318', fontSize: '0.9rem' }}>
+                              Triaje — {t.fecha}
+                            </p>
+                            <span style={{
+                              background: t.nivel.bg, color: t.nivel.color,
+                              fontSize: '0.7rem', fontWeight: '700',
+                              padding: '0.1rem 0.5rem', borderRadius: '20px',
+                            }}>
+                              {t.nivel.label}
+                            </span>
+                          </div>
+                          <p style={{ margin: 0, color: '#7a9080', fontSize: '0.83rem', lineHeight: 1.4 }}>
+                            {t.sintomas}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Alerta crítica */}
+                      {esCritico && (
+                        <div style={{
+                          display: 'flex', gap: '0.6rem', alignItems: 'flex-start',
+                          padding: '0.65rem 1rem', marginTop: '0.4rem',
+                          background: '#fff1f2', borderRadius: '10px',
+                          border: '1px solid #fecaca',
+                        }}>
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2" style={{ flexShrink: 0, marginTop: '1px' }}>
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                            <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                          </svg>
+                          <p style={{ margin: 0, color: '#dc2626', fontSize: '0.82rem', lineHeight: 1.5, fontWeight: '500' }}>
+                            Este triaje indica una situación <strong>crítica ({t.nivel.label})</strong>. Debe buscar atención de emergencias de inmediato — no es posible agendar teleconsulta para esta condición.
+                          </p>
+                        </div>
                       )}
                     </div>
-
-                    {/* Dot de nivel */}
-                    <div style={{
-                      width: '10px', height: '10px', borderRadius: '50%', flexShrink: 0, marginTop: '5px',
-                      background: t.nivel.dot, boxShadow: `0 0 6px ${t.nivel.dot}80`,
-                    }} />
-
-                    {/* Info */}
-                    <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                        <p style={{ margin: 0, fontWeight: '700', color: '#0f2318', fontSize: '0.9rem' }}>
-                          Triaje — {t.fecha}
-                        </p>
-                        <span style={{
-                          background: t.nivel.bg, color: t.nivel.color,
-                          fontSize: '0.7rem', fontWeight: '700',
-                          padding: '0.1rem 0.5rem', borderRadius: '20px',
-                        }}>
-                          {t.nivel.label}
-                        </span>
-                      </div>
-                      <p style={{ margin: 0, color: '#7a9080', fontSize: '0.83rem', lineHeight: 1.4 }}>
-                        {t.sintomas}
-                      </p>
-                    </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
               <button
                 className="btn-primary"
-                disabled={!selectedTriaje}
+                disabled={!selectedTriaje || selectedTriaje.nivel.label === 'Naranja' || selectedTriaje.nivel.label === 'Rojo'}
                 onClick={() => setStep(2)}
               >
                 Continuar →
