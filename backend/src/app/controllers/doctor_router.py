@@ -193,8 +193,10 @@ def get_availability(fecha: str, current_user: dict = Depends(get_current_user))
 
     occupied = {r["hora_solicitada"] for r in taken_rows}
 
+    now_time = datetime.now().strftime("%H:%M") if date_obj == date_type.today() else None
+
     return [
-        {"hora": slot, "disponible": slot not in occupied}
+        {"hora": slot, "disponible": slot not in occupied and (now_time is None or slot > now_time)}
         for slot in sorted(all_slots)
     ]
 
