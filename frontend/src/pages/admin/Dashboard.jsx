@@ -32,31 +32,6 @@ export default function AdminDashboard() {
   const [editError, setEditError]     = useState('')
   const [savingEdit, setSavingEdit]   = useState(false)
 
-  /* ── Asignar médico ── */
-  const [asignarTriaje, setAsignarTriaje] = useState(null)   // triaje al que se asigna
-  const [asignarMedico, setAsignarMedico] = useState('')     // email seleccionado
-  const [savingAsignar, setSavingAsignar] = useState(false)
-  const [asignarError, setAsignarError]   = useState('')
-
-  const handleAsignarMedico = async () => {
-    if (!asignarMedico) return
-    setSavingAsignar(true)
-    setAsignarError('')
-    try {
-      await client.put(`/admin/triajes/${asignarTriaje.id}/asignar-medico`, { medico_email: asignarMedico })
-      setTriajes(prev => prev.map(t =>
-        t.id === asignarTriaje.id ? { ...t, medico: asignarMedico } : t
-      ))
-      if (detalleTriaje?.id === asignarTriaje.id) setDetalleTriaje(d => ({ ...d, medico: asignarMedico }))
-      setAsignarTriaje(null)
-      setAsignarMedico('')
-    } catch {
-      setAsignarError('No se pudo asignar el médico. Intenta de nuevo.')
-    } finally {
-      setSavingAsignar(false)
-    }
-  }
-
   /* ── Filtros ── */
   const [busquedaUsuarios, setBusquedaUsuarios] = useState('')
   const [filtroRol, setFiltroRol] = useState('todos')
@@ -118,7 +93,7 @@ export default function AdminDashboard() {
     municipio:   t.ciudad || '—',
     fecha:       fmtFecha(t.timestamp),
     nivel:       NIVEL_CFG[t.triage_color] || NIVEL_CFG.Verde,
-    medico:      t.medico_email || 'Sin asignar',
+    medico:      'Sin asignar',
     teleconsulta: false,
     edad:        t.age,
     sintomas:    t.symptoms || '',
@@ -159,10 +134,6 @@ export default function AdminDashboard() {
       .then(({ data }) => setTriajes((data.items ?? data).map(mapTriaje)))
       .catch((e) => { console.error('Error cargando triajes:', e) })
       .finally(() => setLoadingTriajes(false))
-    if (medicos.length === 0)
-      client.get('/admin/usuarios?role=medico')
-        .then(({ data }) => setMedicos(data.items ?? data))
-        .catch(() => {})
   }, [activeTab])
 
   const handleLogout = () => { logout(); navigate('/login') }
@@ -1426,9 +1397,6 @@ export default function AdminDashboard() {
                   </div>
                   <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
                     <button className="btn-outline-admin" onClick={() => setDetalleTriaje(t)}>Ver detalle</button>
-                    {t.medico === 'Sin asignar' && (
-                      <button className="btn-admin" onClick={() => { setAsignarTriaje(t); setAsignarMedico(''); setAsignarError('') }}>Asignar médico</button>
-                    )}
                   </div>
                 </div>
               ))}
@@ -1821,66 +1789,6 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* ── Modal: Asignar médico ── */}
-      {asignarTriaje && (
-        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setAsignarTriaje(null)}>
-          <div className="modal-box" style={{ maxWidth: '420px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-              <div>
-                <p style={{ margin: '0 0 0.15rem', fontSize: '0.72rem', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '1.2px' }}>
-                  Triaje #{asignarTriaje.id}
-                </p>
-                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '800', color: '#111827' }}>
-                  Asignar médico
-                </h3>
-              </div>
-              <button onClick={() => setAsignarTriaje(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: '1.3rem', lineHeight: 1 }}>×</button>
-            </div>
-
-            <p style={{ margin: '0 0 1rem', fontSize: '0.85rem', color: '#6b7280' }}>
-              Paciente: <strong style={{ color: '#111827' }}>{asignarTriaje.paciente}</strong>
-            </p>
-
-            <label style={{ fontSize: '0.8rem', fontWeight: '700', color: '#374151', display: 'block', marginBottom: '0.4rem' }}>
-              Seleccionar médico
-            </label>
-            <select
-              value={asignarMedico}
-              onChange={e => setAsignarMedico(e.target.value)}
-              style={{
-                width: '100%', padding: '0.65rem 0.85rem', borderRadius: '10px',
-                border: '1.5px solid #e5e7eb', fontSize: '0.88rem', color: '#111827',
-                background: 'white', marginBottom: '1rem', fontFamily: 'inherit',
-              }}
-            >
-              <option value="">— Selecciona un médico —</option>
-              {medicos.map(m => (
-                <option key={m.email} value={m.email}>{m.nombre} · {m.email}</option>
-              ))}
-            </select>
-
-            {asignarError && (
-              <p style={{ margin: '0 0 0.75rem', fontSize: '0.82rem', color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', padding: '0.5rem 0.75rem' }}>
-                {asignarError}
-              </p>
-            )}
-
-            <div style={{ display: 'flex', gap: '0.6rem' }}>
-              <button onClick={() => setAsignarTriaje(null)} style={{ flex: 1, background: 'none', border: '1.5px solid #e5e7eb', borderRadius: '10px', padding: '0.65rem', fontSize: '0.88rem', fontWeight: '600', cursor: 'pointer', color: '#374151', fontFamily: 'inherit' }}>
-                Cancelar
-              </button>
-              <button
-                onClick={handleAsignarMedico}
-                disabled={!asignarMedico || savingAsignar}
-                style={{ flex: 1, background: savingAsignar || !asignarMedico ? '#9ca3af' : 'linear-gradient(135deg, #1a3a2e, #2a5a44)', color: 'white', border: 'none', borderRadius: '10px', padding: '0.65rem', fontSize: '0.88rem', fontWeight: '700', cursor: !asignarMedico || savingAsignar ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}
-              >
-                {savingAsignar ? 'Guardando…' : 'Asignar'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* ── Modal: Nuevo usuario ── */}
       {showNuevoUsuario && (
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowNuevoUsuario(false)}>
@@ -2086,15 +1994,6 @@ export default function AdminDashboard() {
             </div>
 
             <div style={{ marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid #f3f4f6', display: 'flex', gap: '0.6rem' }}>
-              {detalleTriaje.medico === 'Sin asignar' && (
-                <button
-                  className="btn-admin"
-                  style={{ flex: 1, justifyContent: 'center', borderRadius: '10px', padding: '0.7rem', fontSize: '0.88rem' }}
-                  onClick={() => { setAsignarTriaje(detalleTriaje); setAsignarMedico(''); setAsignarError('') }}
-                >
-                  Asignar médico
-                </button>
-              )}
               <button
                 onClick={() => setDetalleTriaje(null)}
                 style={{

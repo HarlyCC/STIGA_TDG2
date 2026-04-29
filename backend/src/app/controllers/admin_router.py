@@ -405,36 +405,3 @@ def ignorar_alerta(alerta_id: int, admin: dict = Depends(require_admin)):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Alerta no encontrada.")
     logger.info(f"Alerta {alerta_id} eliminada (ignorada) | admin: {admin['email']}")
     return {"ok": True}
-
-
-# ── Asignación de médico a triaje ─────────────────────────────────────────────
-
-class AsignarMedicoRequest(BaseModel):
-    medico_email: EmailStr
-
-
-@router.put("/triajes/{triaje_id}/asignar-medico")
-def asignar_medico_triaje(
-    triaje_id: int,
-    body: AsignarMedicoRequest,
-    admin: dict = Depends(require_admin),
-):
-    """Asigna un médico a un registro de triaje."""
-    with get_conn() as conn:
-        medico = conn.execute(
-            "SELECT email FROM users WHERE email = ? AND role = 'medico'",
-            (body.medico_email,),
-        ).fetchone()
-        if not medico:
-            raise HTTPException(status_code=404, detail="Médico no encontrado.")
-
-        affected = conn.execute(
-            "UPDATE triage_records SET medico_email = ? WHERE id = ?",
-            (body.medico_email, triaje_id),
-        ).rowcount
-
-    if affected == 0:
-        raise HTTPException(status_code=404, detail="Triaje no encontrado.")
-
-    logger.info(f"Médico {body.medico_email} asignado a triaje {triaje_id} | admin: {admin['email']}")
-    return {"ok": True, "medico_email": body.medico_email}
