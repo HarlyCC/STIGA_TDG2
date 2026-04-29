@@ -27,6 +27,10 @@ export default function AdminDashboard() {
   const [nuevoError, setNuevoError]   = useState('')
   const [savingUsuario, setSavingUsuario] = useState(false)
   const [detalleTriaje, setDetalleTriaje] = useState(null)
+  const [editUsuario, setEditUsuario] = useState(null)
+  const [editRol, setEditRol]         = useState('')
+  const [editError, setEditError]     = useState('')
+  const [savingEdit, setSavingEdit]   = useState(false)
 
   /* ── Filtros ── */
   const [busquedaUsuarios, setBusquedaUsuarios] = useState('')
@@ -77,6 +81,7 @@ export default function AdminDashboard() {
     id:        u.id,
     nombre:    u.nombre,
     rol:       CAP_ROLE[u.role] || u.role,
+    roleRaw:   u.role,
     municipio: u.ciudad || '—',
     correo:    u.email,
     estado:    u.is_verified ? 'activo' : 'pendiente',
@@ -193,6 +198,22 @@ export default function AdminDashboard() {
       return { ...u, estado: next }
     }))
   }
+  const handleGuardarEdit = async () => {
+    if (!editRol) return
+    setSavingEdit(true)
+    setEditError('')
+    try {
+      await client.put(`/admin/usuarios/${encodeURIComponent(editUsuario.correo)}/rol`, { role: editRol })
+      const { data } = await client.get('/admin/usuarios')
+      setUsuarios(data.map(mapUsuario))
+      setEditUsuario(null)
+    } catch (err) {
+      setEditError(err.response?.data?.detail || 'Error al guardar.')
+    } finally {
+      setSavingEdit(false)
+    }
+  }
+
   const handleEliminarUsuario = async (email) => {
     if (!window.confirm(`¿Eliminar al usuario ${email}? Esta acción no se puede deshacer.`)) return
     try {
@@ -1288,7 +1309,7 @@ export default function AdminDashboard() {
                     </p>
                   </div>
                   <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
-                    <button className="btn-outline-admin">Editar</button>
+                    <button className="btn-outline-admin" onClick={() => { setEditUsuario(u); setEditRol(u.roleRaw); setEditError('') }}>Editar</button>
                     {u.estado === 'pendiente' ? (
                       <button className="btn-success" onClick={() => handleAccionEstado(u.id)}>Aprobar</button>
                     ) : u.estado === 'activo' ? (
@@ -1725,6 +1746,50 @@ export default function AdminDashboard() {
           </div>
         )
       })()}
+
+      {/* ── Modal: Editar usuario ── */}
+      {editUsuario && (
+        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setEditUsuario(null)}>
+          <div className="modal-box" style={{ maxWidth: '420px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: '700', color: '#06111f' }}>Editar usuario</h3>
+              <button onClick={() => setEditUsuario(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', fontSize: '1.2rem' }}>✕</button>
+            </div>
+
+            <div style={{ marginBottom: '1.2rem' }}>
+              <p style={{ margin: '0 0 0.2rem', fontSize: '0.78rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Nombre</p>
+              <p style={{ margin: 0, fontWeight: '600', color: '#06111f' }}>{editUsuario.nombre}</p>
+            </div>
+
+            <div style={{ marginBottom: '1.2rem' }}>
+              <p style={{ margin: '0 0 0.2rem', fontSize: '0.78rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Correo</p>
+              <p style={{ margin: 0, color: '#374151' }}>{editUsuario.correo}</p>
+            </div>
+
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.78rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Rol</label>
+              <select
+                className="modal-select"
+                value={editRol}
+                onChange={e => setEditRol(e.target.value)}
+              >
+                <option value="paciente">Paciente</option>
+                <option value="medico">Médico</option>
+                <option value="admin">Administrador</option>
+              </select>
+            </div>
+
+            {editError && <p style={{ color: '#dc2626', fontSize: '0.83rem', marginBottom: '1rem' }}>{editError}</p>}
+
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+              <button className="btn-outline-admin" onClick={() => setEditUsuario(null)} disabled={savingEdit}>Cancelar</button>
+              <button className="btn-primary-admin" onClick={handleGuardarEdit} disabled={savingEdit}>
+                {savingEdit ? 'Guardando…' : 'Guardar cambios'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Modal: Nuevo usuario ── */}
       {showNuevoUsuario && (
