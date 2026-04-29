@@ -96,7 +96,6 @@ export default function AdminDashboard() {
     teleconsulta: false,
     edad:        t.age,
     sintomas:    t.symptoms || '',
-    motivo:      '',
   })
 
   useEffect(() => {
@@ -1981,14 +1980,6 @@ export default function AdminDashboard() {
                 </p>
               </div>
 
-              <div style={{ padding: '0.9rem', background: '#f9fafb', borderRadius: '9px', border: '1px solid #f3f4f6' }}>
-                <p style={{ margin: '0 0 0.35rem', fontSize: '0.75rem', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.7px' }}>
-                  Motivo de consulta
-                </p>
-                <p style={{ margin: 0, fontSize: '0.86rem', color: '#06111f', lineHeight: 1.55 }}>
-                  {detalleTriaje.motivo}
-                </p>
-              </div>
             </div>
 
             <div style={{ marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid #f3f4f6', display: 'flex', gap: '0.6rem' }}>
