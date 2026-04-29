@@ -54,7 +54,7 @@ export default function DoctorDashboard() {
     setLoadingData(true)
     client.get('/medico/pacientes')
       .then(({ data }) => setPacientes(data.map(mapRecord)))
-      .catch(() => {})
+      .catch((e) => { console.error('Error cargando pacientes:', e) })
       .finally(() => setLoadingData(false))
   }
 

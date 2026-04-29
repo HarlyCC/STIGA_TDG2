@@ -65,7 +65,7 @@ export default function PatientProfile() {
           gender:           data.gender !== null && data.gender !== undefined ? String(data.gender) : '',
         })
       })
-      .catch(() => {})
+      .catch(() => { setError('No se pudo cargar el perfil. Recargue la página.') })
       .finally(() => setLoading(false))
   }, [])
 

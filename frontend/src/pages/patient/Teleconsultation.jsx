@@ -64,7 +64,7 @@ export default function PatientTeleconsultation() {
   useEffect(() => {
     client.get('/medico/mis-citas')
       .then(({ data }) => setCitasConfirmadas(data.filter(c => c.status === 'confirmada')))
-      .catch(() => {})
+      .catch((e) => { console.error('Error cargando citas:', e) })
   }, [])
 
 
@@ -79,7 +79,7 @@ export default function PatientTeleconsultation() {
           : '—'
         return { id: r.id, fecha, sintomas: r.symptoms || 'Sin información', nivel: cfg }
       })))
-      .catch(() => {})
+      .catch((e) => { console.error('Error cargando triajes:', e) })
       .finally(() => setLoadingTriajes(false))
   }, [])
 

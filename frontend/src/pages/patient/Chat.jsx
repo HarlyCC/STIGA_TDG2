@@ -68,7 +68,9 @@ export default function PatientChat() {
         const tr = data.triage_result
         setResult(tr)
         setSessionDone(true)
-        syncForward(sessionIdRef.current, data.patient_data, tr).catch(() => {})
+        syncForward(sessionIdRef.current, data.patient_data, tr).catch(() => {
+          setApiError('No se pudo guardar el registro de triaje. Contacte al administrador.')
+        })
       }
     } catch {
       setTyping(false)

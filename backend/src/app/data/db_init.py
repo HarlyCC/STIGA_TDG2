@@ -31,7 +31,7 @@ _CREATE_TRIAGE_RECORDS = """
 CREATE TABLE IF NOT EXISTS triage_records (
     id                  INTEGER PRIMARY KEY AUTOINCREMENT,
     session_id          TEXT,
-    timestamp           TEXT,
+    timestamp           TEXT    NOT NULL,
     nombre              TEXT,
     cedula              TEXT,
     telefono            TEXT,
@@ -51,9 +51,10 @@ CREATE TABLE IF NOT EXISTS triage_records (
     tiene_transporte    INTEGER,
     necesita_ambulancia INTEGER,
     triage_level        INTEGER,
-    triage_color        TEXT,
+    triage_color        TEXT    NOT NULL DEFAULT 'Verde',
     confianza           REAL,
-    escalado            INTEGER
+    escalado            INTEGER,
+    user_email          TEXT    NOT NULL
 )
 """
 
@@ -87,9 +88,12 @@ _CREATE_CITAS = """
 CREATE TABLE IF NOT EXISTS citas (
     id               INTEGER PRIMARY KEY AUTOINCREMENT,
     paciente_email   TEXT NOT NULL,
+    medico_email     TEXT,
     triaje_id        INTEGER,
     fecha_solicitada TEXT,
     hora_solicitada  TEXT,
+    fecha_confirmada TEXT,
+    hora_confirmada  TEXT,
     status           TEXT NOT NULL DEFAULT 'pendiente',
     creado_en        TEXT NOT NULL
 )
@@ -98,14 +102,15 @@ CREATE TABLE IF NOT EXISTS citas (
 _CREATE_ALERTAS_CRITICAS = """
 CREATE TABLE IF NOT EXISTS alertas_criticas (
     id                 INTEGER PRIMARY KEY AUTOINCREMENT,
-    triaje_id          INTEGER,
-    paciente_email     TEXT,
+    triaje_id          INTEGER NOT NULL,
+    paciente_email     TEXT    NOT NULL,
     paciente_nombre    TEXT,
     paciente_telefono  TEXT,
     ciudad             TEXT,
-    triage_color       TEXT,
-    created_at         TEXT NOT NULL,
-    leida              INTEGER NOT NULL DEFAULT 0
+    triage_color       TEXT    NOT NULL,
+    created_at         TEXT    NOT NULL,
+    leida              INTEGER NOT NULL DEFAULT 0,
+    estado             TEXT    NOT NULL DEFAULT 'pendiente'
 )
 """
 
@@ -118,40 +123,48 @@ def init_db():
     Los registros existentes se conservan intactos.
     """
     with get_conn() as conn:
+        # WAL mode: permite lecturas concurrentes sin bloqueos
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA foreign_keys=ON")
+
         conn.execute(_CREATE_USERS)
         conn.execute(_CREATE_TRIAGE_RECORDS)
         conn.execute(_CREATE_MEDICO_HORARIOS)
         conn.execute(_CREATE_SOLICITUDES_MEDICO)
         conn.execute(_CREATE_CITAS)
         conn.execute(_CREATE_ALERTAS_CRITICAS)
-        # Migración: agregar user_email si no existe
-        try:
-            conn.execute("ALTER TABLE triage_records ADD COLUMN user_email TEXT")
-            logger.info("Migración: columna user_email agregada a triage_records")
-        except Exception:
-            pass
-        # Migración: columnas para recuperación de contraseña
-        for col_def in [
+
+        # ── Migraciones de columnas ───────────────────────────────────────────
+        _migrations = [
+            "ALTER TABLE triage_records ADD COLUMN user_email TEXT",
             "ALTER TABLE users ADD COLUMN reset_code TEXT",
             "ALTER TABLE users ADD COLUMN reset_code_expires TEXT",
-        ]:
-            try:
-                conn.execute(col_def)
-            except Exception:
-                pass
-        # Migración: médico asignado y fecha de confirmación en citas
-        for col_def in [
             "ALTER TABLE citas ADD COLUMN medico_email TEXT",
             "ALTER TABLE citas ADD COLUMN fecha_confirmada TEXT",
             "ALTER TABLE citas ADD COLUMN hora_confirmada TEXT",
-        ]:
+            "ALTER TABLE alertas_criticas ADD COLUMN estado TEXT NOT NULL DEFAULT 'pendiente'",
+        ]
+        for sql in _migrations:
             try:
-                conn.execute(col_def)
+                conn.execute(sql)
             except Exception:
                 pass
-        # Migración: estado de la alerta crítica
-        try:
-            conn.execute("ALTER TABLE alertas_criticas ADD COLUMN estado TEXT NOT NULL DEFAULT 'pendiente'")
-        except Exception:
-            pass
-    logger.info("Base de datos inicializada | tablas: users, triage_records, medico_horarios, citas, alertas_criticas")
+
+        # ── Índices ───────────────────────────────────────────────────────────
+        _indexes = [
+            "CREATE INDEX IF NOT EXISTS idx_triage_user_email  ON triage_records(user_email)",
+            "CREATE INDEX IF NOT EXISTS idx_triage_color       ON triage_records(triage_color)",
+            "CREATE INDEX IF NOT EXISTS idx_triage_ciudad      ON triage_records(ciudad)",
+            "CREATE INDEX IF NOT EXISTS idx_triage_timestamp   ON triage_records(timestamp)",
+            "CREATE INDEX IF NOT EXISTS idx_triage_cedula      ON triage_records(cedula)",
+            "CREATE INDEX IF NOT EXISTS idx_citas_paciente     ON citas(paciente_email)",
+            "CREATE INDEX IF NOT EXISTS idx_citas_medico       ON citas(medico_email)",
+            "CREATE INDEX IF NOT EXISTS idx_citas_status       ON citas(status)",
+            "CREATE INDEX IF NOT EXISTS idx_alertas_leida      ON alertas_criticas(leida)",
+            "CREATE INDEX IF NOT EXISTS idx_alertas_estado     ON alertas_criticas(estado)",
+            "CREATE INDEX IF NOT EXISTS idx_users_role         ON users(role)",
+        ]
+        for sql in _indexes:
+            conn.execute(sql)
+
+    logger.info("Base de datos inicializada | WAL mode ON | índices aplicados")

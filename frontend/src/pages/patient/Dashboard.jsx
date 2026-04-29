@@ -31,13 +31,13 @@ export default function PatientDashboard() {
     else if (h < 18) setGreeting('Buenas tardes')
     else setGreeting('Buenas noches')
     const t = setTimeout(() => setTipCollapsed(true), 3500)
-    client.get('/medico/mis-triajes').then(({ data }) => setTriajes(data)).catch(() => {})
+    client.get('/medico/mis-triajes').then(({ data }) => setTriajes(data)).catch((e) => { console.error('Error cargando triajes:', e) })
     client.get('/medico/mis-citas')
       .then(({ data }) => {
         const confirmadas = data.filter(c => c.status === 'confirmada')
         setCitaConfirmada(confirmadas[0] ?? null)
       })
-      .catch(() => {})
+      .catch((e) => { console.error('Error cargando citas:', e) })
     return () => clearTimeout(t)
   }, [])
 

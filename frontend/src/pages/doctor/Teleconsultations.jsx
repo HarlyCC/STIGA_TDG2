@@ -52,7 +52,7 @@ export default function DoctorTeleconsultations() {
     setLoading(true)
     client.get('/medico/citas')
       .then(({ data }) => setCitas(data.map(normalizeCita)))
-      .catch(() => {})
+      .catch((e) => { console.error('Error cargando citas:', e) })
       .finally(() => setLoading(false))
   }, [])
 

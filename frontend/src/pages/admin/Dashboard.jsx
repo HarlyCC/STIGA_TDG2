@@ -108,14 +108,14 @@ export default function AdminDashboard() {
     else setGreeting('Buenas noches')
     const t = setTimeout(() => setTipCollapsed(true), 3500)
     // Carga estadísticas y alertas al montar
-    client.get('/admin/estadisticas').then(({ data }) => setEstadisticas(data)).catch(() => {})
-    client.get('/admin/alertas').then(({ data }) => setAlertas(data.map(mapAlerta))).catch(() => {})
+    client.get('/admin/estadisticas').then(({ data }) => setEstadisticas(data)).catch((e) => { console.error('Error cargando estadísticas:', e) })
+    client.get('/admin/alertas').then(({ data }) => setAlertas(data.map(mapAlerta))).catch((e) => { console.error('Error cargando alertas:', e) })
     return () => clearTimeout(t)
   }, [])
 
   useEffect(() => {
     if (activeTab !== 'alertas') return
-    client.get('/admin/alertas').then(({ data }) => setAlertas(data.map(mapAlerta))).catch(() => {})
+    client.get('/admin/alertas').then(({ data }) => setAlertas(data.map(mapAlerta))).catch((e) => { console.error('Error cargando alertas:', e) })
   }, [activeTab])
 
   useEffect(() => {
@@ -123,7 +123,7 @@ export default function AdminDashboard() {
     setLoadingUsuarios(true)
     client.get('/admin/usuarios')
       .then(({ data }) => setUsuarios(data.map(mapUsuario)))
-      .catch(() => {})
+      .catch((e) => { console.error('Error cargando usuarios:', e) })
       .finally(() => setLoadingUsuarios(false))
   }, [activeTab])
 
@@ -132,7 +132,7 @@ export default function AdminDashboard() {
     setLoadingTriajes(true)
     client.get('/medico/pacientes')
       .then(({ data }) => setTriajes(data.map(mapTriaje)))
-      .catch(() => {})
+      .catch((e) => { console.error('Error cargando triajes:', e) })
       .finally(() => setLoadingTriajes(false))
   }, [activeTab])
 
@@ -375,7 +375,7 @@ export default function AdminDashboard() {
             .catch(() => setAllHorarios(prev => ({ ...prev, [m.email]: [] })))
         })
       })
-      .catch(() => {})
+      .catch((e) => { console.error('Error cargando horarios:', e) })
   }, [activeTab])
 
   const seleccionarMedico = (m) => {

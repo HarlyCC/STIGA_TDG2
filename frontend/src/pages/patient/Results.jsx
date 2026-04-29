@@ -69,7 +69,7 @@ export default function PatientResults() {
     setTimeout(() => setMounted(true), 100)
     client.get('/medico/mis-triajes')
       .then(({ data }) => setTriajes(data.map(mapTriaje)))
-      .catch(() => {})
+      .catch(() => { setToastMsg('No se pudieron cargar los resultados. Intente de nuevo.') })
       .finally(() => setLoading(false))
   }, [])
 

@@ -1,5 +1,5 @@
 from typing import Optional
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Request, status
 from pydantic import BaseModel, EmailStr, field_validator
 
 from app.services.auth_service import (
@@ -14,6 +14,7 @@ from app.services.auth_service import (
     verify_user,
 )
 from app.core.security import get_current_user, validate_fecha_nacimiento
+from app.core.limiter import limiter
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -90,32 +91,38 @@ class UpdateProfileRequest(BaseModel):
 # ── Routes ────────────────────────────────────────────────────────────────────
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)
-def register(body: RegisterRequest):
+@limiter.limit("10/minute")
+def register(request: Request, body: RegisterRequest):
     return register_user(body.model_dump())
 
 
 @router.post("/verify")
-def verify(body: VerifyRequest):
+@limiter.limit("20/minute")
+def verify(request: Request, body: VerifyRequest):
     return verify_user(body.email, body.code)
 
 
 @router.post("/login")
-def login(body: LoginRequest):
+@limiter.limit("10/minute")
+def login(request: Request, body: LoginRequest):
     return login_user(body.email, body.password)
 
 
 @router.post("/resend-code")
-def resend_code(body: ResendRequest):
+@limiter.limit("5/minute")
+def resend_code(request: Request, body: ResendRequest):
     return resend_verification_code(body.email)
 
 
 @router.post("/forgot-password")
-def forgot_password_handler(body: ForgotPasswordRequest):
+@limiter.limit("5/minute")
+def forgot_password_handler(request: Request, body: ForgotPasswordRequest):
     return forgot_password(body.email)
 
 
 @router.post("/reset-password")
-def reset_password_handler(body: ResetPasswordRequest):
+@limiter.limit("10/minute")
+def reset_password_handler(request: Request, body: ResetPasswordRequest):
     return reset_password(body.email, body.code, body.new_password)
 
 

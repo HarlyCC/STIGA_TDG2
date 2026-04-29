@@ -18,7 +18,7 @@ if not JWT_SECRET or JWT_SECRET in _WEAK_SECRETS:
     )
 
 JWT_ALGORITHM  = os.getenv("JWT_ALGORITHM", "HS256")
-JWT_EXPIRE_MIN = int(os.getenv("JWT_EXPIRE_MINUTES", "480"))
+JWT_EXPIRE_MIN = int(os.getenv("JWT_EXPIRE_MINUTES", "120"))
 
 pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
 bearer  = HTTPBearer()
