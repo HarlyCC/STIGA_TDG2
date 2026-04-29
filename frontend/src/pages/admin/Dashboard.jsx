@@ -93,7 +93,6 @@ export default function AdminDashboard() {
     municipio:   t.ciudad || '—',
     fecha:       fmtFecha(t.timestamp),
     nivel:       NIVEL_CFG[t.triage_color] || NIVEL_CFG.Verde,
-    medico:      'Sin asignar',
     teleconsulta: false,
     edad:        t.age,
     sintomas:    t.symptoms || '',
@@ -1392,7 +1391,7 @@ export default function AdminDashboard() {
                       )}
                     </div>
                     <p style={{ margin: 0, color: '#4b5563', fontSize: '0.8rem', fontWeight: '500' }}>
-                      {t.municipio} · {t.fecha} · {t.medico}
+                      {t.municipio} · {t.fecha}
                     </p>
                   </div>
                   <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
@@ -1962,7 +1961,6 @@ export default function AdminDashboard() {
                 { label: 'Fecha', value: detalleTriaje.fecha },
                 { label: 'Municipio', value: detalleTriaje.municipio },
                 { label: 'Edad', value: `${detalleTriaje.edad} años` },
-                { label: 'Médico asignado', value: detalleTriaje.medico },
               ].map(({ label, value }) => (
                 <div key={label} style={{
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
