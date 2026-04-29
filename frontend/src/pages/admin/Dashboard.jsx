@@ -249,17 +249,19 @@ export default function AdminDashboard() {
         leafletMapRef.current = null
       }
 
-      const geoLayer = L.geoJSON(geojson, {
+      const antioquiaCoords = geojson.geometry.coordinates[0]
+
+      const borderLayer = L.geoJSON(geojson, {
         style: {
-          fillColor: '#1a5f8a',
-          fillOpacity: 0.06,
+          fillColor: 'transparent',
+          fillOpacity: 0,
           color: '#1a5f8a',
           weight: 2.5,
           opacity: 0.9,
         },
       })
 
-      const BOUNDS = geoLayer.getBounds().pad(0.05)
+      const BOUNDS = borderLayer.getBounds().pad(0.05)
       const map = L.map(mapContainerRef.current, {
         center: BOUNDS.getCenter(),
         zoom: 8,
@@ -272,12 +274,30 @@ export default function AdminDashboard() {
       })
       map.fitBounds(BOUNDS)
 
+      map.getContainer().style.background = '#f1f5f9'
+
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
+        bounds: BOUNDS,
         attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
       }).addTo(map)
 
-      geoLayer.addTo(map)
+      // Máscara: cubre el mundo entero excepto Antioquia
+      const worldRing = [[-180,-90],[180,-90],[180,90],[-180,90],[-180,-90]]
+      L.geoJSON({
+        type: 'Feature',
+        geometry: { type: 'Polygon', coordinates: [worldRing, antioquiaCoords] },
+      }, {
+        style: {
+          fillColor: '#f1f5f9',
+          fillOpacity: 1,
+          fillRule: 'evenodd',
+          stroke: false,
+          weight: 0,
+        },
+      }).addTo(map)
+
+      borderLayer.addTo(map)
 
       mapaPoints.forEach(p => {
         const radius = Math.max(3000, Math.min(p.count * 5000, 18000))
@@ -582,6 +602,7 @@ export default function AdminDashboard() {
 
         /* Leaflet customization */
         .leaflet-container {
+          background: #f1f5f9 !important;
           font-family: 'Segoe UI', sans-serif;
         }
         .leaflet-popup-content-wrapper {
