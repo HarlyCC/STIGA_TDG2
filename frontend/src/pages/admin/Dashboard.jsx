@@ -239,36 +239,23 @@ export default function AdminDashboard() {
     const el = mapContainerRef.current
     if (!el) return
 
-    import('leaflet').then(({ default: L }) => {
+    Promise.all([
+      import('leaflet'),
+      fetch('/antioquia.geojson').then(r => r.json()),
+    ]).then(([{ default: L }, geojson]) => {
       if (!mapContainerRef.current) return
       if (leafletMapRef.current) {
         leafletMapRef.current.remove()
         leafletMapRef.current = null
       }
 
-      const ANTIOQUIA_COORDS = [
-        [-77.05,8.88],[-76.60,8.75],[-76.10,8.62],[-75.65,8.48],
-        [-75.25,8.22],[-75.00,7.98],[-74.72,7.65],[-74.42,7.38],
-        [-74.18,7.05],[-74.05,6.65],[-74.00,6.25],[-74.12,5.95],
-        [-74.38,5.72],[-74.72,5.52],[-75.10,5.30],[-75.52,5.38],
-        [-75.90,5.60],[-76.22,5.88],[-76.52,6.15],[-76.78,6.48],
-        [-76.95,6.90],[-77.08,7.35],[-77.10,7.82],[-77.18,8.25],
-        [-77.12,8.58],[-77.05,8.88],
-      ]
-      const ANTIOQUIA_GEOJSON = {
-        type: 'Feature',
-        geometry: {
-          type: 'Polygon',
-          coordinates: [ANTIOQUIA_COORDS],
-        },
-      }
-      const geoLayer = L.geoJSON(ANTIOQUIA_GEOJSON, {
+      const geoLayer = L.geoJSON(geojson, {
         style: {
-          fillColor: '#e8f3fc',
-          fillOpacity: 0.85,
+          fillColor: '#1a5f8a',
+          fillOpacity: 0.06,
           color: '#1a5f8a',
           weight: 2.5,
-          opacity: 1,
+          opacity: 0.9,
         },
       })
 
@@ -281,9 +268,15 @@ export default function AdminDashboard() {
         maxBounds: BOUNDS,
         maxBoundsViscosity: 1.0,
         zoomControl: true,
-        attributionControl: false,
+        attributionControl: true,
       })
       map.fitBounds(BOUNDS)
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      }).addTo(map)
+
       geoLayer.addTo(map)
 
       mapaPoints.forEach(p => {
@@ -589,7 +582,6 @@ export default function AdminDashboard() {
 
         /* Leaflet customization */
         .leaflet-container {
-          background: #f0f5fa !important;
           font-family: 'Segoe UI', sans-serif;
         }
         .leaflet-popup-content-wrapper {
