@@ -1638,7 +1638,7 @@ export default function AdminDashboard() {
                           <div key={i} style={{ position: 'absolute', top: i * HOUR_H, width: '100%', borderTop: `1px solid ${i === 0 ? '#e5e7eb' : '#f5f5f5'}` }} />
                         ))}
 
-                        {/* Bloque ocupado */}
+                        {/* Turno asignado */}
                         {slot && (() => {
                           const top = toTop(slot.hora_inicio)
                           const h   = toDur(slot.hora_inicio, slot.hora_fin)
@@ -1720,7 +1720,7 @@ export default function AdminDashboard() {
                       <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#06111f', minWidth: '82px' }}>{DIAS[slotForm.dia]}</span>
                     </div>
                     <span style={{ flex: 1, fontSize: '0.85rem', color: '#15803d', fontWeight: '600' }}>
-                      Bloqueado: {slotForm.hora_inicio} – {slotForm.hora_fin}
+                      Turno asignado: {slotForm.hora_inicio} – {slotForm.hora_fin}
                     </span>
                     <button onClick={() => eliminarHorario(slotForm.dia)} style={{ background: 'none', border: '1.5px solid #fecaca', borderRadius: '9px', padding: '0.48rem 0.9rem', fontSize: '0.85rem', fontWeight: '600', color: '#b91c1c', cursor: 'pointer', fontFamily: 'inherit' }}>
                       Eliminar franja
@@ -1733,7 +1733,7 @@ export default function AdminDashboard() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
                       <div style={{ width: '12px', height: '12px', background: 'linear-gradient(135deg,#0f2318,#1a3a2e)', borderRadius: '3px' }} />
-                      <span style={{ fontSize: '0.74rem', color: '#6b7280' }}>Franja bloqueada — clic para eliminar</span>
+                      <span style={{ fontSize: '0.74rem', color: '#6b7280' }}>Turno asignado — clic para eliminar</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
                       <div style={{ width: '12px', height: '12px', border: '1.5px dashed #d1d5db', borderRadius: '3px' }} />
