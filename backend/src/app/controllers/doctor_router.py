@@ -296,7 +296,7 @@ def toggle_llamada(
 
 
 class StatusUpdate(BaseModel):
-    status: str  # 'confirmada' | 'rechazada'
+    status: str  # 'confirmada' | 'rechazada' | 'cancelada'
 
 
 @router.put("/citas/{cita_id}/status")
@@ -305,18 +305,29 @@ def update_appointment_status(
     body: StatusUpdate,
     medico: dict = Depends(require_medico),
 ):
-    """Doctor accepts or rejects a pending appointment."""
-    if body.status not in ("confirmada", "rechazada"):
+    """
+    Transiciones permitidas:
+      pendiente  → confirmada | rechazada
+      confirmada → cancelada
+    """
+    if body.status not in ("confirmada", "rechazada", "cancelada"):
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="status must be 'confirmada' or 'rechazada'.",
+            detail="status debe ser 'confirmada', 'rechazada' o 'cancelada'.",
         )
+
     with get_conn() as conn:
         cita = conn.execute("SELECT * FROM citas WHERE id = ?", (cita_id,)).fetchone()
     if not cita:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Appointment not found.")
-    if dict(cita)["status"] != "pendiente":
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Only pending appointments can be updated.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cita no encontrada.")
+
+    current = dict(cita)["status"]
+    if body.status == "cancelada" and current != "confirmada":
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT,
+                            detail="Solo se pueden cancelar citas confirmadas.")
+    if body.status in ("confirmada", "rechazada") and current != "pendiente":
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT,
+                            detail="Solo se pueden aceptar o rechazar citas pendientes.")
 
     medico_email = medico["email"] if body.status == "confirmada" else None
     with get_conn() as conn:

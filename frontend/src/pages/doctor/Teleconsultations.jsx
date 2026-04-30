@@ -43,6 +43,7 @@ export default function DoctorTeleconsultations() {
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState('pendientes')
   const [aceptandoId, setAceptandoId] = useState(null)
+  const [cancelandoId, setCancelandoId] = useState(null)
   const [submitting, setSubmitting] = useState(false)
   const [activeMeeting, setActiveMeeting] = useState(null)
 
@@ -81,6 +82,17 @@ export default function DoctorTeleconsultations() {
   const handleRechazar = async (id) => {
     await client.put(`/medico/citas/${id}/status`, { status: 'rechazada' })
     loadCitas()
+  }
+
+  const handleCancelar = async (id) => {
+    setSubmitting(true)
+    try {
+      await client.put(`/medico/citas/${id}/status`, { status: 'cancelada' })
+      loadCitas()
+      setCancelandoId(null)
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const handleIniciarLlamada = async (cita) => {
@@ -479,9 +491,15 @@ export default function DoctorTeleconsultations() {
                     )}
                   </div>
 
-                  {/* Botón iniciar teleconsulta */}
-                  {cita.status === 'confirmada' && (
-                    <div style={{ padding: '0 1.25rem 1rem', display: 'flex', justifyContent: 'flex-end' }}>
+                  {/* Acciones para confirmadas */}
+                  {cita.status === 'confirmada' && cancelandoId !== cita.id && (
+                    <div style={{ padding: '0 1.25rem 1rem', display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                      <button
+                        className="btn-reject"
+                        onClick={() => setCancelandoId(cita.id)}
+                      >
+                        Cancelar cita
+                      </button>
                       <button
                         onClick={() => handleIniciarLlamada(cita)}
                         style={{
@@ -498,6 +516,40 @@ export default function DoctorTeleconsultations() {
                         </svg>
                         Iniciar teleconsulta
                       </button>
+                    </div>
+                  )}
+
+                  {/* Confirmación cancelar inline */}
+                  {cita.status === 'confirmada' && cancelandoId === cita.id && (
+                    <div style={{
+                      margin: '0 1.25rem 1.1rem',
+                      background: '#fff5f5', borderRadius: '12px',
+                      border: '1px solid #fecaca', padding: '1rem 1.25rem',
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap',
+                    }}>
+                      <p style={{ margin: 0, fontSize: '0.84rem', color: '#dc2626', fontWeight: '600' }}>
+                        ¿Confirmas la cancelación de esta cita?
+                      </p>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button
+                          onClick={() => setCancelandoId(null)}
+                          style={{
+                            background: 'none', border: '1.5px solid #d0dcd4', borderRadius: '8px',
+                            padding: '0.4rem 0.85rem', fontSize: '0.82rem', fontWeight: '600',
+                            color: '#3a4a3e', cursor: 'pointer', fontFamily: 'inherit',
+                          }}
+                        >
+                          Volver
+                        </button>
+                        <button
+                          className="btn-reject"
+                          disabled={submitting}
+                          style={{ opacity: submitting ? 0.6 : 1 }}
+                          onClick={() => handleCancelar(cita.id)}
+                        >
+                          Sí, cancelar
+                        </button>
+                      </div>
                     </div>
                   )}
 

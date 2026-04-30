@@ -596,21 +596,28 @@ export default function PatientDashboard() {
                 </span>
 
                 <button
-                  onClick={() => setShowMeeting(true)}
+                  onClick={() => citaConfirmada?.en_llamada && setShowMeeting(true)}
+                  disabled={!citaConfirmada?.en_llamada}
+                  title={!citaConfirmada?.en_llamada ? 'El médico aún no ha iniciado la llamada' : ''}
                   style={{
-                    background: 'linear-gradient(135deg, #15803d, #16a34a)',
-                    color: 'white', border: 'none', borderRadius: '10px',
+                    background: citaConfirmada?.en_llamada
+                      ? 'linear-gradient(135deg, #15803d, #16a34a)'
+                      : '#e5e7eb',
+                    color: citaConfirmada?.en_llamada ? 'white' : '#9ca3af',
+                    border: 'none', borderRadius: '10px',
                     padding: '0.6rem 1rem', fontSize: '0.85rem', fontWeight: '700',
-                    cursor: 'pointer', display: 'flex', alignItems: 'center',
+                    cursor: citaConfirmada?.en_llamada ? 'pointer' : 'not-allowed',
+                    display: 'flex', alignItems: 'center',
                     justifyContent: 'center', gap: '0.4rem', width: '100%',
-                    fontFamily: 'inherit', marginTop: 'auto'
+                    fontFamily: 'inherit', marginTop: 'auto',
+                    transition: 'all 0.3s ease',
                   }}
                 >
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <polygon points="23 7 16 12 23 17 23 7"/>
                     <rect x="1" y="5" width="15" height="14" rx="2"/>
                   </svg>
-                  Unirse a la consulta
+                  {citaConfirmada?.en_llamada ? 'Unirse a la consulta' : 'Esperando al médico…'}
                 </button>
               </div>
             ) : (
