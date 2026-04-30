@@ -274,15 +274,24 @@ def toggle_llamada(
     body: LlamadaUpdate,
     medico: dict = Depends(require_medico),
 ):
-    """Marca si el médico está actualmente en la llamada de esta cita."""
+    """
+    Inicio (en_llamada=true): marca la sala como activa.
+    Cierre (en_llamada=false): marca la sala inactiva y la cita como completada
+    → el paciente sale de la cola de triajes del médico.
+    """
+    if body.en_llamada:
+        sql    = "UPDATE citas SET en_llamada = 1 WHERE id = ? AND medico_email = ?"
+        params = (cita_id, medico["email"])
+    else:
+        sql    = "UPDATE citas SET en_llamada = 0, status = 'completada' WHERE id = ? AND medico_email = ?"
+        params = (cita_id, medico["email"])
+
     with get_conn() as conn:
-        affected = conn.execute(
-            "UPDATE citas SET en_llamada = ? WHERE id = ? AND medico_email = ?",
-            (1 if body.en_llamada else 0, cita_id, medico["email"]),
-        ).rowcount
+        affected = conn.execute(sql, params).rowcount
     if affected == 0:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cita no encontrada.")
-    logger.info(f"Cita {cita_id} en_llamada={body.en_llamada} | médico: {medico['email']}")
+    action = "iniciada" if body.en_llamada else "completada"
+    logger.info(f"Cita {cita_id} {action} | médico: {medico['email']}")
     return {"ok": True}
 
 
