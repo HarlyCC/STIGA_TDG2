@@ -20,7 +20,7 @@ export default function PatientTeleconsultation() {
   const [confirmError, setConfirmError] = useState('')
   const [slots, setSlots] = useState([])
   const [loadingSlots, setLoadingSlots] = useState(false)
-  const [citasConfirmadas, setCitasConfirmadas] = useState([])
+  const [todasMisCitas, setTodasMisCitas] = useState([])
   const [activeMeeting, setActiveMeeting] = useState(null)
 
 
@@ -30,6 +30,10 @@ export default function PatientTeleconsultation() {
     Naranja:  { label: 'Naranja',  color: '#c2410c', bg: '#fff7ed', border: '#fed7aa', dot: '#f97316' },
     Rojo:     { label: 'Rojo',     color: '#dc2626', bg: '#fef2f2', border: '#fecaca', dot: '#ef4444' },
   }
+
+  const citasConfirmadas = todasMisCitas.filter(c => c.status === 'confirmada')
+  const citasPendientes  = todasMisCitas.filter(c => c.status === 'pendiente')
+  const citasInactivas   = todasMisCitas.filter(c => c.status === 'rechazada' || c.status === 'cancelada')
 
   const handleConfirmar = async () => {
     setConfirming(true)
@@ -63,7 +67,7 @@ export default function PatientTeleconsultation() {
 
   useEffect(() => {
     const load = () => client.get('/medico/mis-citas')
-      .then(({ data }) => setCitasConfirmadas(data.filter(c => c.status === 'confirmada')))
+      .then(({ data }) => setTodasMisCitas(data))
       .catch((e) => { console.error('Error cargando citas:', e) })
     load()
     const interval = setInterval(load, 5000)
@@ -330,12 +334,13 @@ export default function PatientTeleconsultation() {
           <AccessibilityMenu inline />
         </div>
 
-        {/* Citas confirmadas */}
-        {citasConfirmadas.length > 0 && step < 4 && (
+        {/* Estado de mis citas */}
+        {todasMisCitas.length > 0 && step < 4 && (
           <div style={{
             marginBottom: '1.5rem',
             animation: mounted ? 'fadeInUp 0.5s ease 0.02s both' : 'none',
           }}>
+            {/* Confirmadas */}
             {citasConfirmadas.map(cita => (
               <div key={cita.id} style={{
                 background: 'white', borderRadius: '16px',
@@ -356,6 +361,7 @@ export default function PatientTeleconsultation() {
                 <div style={{ flex: 1 }}>
                   <p style={{ margin: '0 0 0.1rem', fontWeight: '700', color: '#0f2318', fontSize: '0.92rem' }}>
                     Teleconsulta confirmada
+                    {cita.medico_nombre && <span style={{ fontWeight: '500', color: '#7a9080' }}> · {cita.medico_nombre}</span>}
                   </p>
                   <p style={{ margin: 0, color: '#7a9080', fontSize: '0.8rem' }}>
                     {cita.fecha_solicitada ?? '—'} · {cita.hora_solicitada ?? '—'}
@@ -383,6 +389,70 @@ export default function PatientTeleconsultation() {
                   </svg>
                   {cita.en_llamada ? 'Unirse a la consulta' : 'Esperando al médico…'}
                 </button>
+              </div>
+            ))}
+
+            {/* Pendientes de respuesta */}
+            {citasPendientes.map(cita => (
+              <div key={cita.id} style={{
+                background: 'white', borderRadius: '16px',
+                border: '1.5px solid #fde68a', padding: '1.1rem 1.5rem',
+                display: 'flex', alignItems: 'center', gap: '1rem',
+                marginBottom: '0.75rem',
+              }}>
+                <div style={{
+                  width: '42px', height: '42px', flexShrink: 0,
+                  background: '#fefce8', borderRadius: '12px',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ca8a04" strokeWidth="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="8" x2="12" y2="12"/>
+                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                  </svg>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <p style={{ margin: '0 0 0.1rem', fontWeight: '700', color: '#0f2318', fontSize: '0.92rem' }}>
+                    Solicitud en revisión
+                  </p>
+                  <p style={{ margin: 0, color: '#7a9080', fontSize: '0.8rem' }}>
+                    {cita.fecha_solicitada ?? '—'} · {cita.hora_solicitada ?? '—'} · Un médico la confirmará pronto
+                  </p>
+                </div>
+                <span style={{
+                  flexShrink: 0, fontSize: '0.73rem', fontWeight: '700',
+                  background: '#fefce8', color: '#a16207',
+                  border: '1px solid #fde68a',
+                  padding: '0.25rem 0.7rem', borderRadius: '20px',
+                }}>
+                  Pendiente
+                </span>
+              </div>
+            ))}
+
+            {/* Rechazadas / canceladas */}
+            {citasInactivas.map(cita => (
+              <div key={cita.id} style={{
+                background: 'white', borderRadius: '16px',
+                border: '1px solid #e5e7eb', padding: '0.9rem 1.5rem',
+                display: 'flex', alignItems: 'center', gap: '1rem',
+                marginBottom: '0.5rem', opacity: 0.75,
+              }}>
+                <div style={{ flex: 1 }}>
+                  <p style={{ margin: '0 0 0.1rem', fontWeight: '600', color: '#6b7280', fontSize: '0.87rem' }}>
+                    {cita.status === 'cancelada' ? 'Cita cancelada' : 'Solicitud no aceptada'}
+                  </p>
+                  <p style={{ margin: 0, color: '#9ca3af', fontSize: '0.77rem' }}>
+                    {cita.fecha_solicitada ?? '—'} · {cita.hora_solicitada ?? '—'}
+                  </p>
+                </div>
+                <span style={{
+                  flexShrink: 0, fontSize: '0.72rem', fontWeight: '700',
+                  background: '#f3f4f6', color: '#6b7280',
+                  padding: '0.2rem 0.65rem', borderRadius: '20px',
+                }}>
+                  {cita.status === 'cancelada' ? 'Cancelada' : 'No aceptada'}
+                </span>
               </div>
             ))}
           </div>

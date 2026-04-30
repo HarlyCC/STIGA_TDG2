@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import { useTeleconsultation } from '../../hooks/useTeleconsultation'
 import JitsiMeeting from '../../components/shared/JitsiMeeting'
 import AccessibilityMenu from '../../components/shared/AccessibilityMenu'
 import client from '../../api/api'
@@ -26,6 +25,7 @@ function mapRecord(r) {
   const cfg = COLOR_CONFIG[r.triage_color] || COLOR_CONFIG['Verde']
   return {
     id:          r.id ?? r.session_id,
+    citaId:      r.cita_id ?? null,
     nombre:      r.nombre || 'Sin nombre',
     cedula:      r.cedula || '—',
     telefono:    r.telefono || '—',
@@ -67,7 +67,6 @@ export default function DoctorDashboard() {
   const [pacientes, setPacientes] = useState([])
   const [loadingData, setLoadingData] = useState(true)
   const [fichaAbierta, setFichaAbierta] = useState(null)
-  const { meeting, createRoom, closeRoom } = useTeleconsultation()
 
   const fetchPacientes = () => {
     setLoadingData(true)
@@ -87,18 +86,21 @@ export default function DoctorDashboard() {
 
   const handleLogout = () => { logout(); navigate('/login') }
 
-  const handleIniciarConsulta = (e, paciente) => {
+  const handleIniciarConsulta = async (e, paciente) => {
     e.stopPropagation()
-    if (showMeeting || meeting?.roomId) { setShowMeeting(true); return }
+    if (showMeeting) { return }
     if (loadingId) return
     setLoadingId(paciente.id)
-    setTimeout(() => {
-      createRoom(paciente.nombre, user?.name)
+    try {
+      await client.put(`/medico/citas/${paciente.citaId}/llamada`, { en_llamada: true })
       setActivePaciente(paciente)
       setLoadingId(null)
       setTransitPaciente(paciente)
       setTimeout(() => { setTransitPaciente(null); setShowMeeting(true) }, 2000)
-    }, 1500)
+    } catch (err) {
+      console.error('Error iniciando consulta:', err)
+      setLoadingId(null)
+    }
   }
 
   const filtrados = filtro === 'todos'
@@ -623,12 +625,19 @@ export default function DoctorDashboard() {
       {/* ── Jitsi Meeting ── */}
       {showMeeting && (
         <JitsiMeeting
-          roomId={meeting?.roomId}
+          roomId={`stiga-cita-${activePaciente?.citaId}`}
           displayName={user?.name}
           pacienteNombre={activePaciente?.nombre}
+          pacienteCedula={activePaciente?.cedula !== '—' ? activePaciente?.cedula : ''}
           nivelLabel={activePaciente?.nivel?.label}
           nivelColor={activePaciente?.nivel?.dot}
-          onClose={() => { setShowMeeting(false); closeRoom() }}
+          isDoctor
+          onClose={() => {
+            setShowMeeting(false)
+            if (activePaciente?.citaId) {
+              client.put(`/medico/citas/${activePaciente.citaId}/llamada`, { en_llamada: false }).catch(() => {})
+            }
+          }}
         />
       )}
 

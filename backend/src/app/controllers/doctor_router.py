@@ -47,18 +47,23 @@ def list_patients(
         count_q = f"SELECT COUNT(*) FROM triage_records{where}"
         query   = f"SELECT * FROM triage_records{where} ORDER BY timestamp DESC LIMIT ? OFFSET ?"
     else:
-        base = """
-            SELECT DISTINCT t.*
-            FROM triage_records t
-            INNER JOIN citas c ON c.paciente_email = t.user_email
-            WHERE c.medico_email = ? AND c.status = 'confirmada'
-        """
         params = [medico["email"]]
+        color_clause = ""
         if color:
-            base += " AND t.triage_color = ?"
+            color_clause = " WHERE t.triage_color = ?"
             params.append(color)
-        count_q = f"SELECT COUNT(*) FROM ({base}) sub"
-        query   = base + " ORDER BY t.timestamp DESC LIMIT ? OFFSET ?"
+        inner = f"""
+            SELECT t.*, MAX(c.id) AS cita_id
+            FROM triage_records t
+            INNER JOIN citas c
+                ON c.paciente_email = t.user_email
+               AND c.medico_email = ?
+               AND c.status = 'confirmada'
+            {color_clause}
+            GROUP BY t.id
+        """
+        count_q = f"SELECT COUNT(*) FROM ({inner}) sub"
+        query   = inner + " ORDER BY t.timestamp DESC LIMIT ? OFFSET ?"
 
     with get_conn() as conn:
         total = conn.execute(count_q, params).fetchone()[0]

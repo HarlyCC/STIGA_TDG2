@@ -61,8 +61,9 @@ export default function DoctorTeleconsultations() {
 
   const handleLogout = () => { logout(); navigate('/login') }
 
-  const pendientes = citas.filter(c => c.status === 'pendiente')
+  const pendientes  = citas.filter(c => c.status === 'pendiente')
   const confirmadas = citas.filter(c => c.status === 'confirmada')
+  const completadas = citas.filter(c => c.status === 'completada' || c.status === 'cancelada')
 
   const handleAbrirAceptar = (id) => setAceptandoId(id)
   const handleCancelarAceptar = () => setAceptandoId(null)
@@ -79,8 +80,12 @@ export default function DoctorTeleconsultations() {
   }
 
   const handleRechazar = async (id) => {
-    await client.put(`/medico/citas/${id}/status`, { status: 'rechazada' })
-    loadCitas()
+    try {
+      await client.put(`/medico/citas/${id}/status`, { status: 'rechazada' })
+      loadCitas()
+    } catch (e) {
+      console.error('Error rechazando cita:', e)
+    }
   }
 
   const handleCancelar = async (id) => {
@@ -119,8 +124,8 @@ export default function DoctorTeleconsultations() {
     )
   }
 
-  const tabCounts = { pendientes: pendientes.length, confirmadas: confirmadas.length }
-  const currentList = tab === 'pendientes' ? pendientes : confirmadas
+  const tabCounts = { pendientes: pendientes.length, confirmadas: confirmadas.length, completadas: completadas.length }
+  const currentList = tab === 'pendientes' ? pendientes : tab === 'confirmadas' ? confirmadas : completadas
 
 
   return (
@@ -350,6 +355,7 @@ export default function DoctorTeleconsultations() {
           {[
             { label: 'Pendientes', value: pendientes.length, color: '#d97706' },
             { label: 'Confirmadas', value: confirmadas.length, color: '#15803d' },
+            { label: 'Completadas', value: completadas.length, color: '#6366f1' },
           ].map(s => (
             <div key={s.label} className="stat-card">
               <p style={{ margin: '0 0 0.4rem', fontSize: '0.75rem', fontWeight: '700', color: '#8aaa8a', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
@@ -391,7 +397,7 @@ export default function DoctorTeleconsultations() {
           <div>
             {/* Tabs */}
             <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1.1rem' }}>
-              {(['pendientes', 'confirmadas']).map(t => (
+              {(['pendientes', 'confirmadas', 'completadas']).map(t => (
                 <button
                   key={t}
                   className={`tab-btn ${tab === t ? 'active' : ''}`}
@@ -430,7 +436,9 @@ export default function DoctorTeleconsultations() {
                   <p style={{ margin: 0, color: '#aabcb0', fontSize: '0.9rem' }}>
                     {tab === 'pendientes'
                       ? 'No hay solicitudes pendientes. Cuando un paciente solicite una teleconsulta, aparecerá aquí.'
-                      : 'No hay citas confirmadas aún.'}
+                      : tab === 'confirmadas'
+                      ? 'No hay citas confirmadas aún.'
+                      : 'No hay citas completadas o canceladas.'}
                   </p>
                 </div>
               ) : null}
@@ -479,10 +487,19 @@ export default function DoctorTeleconsultations() {
                         flexShrink: 0,
                         fontSize: '0.72rem', fontWeight: '700',
                         padding: '0.2rem 0.65rem', borderRadius: '20px',
-                        background: cita.status === 'confirmada' ? '#f0fdf4' : '#fef2f2',
-                        color: cita.status === 'confirmada' ? '#15803d' : '#dc2626',
+                        background: cita.status === 'confirmada' ? '#f0fdf4'
+                          : cita.status === 'completada' ? '#eff6ff'
+                          : cita.status === 'cancelada' ? '#fef9c3'
+                          : '#fef2f2',
+                        color: cita.status === 'confirmada' ? '#15803d'
+                          : cita.status === 'completada' ? '#3730a3'
+                          : cita.status === 'cancelada' ? '#854d0e'
+                          : '#dc2626',
                       }}>
-                        {cita.status === 'confirmada' ? 'Confirmada' : 'Rechazada'}
+                        {cita.status === 'confirmada' ? 'Confirmada'
+                          : cita.status === 'completada' ? 'Completada'
+                          : cita.status === 'cancelada' ? 'Cancelada'
+                          : 'Rechazada'}
                       </span>
                     )}
                   </div>
