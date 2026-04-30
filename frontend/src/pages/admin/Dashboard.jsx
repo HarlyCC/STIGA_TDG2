@@ -11,7 +11,6 @@ export default function AdminDashboard() {
   const [mounted, setMounted] = useState(false)
   const [greeting, setGreeting] = useState('')
   const [activeTab, setActiveTab] = useState('metricas')
-  const [tipCollapsed, setTipCollapsed] = useState(false)
 
   /* ── Data como estado ── */
   const [alertas, setAlertas]         = useState([])
@@ -104,11 +103,9 @@ export default function AdminDashboard() {
     if (h < 12) setGreeting('Buenos días')
     else if (h < 18) setGreeting('Buenas tardes')
     else setGreeting('Buenas noches')
-    const t = setTimeout(() => setTipCollapsed(true), 3500)
     // Carga estadísticas y alertas al montar
     client.get('/admin/estadisticas').then(({ data }) => setEstadisticas(data)).catch((e) => { console.error('Error cargando estadísticas:', e) })
     client.get('/admin/alertas').then(({ data }) => setAlertas(data.map(mapAlerta))).catch((e) => { console.error('Error cargando alertas:', e) })
-    return () => clearTimeout(t)
   }, [])
 
   useEffect(() => {
@@ -669,19 +666,6 @@ export default function AdminDashboard() {
           to   { opacity: 1; transform: scale(1) translateY(0); }
         }
 
-        .tip-hero {
-          overflow: hidden;
-          transition: max-height 1s cubic-bezier(0.4,0,0.2,1),
-                      opacity 0.8s ease, margin-bottom 0.8s ease, padding 0.8s ease;
-        }
-        .tip-hero.expanded { max-height: 200px; opacity: 1; margin-bottom: 2rem; }
-        .tip-hero.collapsed {
-          max-height: 0; opacity: 0; margin-bottom: 0;
-          padding-top: 0 !important; padding-bottom: 0 !important;
-        }
-        .tip-small { transition: all 0.7s cubic-bezier(0.4,0,0.2,1); overflow: hidden; }
-        .tip-small.hidden  { max-height: 0; opacity: 0; margin-bottom: 0; }
-        .tip-small.visible { max-height: 80px; opacity: 1; margin-bottom: 1.5rem; }
 
         .nav-item {
           display: flex; align-items: center; gap: 0.75rem;
@@ -955,40 +939,22 @@ export default function AdminDashboard() {
           <AccessibilityMenu inline />
         </div>
 
-        {/* Tip hero */}
-        <div
-          className={`tip-hero ${tipCollapsed ? 'collapsed' : 'expanded'}`}
-          style={{
-            background: 'linear-gradient(135deg, #111827, #1f2937)',
-            borderRadius: '20px', padding: '1.8rem 2.2rem',
-            animation: mounted ? 'fadeInUp 0.6s ease 0.05s both' : 'none'
-          }}
-        >
-          <p style={{ margin: '0 0 0.5rem', fontSize: '0.73rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '1.5px' }}>
-            Resumen del sistema
-          </p>
-          <p style={{ margin: 0, fontSize: '1.2rem', fontWeight: '600', color: 'white', lineHeight: 1.6 }}>
-            {alertasPendientes.length > 0
-              ? `Hay ${alertasPendientes.length} alerta${alertasPendientes.length > 1 ? 's' : ''} activa${alertasPendientes.length > 1 ? 's' : ''} hoy. ${alertasPendientes[0]?.desc ?? ''}`
-              : 'Todo está en orden. No hay alertas activas en este momento.'}
-          </p>
-        </div>
-
-        {/* Tip pequeño */}
-        <div className={`tip-small ${tipCollapsed ? 'visible' : 'hidden'}`}>
+        {/* Resumen del sistema */}
+        <div style={{ marginBottom: '1.5rem', animation: mounted ? 'fadeInUp 0.5s ease 0.05s both' : 'none' }}>
           <div style={{
             background: 'white', border: '1px solid #e5e7eb',
             borderLeft: `3px solid ${alertasPendientes.length > 0 ? '#b91c1c' : '#374151'}`,
             borderRadius: '12px', padding: '0.75rem 1.25rem',
             display: 'flex', alignItems: 'center', gap: '0.75rem'
           }}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#374151" strokeWidth="2.5">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+              stroke={alertasPendientes.length > 0 ? '#b91c1c' : '#374151'} strokeWidth="2.5" style={{ flexShrink: 0 }}>
               <circle cx="12" cy="12" r="10"/>
               <line x1="12" y1="8" x2="12" y2="12"/>
               <line x1="12" y1="16" x2="12.01" y2="16"/>
             </svg>
             <p style={{ margin: 0, color: '#06111f', fontSize: '0.85rem', lineHeight: 1.5 }}>
-              <strong style={{ color: '#374151' }}>Estado: </strong>
+              <strong style={{ color: alertasPendientes.length > 0 ? '#b91c1c' : '#374151' }}>Estado: </strong>
               {alertasPendientes.length > 0
                 ? `${alertasPendientes.length} alerta${alertasPendientes.length > 1 ? 's' : ''} activa${alertasPendientes.length > 1 ? 's' : ''}.`
                 : 'Sin alertas activas.'}
