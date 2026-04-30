@@ -1,1 +1,21 @@
 @import "tailwindcss";
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+body {
+  cursor: default;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+input, textarea, select, [contenteditable] {
+  user-select: text;
+  -webkit-user-select: text;
+  cursor: text;
+}
+
+button, [role="button"], a {
+  cursor: pointer;
+}
