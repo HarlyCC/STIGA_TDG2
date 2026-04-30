@@ -177,7 +177,7 @@ export default function PatientChat() {
         background: 'linear-gradient(175deg, #0f2318 0%, #1a3a2e 50%, #0e2a40 100%)',
         display: 'flex', flexDirection: 'column',
         padding: '1.75rem 1.25rem',
-        position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 100,
+        position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 100, overflowY: 'auto',
         opacity: mounted ? 1 : 0,
         transform: mounted ? 'none' : 'translateX(-20px)',
         transition: 'opacity 0.5s ease, transform 0.5s ease'

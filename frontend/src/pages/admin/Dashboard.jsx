@@ -832,7 +832,7 @@ export default function AdminDashboard() {
         background: 'linear-gradient(175deg, #111827 0%, #1f2937 50%, #111827 100%)',
         display: 'flex', flexDirection: 'column',
         padding: '1.75rem 1.25rem',
-        position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 100,
+        position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 100, overflowY: 'auto',
         opacity: mounted ? 1 : 0,
         transform: mounted ? 'none' : 'translateX(-20px)',
         transition: 'opacity 0.5s ease, transform 0.5s ease'
