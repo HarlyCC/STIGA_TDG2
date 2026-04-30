@@ -39,7 +39,11 @@ export default function Login() {
       setTimeout(() => navigate('/' + data.user.role), 2400)
     } catch (err) {
       const detail = err.response?.data?.detail
-      setError(detail || 'Correo o contraseña incorrectos')
+      if (Array.isArray(detail)) {
+        setError(detail.map(d => d.msg).join('. ') || 'Correo o contraseña incorrectos')
+      } else {
+        setError(detail || 'Correo o contraseña incorrectos')
+      }
     } finally {
       setLoading(false)
     }
