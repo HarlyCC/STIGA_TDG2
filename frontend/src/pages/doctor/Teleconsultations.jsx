@@ -63,7 +63,6 @@ export default function DoctorTeleconsultations() {
 
   const pendientes = citas.filter(c => c.status === 'pendiente')
   const confirmadas = citas.filter(c => c.status === 'confirmada')
-  const rechazadas = citas.filter(c => c.status === 'rechazada')
 
   const handleAbrirAceptar = (id) => setAceptandoId(id)
   const handleCancelarAceptar = () => setAceptandoId(null)
@@ -120,8 +119,8 @@ export default function DoctorTeleconsultations() {
     )
   }
 
-  const tabCounts = { pendientes: pendientes.length, confirmadas: confirmadas.length, rechazadas: rechazadas.length }
-  const currentList = tab === 'pendientes' ? pendientes : tab === 'confirmadas' ? confirmadas : rechazadas
+  const tabCounts = { pendientes: pendientes.length, confirmadas: confirmadas.length }
+  const currentList = tab === 'pendientes' ? pendientes : confirmadas
 
 
   return (
@@ -393,7 +392,7 @@ export default function DoctorTeleconsultations() {
           <div>
             {/* Tabs */}
             <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1.1rem' }}>
-              {(['pendientes', 'confirmadas', 'rechazadas']).map(t => (
+              {(['pendientes', 'confirmadas']).map(t => (
                 <button
                   key={t}
                   className={`tab-btn ${tab === t ? 'active' : ''}`}
@@ -432,9 +431,7 @@ export default function DoctorTeleconsultations() {
                   <p style={{ margin: 0, color: '#aabcb0', fontSize: '0.9rem' }}>
                     {tab === 'pendientes'
                       ? 'No hay solicitudes pendientes. Cuando un paciente solicite una teleconsulta, aparecerá aquí.'
-                      : tab === 'confirmadas'
-                      ? 'No hay citas confirmadas aún.'
-                      : 'No hay solicitudes rechazadas.'}
+                      : 'No hay citas confirmadas aún.'}
                   </p>
                 </div>
               ) : null}
