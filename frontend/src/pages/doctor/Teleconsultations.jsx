@@ -350,7 +350,6 @@ export default function DoctorTeleconsultations() {
           {[
             { label: 'Pendientes', value: pendientes.length, color: '#d97706' },
             { label: 'Confirmadas', value: confirmadas.length, color: '#15803d' },
-            { label: 'Rechazadas', value: rechazadas.length, color: '#6a8070' },
           ].map(s => (
             <div key={s.label} className="stat-card">
               <p style={{ margin: '0 0 0.4rem', fontSize: '0.75rem', fontWeight: '700', color: '#8aaa8a', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
