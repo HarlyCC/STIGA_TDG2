@@ -321,7 +321,7 @@ export default function Login() {
           )}
 
           {/* Formulario */}
-          <form onSubmit={handleSubmit} style={{
+          <form onSubmit={handleSubmit} autoComplete="off" style={{
             animation: mounted ? 'fadeInRight 0.6s ease 0.3s both' : 'none'
           }}>
             <div style={{ marginBottom: '1.1rem' }}>
@@ -335,6 +335,7 @@ export default function Login() {
                 className="input-stiga" type="email" value={email}
                 onChange={e => setEmail(e.target.value)}
                 placeholder="correo@ejemplo.com" required
+                autoComplete="off"
               />
             </div>
 
@@ -364,6 +365,7 @@ export default function Login() {
                 className="input-stiga" type="password" value={password}
                 onChange={e => setPassword(e.target.value)}
                 placeholder="••••••••" required
+                autoComplete="new-password"
               />
             </div>
 
