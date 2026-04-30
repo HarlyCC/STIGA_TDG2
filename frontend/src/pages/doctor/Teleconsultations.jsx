@@ -483,8 +483,8 @@ export default function DoctorTeleconsultations() {
                         flexShrink: 0,
                         fontSize: '0.72rem', fontWeight: '700',
                         padding: '0.2rem 0.65rem', borderRadius: '20px',
-                        background: cita.status === 'confirmada' ? '#dbeafe' : '#fef2f2',
-                        color: cita.status === 'confirmada' ? '#1d4ed8' : '#dc2626',
+                        background: cita.status === 'confirmada' ? '#f0fdf4' : '#fef2f2',
+                        color: cita.status === 'confirmada' ? '#15803d' : '#dc2626',
                       }}>
                         {cita.status === 'confirmada' ? 'Confirmada' : 'Rechazada'}
                       </span>
@@ -504,7 +504,7 @@ export default function DoctorTeleconsultations() {
                         onClick={() => handleIniciarLlamada(cita)}
                         style={{
                           display: 'flex', alignItems: 'center', gap: '0.4rem',
-                          background: 'linear-gradient(135deg, #1a56a0, #2e6fa0)',
+                          background: 'linear-gradient(135deg, #1a3a2e, #2a5a44)',
                           color: 'white', border: 'none', borderRadius: '10px',
                           padding: '0.55rem 1.1rem', fontSize: '0.82rem', fontWeight: '700',
                           cursor: 'pointer', fontFamily: 'inherit',
