@@ -153,7 +153,7 @@ export default function PatientDashboard() {
           transition: max-height 0.7s cubic-bezier(0.4,0,0.2,1), opacity 0.7s ease, margin-bottom 0.7s ease;
         }
         .tip-small.hidden  { max-height: 0; opacity: 0; margin-bottom: 0; }
-        .tip-small.visible { max-height: 80px; opacity: 1; margin-bottom: 1.5rem; }
+        .tip-small.visible { max-height: 80px; opacity: 1; margin-bottom: 1.5rem; transition-delay: 0.9s; }
         .nav-item {
           display: flex; align-items: center; gap: 0.75rem;
           padding: 0.7rem 1rem; border-radius: 10px;
