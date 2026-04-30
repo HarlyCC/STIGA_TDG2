@@ -350,7 +350,7 @@ export default function DoctorTeleconsultations() {
         }}>
           {[
             { label: 'Pendientes', value: pendientes.length, color: '#d97706' },
-            { label: 'Confirmadas', value: confirmadas.length, color: '#2e6fa0' },
+            { label: 'Confirmadas', value: confirmadas.length, color: '#15803d' },
             { label: 'Rechazadas', value: rechazadas.length, color: '#6a8070' },
           ].map(s => (
             <div key={s.label} className="stat-card">
@@ -557,17 +557,17 @@ export default function DoctorTeleconsultations() {
                   {cita.status === 'confirmada' && cita.fechaConfirmadaISO && (
                     <div style={{
                       margin: '0 1.25rem 1rem', padding: '0.65rem 1rem',
-                      background: '#eff6fb', borderRadius: '10px',
-                      border: '1px solid #dceaf4',
+                      background: '#f0fdf4', borderRadius: '10px',
+                      border: '1px solid #bbf7d0',
                       display: 'flex', alignItems: 'center', gap: '0.6rem',
                     }}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2e6fa0" strokeWidth="2">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#15803d" strokeWidth="2">
                         <rect x="3" y="4" width="18" height="18" rx="2"/>
                         <line x1="16" y1="2" x2="16" y2="6"/>
                         <line x1="8" y1="2" x2="8" y2="6"/>
                         <line x1="3" y1="10" x2="21" y2="10"/>
                       </svg>
-                      <p style={{ margin: 0, color: '#2e6fa0', fontSize: '0.82rem', fontWeight: '600' }}>
+                      <p style={{ margin: 0, color: '#15803d', fontSize: '0.82rem', fontWeight: '600' }}>
                         {formatDateLong(cita.fechaConfirmadaISO)} a las {cita.horaConfirmada}
                       </p>
                     </div>
