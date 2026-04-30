@@ -63,7 +63,6 @@ export default function PatientProfile() {
     setSuccess(false)
     try {
       const payload = {
-        cedula:           form.cedula.trim()    || undefined,
         telefono:         form.telefono.trim()  || undefined,
         direccion:        form.direccion.trim() || undefined,
         eps:              form.eps.trim()       || undefined,
@@ -313,7 +312,8 @@ export default function PatientProfile() {
 
                   <div>
                     <label className="field-label">Cédula</label>
-                    <input className="field-input" name="cedula" value={form.cedula} onChange={handleChange} placeholder="Número de cédula" />
+                    <input className="field-input" value={form.cedula} disabled placeholder="Número de cédula" />
+                    <p style={{ margin: '0.3rem 0 0', fontSize: '0.75rem', color: '#9ca3af' }}>La cédula no se puede modificar.</p>
                   </div>
 
                   <div>

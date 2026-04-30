@@ -326,10 +326,15 @@ def update_appointment_status(
     if not cita:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cita no encontrada.")
 
-    current = dict(cita)["status"]
+    current    = dict(cita)["status"]
+    asignado_a = dict(cita)["medico_email"]
+
     if body.status == "cancelada" and current != "confirmada":
         raise HTTPException(status_code=status.HTTP_409_CONFLICT,
                             detail="Solo se pueden cancelar citas confirmadas.")
+    if body.status == "cancelada" and asignado_a != medico["email"]:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail="Solo el médico asignado puede cancelar esta cita.")
     if body.status in ("confirmada", "rechazada") and current != "pendiente":
         raise HTTPException(status_code=status.HTTP_409_CONFLICT,
                             detail="Solo se pueden aceptar o rechazar citas pendientes.")

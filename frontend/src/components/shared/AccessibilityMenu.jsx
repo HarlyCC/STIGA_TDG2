@@ -43,9 +43,12 @@ export default function AccessibilityMenu({ inline = false }) {
     }
 
     if (s.dyslexiaFont) {
-      root.style.fontFamily = "'Comic Sans MS', 'OpenDyslexic', cursive"
+      const style = document.getElementById('stiga-dyslexia-style') || document.createElement('style')
+      style.id = 'stiga-dyslexia-style'
+      style.textContent = "*, *::before, *::after { font-family: 'Comic Sans MS', cursive !important; }"
+      document.head.appendChild(style)
     } else {
-      root.style.fontFamily = ''
+      document.getElementById('stiga-dyslexia-style')?.remove()
     }
 
     const lineHeights = { normal: '1.5', comfortable: '1.8', spacious: '2.2' }

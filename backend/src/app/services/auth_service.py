@@ -335,12 +335,24 @@ def get_profile(email: str) -> dict:
     return dict(user)
 
 
+_ALLOWED_PROFILE_FIELDS = {
+    "nombre", "telefono", "direccion",
+    "eps", "ciudad", "fecha_nacimiento", "gender",
+}
+
 def update_profile(email: str, updates: dict) -> dict:
     """Updates only the fields sent in the user's profile."""
     if not updates:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="No se enviaron campos para actualizar.",
+        )
+
+    invalid = set(updates.keys()) - _ALLOWED_PROFILE_FIELDS
+    if invalid:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Campo(s) no permitido(s): {', '.join(invalid)}",
         )
 
     fields_sql = ", ".join(f"{col} = ?" for col in updates)
