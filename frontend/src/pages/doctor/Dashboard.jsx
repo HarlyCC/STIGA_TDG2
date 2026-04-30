@@ -25,15 +25,33 @@ function formatHora(timestamp) {
 function mapRecord(r) {
   const cfg = COLOR_CONFIG[r.triage_color] || COLOR_CONFIG['Verde']
   return {
-    id:         r.id ?? r.session_id,
-    nombre:     r.nombre || 'Sin nombre',
-    edad:       r.age ?? '—',
-    municipio:  r.ciudad || '—',
-    hora:       formatHora(r.timestamp),
-    nivel:      { label: r.triage_color || 'Verde', ...cfg },
-    sintomas:   r.symptoms || '—',
-    severidad:  r.symptom_severity ?? 0,
-    transporte: !!r.tiene_transporte,
+    id:          r.id ?? r.session_id,
+    nombre:      r.nombre || 'Sin nombre',
+    cedula:      r.cedula || '—',
+    telefono:    r.telefono || '—',
+    eps:         r.eps || '—',
+    edad:        r.age ?? '—',
+    genero:      r.gender,
+    municipio:   r.ciudad || '—',
+    hora:        formatHora(r.timestamp),
+    timestamp:   r.timestamp,
+    nivel:       { label: r.triage_color || 'Verde', ...cfg },
+    sintomas:    r.symptoms || '—',
+    severidad:   r.symptom_severity ?? 0,
+    transporte:  !!r.tiene_transporte,
+    ambulancia:  !!r.necesita_ambulancia,
+    // Signos vitales
+    fc:          r.heart_rate,
+    pas:         r.systolic_bp,
+    spo2:        r.o2_sat,
+    temp:        r.body_temp,
+    glucosa:     r.glucose,
+    colesterol:  r.cholesterol,
+    frResp:      r.respiratory_rate,
+    dolor:       r.pain_scale,
+    duracion:    r.symptom_duration,
+    confianza:   r.confianza,
+    escalado:    !!r.escalado,
   }
 }
 
@@ -48,6 +66,7 @@ export default function DoctorDashboard() {
   const [activePaciente, setActivePaciente] = useState(null)
   const [pacientes, setPacientes] = useState([])
   const [loadingData, setLoadingData] = useState(true)
+  const [fichaAbierta, setFichaAbierta] = useState(null)
   const { meeting, createRoom, closeRoom } = useTeleconsultation()
 
   const fetchPacientes = () => {
@@ -477,7 +496,7 @@ export default function DoctorDashboard() {
 
                 {/* Acciones */}
                 <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
-                  <button className="btn-outline-sm">
+                  <button className="btn-outline-sm" onClick={() => setFichaAbierta(p)}>
                     Ver ficha
                   </button>
                   <button
@@ -611,6 +630,144 @@ export default function DoctorDashboard() {
           nivelColor={activePaciente?.nivel?.dot}
           onClose={() => { setShowMeeting(false); closeRoom() }}
         />
+      )}
+
+      {/* ── Modal ficha clínica ── */}
+      {fichaAbierta && (
+        <div
+          onClick={() => setFichaAbierta(null)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 400,
+            background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '1rem',
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: 'white', borderRadius: '20px',
+              width: '100%', maxWidth: '560px', maxHeight: '88vh',
+              overflowY: 'auto', boxShadow: '0 24px 64px rgba(0,0,0,0.35)',
+              fontFamily: "'Segoe UI', sans-serif",
+            }}
+          >
+            {/* Cabecera */}
+            <div style={{
+              background: `linear-gradient(135deg, ${fichaAbierta.nivel.bg}, white)`,
+              borderBottom: `3px solid ${fichaAbierta.nivel.dot}`,
+              padding: '1.25rem 1.5rem',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              borderRadius: '20px 20px 0 0',
+            }}>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.2rem' }}>
+                  <div style={{ width: '10px', height: '10px', background: fichaAbierta.nivel.dot, borderRadius: '50%', boxShadow: `0 0 8px ${fichaAbierta.nivel.dot}` }} />
+                  <span style={{ fontSize: '0.7rem', fontWeight: '800', color: fichaAbierta.nivel.color, textTransform: 'uppercase', letterSpacing: '1px' }}>
+                    Nivel {fichaAbierta.nivel.label}
+                  </span>
+                  {fichaAbierta.escalado && (
+                    <span style={{ fontSize: '0.65rem', fontWeight: '700', background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', borderRadius: '20px', padding: '0.1rem 0.5rem' }}>
+                      Escalado SIRS
+                    </span>
+                  )}
+                </div>
+                <h2 style={{ margin: 0, fontSize: '1.15rem', fontWeight: '800', color: '#0f2318' }}>{fichaAbierta.nombre}</h2>
+                <p style={{ margin: '2px 0 0', fontSize: '0.8rem', color: '#7a9080' }}>
+                  C.C. {fichaAbierta.cedula} · {fichaAbierta.municipio} · {fichaAbierta.hora}
+                </p>
+              </div>
+              <button
+                onClick={() => setFichaAbierta(null)}
+                style={{ background: 'rgba(0,0,0,0.07)', border: 'none', borderRadius: '8px', width: '32px', height: '32px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3a4a3e" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+
+            <div style={{ padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
+
+              {/* Datos personales */}
+              <section>
+                <p style={{ margin: '0 0 0.6rem', fontSize: '0.68rem', fontWeight: '800', color: '#7a9080', textTransform: 'uppercase', letterSpacing: '1px' }}>Datos del paciente</p>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                  {[
+                    ['Edad', fichaAbierta.edad !== '—' ? `${fichaAbierta.edad} años` : '—'],
+                    ['Sexo', fichaAbierta.genero === 1 ? 'Masculino' : fichaAbierta.genero === 0 ? 'Femenino' : '—'],
+                    ['Teléfono', fichaAbierta.telefono],
+                    ['EPS', fichaAbierta.eps],
+                    ['Transporte', fichaAbierta.transporte ? 'Sí' : 'No'],
+                    ['Ambulancia', fichaAbierta.ambulancia ? 'Sí requerida' : 'No requerida'],
+                  ].map(([l, v]) => (
+                    <div key={l} style={{ background: '#f8fafb', borderRadius: '8px', padding: '0.55rem 0.8rem' }}>
+                      <p style={{ margin: 0, fontSize: '0.66rem', color: '#94a3b8', fontWeight: '600', textTransform: 'uppercase' }}>{l}</p>
+                      <p style={{ margin: '2px 0 0', fontSize: '0.85rem', fontWeight: '600', color: '#1e293b' }}>{v ?? '—'}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              {/* Signos vitales */}
+              <section>
+                <p style={{ margin: '0 0 0.6rem', fontSize: '0.68rem', fontWeight: '800', color: '#7a9080', textTransform: 'uppercase', letterSpacing: '1px' }}>Signos vitales</p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
+                  {[
+                    ['FC', fichaAbierta.fc, 'lpm'],
+                    ['PAS', fichaAbierta.pas, 'mmHg'],
+                    ['SpO₂', fichaAbierta.spo2, '%'],
+                    ['Temp.', fichaAbierta.temp, '°C'],
+                    ['Glucosa', fichaAbierta.glucosa, 'mg/dL'],
+                    ['Colesterol', fichaAbierta.colesterol, 'mg/dL'],
+                    ['FR', fichaAbierta.frResp, 'rpm'],
+                    ['Dolor', fichaAbierta.dolor, '/10'],
+                    ['Duración sínt.', fichaAbierta.duracion, 'días'],
+                  ].map(([l, v, u]) => (
+                    <div key={l} style={{ background: '#f8fafb', borderRadius: '8px', padding: '0.55rem 0.8rem', textAlign: 'center' }}>
+                      <p style={{ margin: 0, fontSize: '0.64rem', color: '#94a3b8', fontWeight: '600', textTransform: 'uppercase' }}>{l}</p>
+                      <p style={{ margin: '2px 0 0', fontSize: '1rem', fontWeight: '800', color: '#1e293b' }}>
+                        {v != null ? v : '—'}<span style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: '500' }}> {v != null ? u : ''}</span>
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              {/* Síntomas y evaluación */}
+              <section>
+                <p style={{ margin: '0 0 0.6rem', fontSize: '0.68rem', fontWeight: '800', color: '#7a9080', textTransform: 'uppercase', letterSpacing: '1px' }}>Síntomas reportados</p>
+                <div style={{ background: '#f8fafb', borderRadius: '8px', padding: '0.75rem 0.9rem', fontSize: '0.85rem', color: '#1e293b', lineHeight: 1.55 }}>
+                  {fichaAbierta.sintomas}
+                </div>
+              </section>
+
+              {/* Resultado IA */}
+              <section style={{ background: `${fichaAbierta.nivel.bg}`, border: `1px solid ${fichaAbierta.nivel.dot}30`, borderRadius: '10px', padding: '0.85rem 1rem' }}>
+                <p style={{ margin: '0 0 0.5rem', fontSize: '0.68rem', fontWeight: '800', color: fichaAbierta.nivel.color, textTransform: 'uppercase', letterSpacing: '1px' }}>Resultado del triaje IA</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <div style={{ textAlign: 'center' }}>
+                    <p style={{ margin: 0, fontSize: '0.68rem', color: '#94a3b8', fontWeight: '600' }}>NIVEL</p>
+                    <p style={{ margin: 0, fontSize: '1.5rem', fontWeight: '900', color: fichaAbierta.nivel.color }}>{fichaAbierta.nivel.label}</p>
+                  </div>
+                  <div style={{ flex: 1, height: '1px', background: `${fichaAbierta.nivel.dot}30` }} />
+                  <div style={{ textAlign: 'center' }}>
+                    <p style={{ margin: 0, fontSize: '0.68rem', color: '#94a3b8', fontWeight: '600' }}>SEVERIDAD</p>
+                    <p style={{ margin: 0, fontSize: '1.5rem', fontWeight: '900', color: fichaAbierta.nivel.color }}>{fichaAbierta.severidad}/10</p>
+                  </div>
+                  {fichaAbierta.confianza != null && (
+                    <>
+                      <div style={{ flex: 1, height: '1px', background: `${fichaAbierta.nivel.dot}30` }} />
+                      <div style={{ textAlign: 'center' }}>
+                        <p style={{ margin: 0, fontSize: '0.68rem', color: '#94a3b8', fontWeight: '600' }}>CONFIANZA</p>
+                        <p style={{ margin: 0, fontSize: '1.5rem', fontWeight: '900', color: fichaAbierta.nivel.color }}>{Math.round(fichaAbierta.confianza * 100)}%</p>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </section>
+
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
