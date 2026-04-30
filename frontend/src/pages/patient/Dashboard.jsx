@@ -9,7 +9,6 @@ export default function PatientDashboard() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [mounted, setMounted] = useState(false)
-  const [tipCollapsed, setTipCollapsed] = useState(false)
   const [greeting, setGreeting] = useState('')
   const [showMeeting, setShowMeeting] = useState(false)
   const [triajes, setTriajes] = useState([])
@@ -30,7 +29,6 @@ export default function PatientDashboard() {
     if (h < 12) setGreeting('Buenos días')
     else if (h < 18) setGreeting('Buenas tardes')
     else setGreeting('Buenas noches')
-    const t = setTimeout(() => setTipCollapsed(true), 3500)
     client.get('/medico/mis-triajes').then(({ data }) => setTriajes(data)).catch((e) => { console.error('Error cargando triajes:', e) })
     const loadCita = () => client.get('/medico/mis-citas')
       .then(({ data }) => {
@@ -40,7 +38,7 @@ export default function PatientDashboard() {
       .catch((e) => { console.error('Error cargando citas:', e) })
     loadCita()
     const interval = setInterval(loadCita, 5000)
-    return () => { clearTimeout(t); clearInterval(interval) }
+    return () => { clearInterval(interval) }
   }, [])
 
   const handleLogout = () => { logout(); navigate('/login') }
@@ -140,20 +138,6 @@ export default function PatientDashboard() {
           0%,100% { box-shadow: 0 4px 24px rgba(15,35,24,0.35), 0 0 0 1px rgba(34,197,94,0.06); }
           50%      { box-shadow: 0 4px 32px rgba(15,35,24,0.45), 0 0 0 1px rgba(34,197,94,0.14); }
         }
-        .tip-hero {
-          overflow: hidden;
-          transition: max-height 1s cubic-bezier(0.4,0,0.2,1),
-                      opacity 0.8s ease, margin-bottom 0.8s ease,
-                      padding 0.8s ease;
-        }
-        .tip-hero.expanded { max-height: 200px; opacity: 1; margin-bottom: 2rem; }
-        .tip-hero.collapsed { max-height: 0; opacity: 0; margin-bottom: 0; padding-top: 0 !important; padding-bottom: 0 !important; }
-        .tip-small {
-          overflow: hidden;
-          transition: max-height 0.7s cubic-bezier(0.4,0,0.2,1), opacity 0.7s ease, margin-bottom 0.7s ease;
-        }
-        .tip-small.hidden  { max-height: 0; opacity: 0; margin-bottom: 0; }
-        .tip-small.visible { max-height: 80px; opacity: 1; margin-bottom: 1.5rem; transition-delay: 0.9s; }
         .nav-item {
           display: flex; align-items: center; gap: 0.75rem;
           padding: 0.7rem 1rem; border-radius: 10px;
@@ -326,32 +310,15 @@ export default function PatientDashboard() {
           <AccessibilityMenu inline />
         </div>
 
-        {/* Tip hero */}
-        <div
-          className={`tip-hero ${tipCollapsed ? 'collapsed' : 'expanded'}`}
-          style={{
-            background: 'linear-gradient(135deg, #0f2318, #1a3a2e)',
-            borderRadius: '20px', padding: '2rem 2.5rem',
-            animation: mounted ? 'fadeInUp 0.5s ease 0.1s both' : 'none'
-          }}
-        >
-          <p style={{ margin: '0 0 0.5rem', fontSize: '0.75rem', fontWeight: '700', color: '#7ac896', textTransform: 'uppercase', letterSpacing: '1.5px' }}>
-            Recomendación de hoy
-          </p>
-          <p style={{ margin: 0, fontSize: '1.2rem', fontWeight: '600', color: 'white', lineHeight: 1.6 }}>
-            {tip}
-          </p>
-        </div>
-
-        {/* Tip pequeño */}
-        <div className={`tip-small ${tipCollapsed ? 'visible' : 'hidden'}`}>
+        {/* Recomendación de hoy */}
+        <div style={{ marginBottom: '1.5rem', animation: mounted ? 'fadeInUp 0.5s ease 0.1s both' : 'none' }}>
           <div style={{
             background: 'white', border: '1px solid #edf0ec',
             borderLeft: '3px solid #3d7a5a', borderRadius: '12px',
             padding: '0.75rem 1.25rem',
             display: 'flex', alignItems: 'center', gap: '0.75rem'
           }}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#3d7a5a" strokeWidth="2.5">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#3d7a5a" strokeWidth="2.5" style={{ flexShrink: 0 }}>
               <circle cx="12" cy="12" r="10"/>
               <line x1="12" y1="8" x2="12" y2="12"/>
               <line x1="12" y1="16" x2="12.01" y2="16"/>
