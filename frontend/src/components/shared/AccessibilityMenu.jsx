@@ -45,7 +45,7 @@ export default function AccessibilityMenu({ inline = false }) {
     if (s.dyslexiaFont) {
       const style = document.getElementById('stiga-dyslexia-style') || document.createElement('style')
       style.id = 'stiga-dyslexia-style'
-      style.textContent = "*, *::before, *::after { font-family: 'Comic Sans MS', cursive !important; }"
+      style.textContent = "*, *::before, *::after { font-family: 'Lexend', sans-serif !important; }"
       document.head.appendChild(style)
     } else {
       document.getElementById('stiga-dyslexia-style')?.remove()
