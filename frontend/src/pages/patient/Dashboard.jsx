@@ -312,92 +312,6 @@ export default function PatientDashboard() {
         overflowY: 'auto'
       }}>
 
-        {/* Banner teleconsulta confirmada */}
-        {citaConfirmada && !showMeeting && (
-          <div style={{
-            marginBottom: '1.5rem',
-            background: 'linear-gradient(135deg, #050f08, #0f2318, #071626)',
-            borderRadius: '18px',
-            border: '1.5px solid rgba(34,197,94,0.2)',
-            padding: '1.1rem 1.5rem',
-            display: 'flex', alignItems: 'center', gap: '1rem',
-            animationName: 'fadeInUp, bannerGlow',
-            animationDuration: '0.4s, 3s',
-            animationTimingFunction: 'ease, ease-in-out',
-            animationIterationCount: '1, infinite',
-            position: 'relative', overflow: 'hidden'
-          }}>
-            {/* Línea luminosa superior */}
-            <div style={{
-              position: 'absolute', top: 0, left: '10%', right: '10%', height: '1.5px',
-              background: 'linear-gradient(90deg, transparent, rgba(34,197,94,0.6), transparent)'
-            }} />
-
-            {/* Dot pulsante */}
-            <div style={{
-              width: '14px', height: '14px', flexShrink: 0,
-              background: '#22c55e', borderRadius: '50%',
-              animation: 'pulseGreen 1.6s ease-in-out infinite',
-              boxShadow: '0 0 10px rgba(34,197,94,0.7)'
-            }} />
-
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{
-                margin: '0 0 0.12rem', color: '#7ac896',
-                fontWeight: '800', fontSize: '0.72rem',
-                textTransform: 'uppercase', letterSpacing: '1.2px'
-              }}>
-                Teleconsulta confirmada
-              </p>
-              <p style={{ margin: 0, color: 'white', fontWeight: '700', fontSize: '0.93rem' }}>
-                {citaConfirmada.medico_nombre ?? 'Médico asignado'}
-              </p>
-            </div>
-
-            {/* Chip fecha/hora */}
-            <div style={{
-              flexShrink: 0, textAlign: 'center',
-              padding: '0.45rem 0.85rem',
-              background: 'rgba(255,255,255,0.06)',
-              border: '1.5px solid rgba(255,255,255,0.1)',
-              borderRadius: '12px',
-            }}>
-              <p style={{ margin: 0, lineHeight: 1, fontSize: '1rem', fontWeight: '800', color: 'white' }}>
-                {citaConfirmada.hora_solicitada ?? '—'}
-              </p>
-              <p style={{ margin: '3px 0 0', fontSize: '0.62rem', color: 'rgba(255,255,255,0.4)', fontWeight: '600' }}>
-                {formatFechaCorta(citaConfirmada.fecha_solicitada)}
-              </p>
-            </div>
-
-            <button
-              onClick={() => citaConfirmada?.en_llamada && setShowMeeting(true)}
-              disabled={!citaConfirmada?.en_llamada}
-              title={!citaConfirmada?.en_llamada ? 'El médico aún no ha iniciado la llamada' : ''}
-              style={{
-                flexShrink: 0,
-                background: citaConfirmada?.en_llamada
-                  ? 'linear-gradient(135deg, #16a34a, #15803d)'
-                  : 'rgba(255,255,255,0.12)',
-                border: citaConfirmada?.en_llamada ? 'none' : '1.5px solid rgba(255,255,255,0.2)',
-                borderRadius: '12px',
-                padding: '0.65rem 1.4rem', color: 'white',
-                fontSize: '0.85rem', fontWeight: '800',
-                cursor: citaConfirmada?.en_llamada ? 'pointer' : 'not-allowed',
-                display: 'flex', alignItems: 'center', gap: '0.5rem',
-                boxShadow: citaConfirmada?.en_llamada ? '0 4px 18px rgba(22,163,74,0.45)' : 'none',
-                transition: 'all 0.3s ease', opacity: citaConfirmada?.en_llamada ? 1 : 0.65,
-              }}
-            >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-                <polygon points="23 7 16 12 23 17 23 7"/>
-                <rect x="1" y="5" width="15" height="14" rx="2"/>
-              </svg>
-              {citaConfirmada?.en_llamada ? 'Unirse ahora' : 'Esperando al médico…'}
-            </button>
-          </div>
-        )}
-
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem', animation: mounted ? 'fadeInUp 0.5s ease' : 'none' }}>
           <div>
@@ -447,6 +361,78 @@ export default function PatientDashboard() {
             </p>
           </div>
         </div>
+
+        {/* Banner teleconsulta confirmada */}
+        {citaConfirmada && !showMeeting && (
+          <div style={{
+            marginBottom: '1.5rem',
+            background: 'linear-gradient(135deg, #050f08, #0f2318, #071626)',
+            borderRadius: '18px',
+            border: '1.5px solid rgba(34,197,94,0.2)',
+            padding: '1.1rem 1.5rem',
+            display: 'flex', alignItems: 'center', gap: '1rem',
+            animationName: 'fadeInUp, bannerGlow',
+            animationDuration: '0.4s, 3s',
+            animationTimingFunction: 'ease, ease-in-out',
+            animationIterationCount: '1, infinite',
+            position: 'relative', overflow: 'hidden'
+          }}>
+            <div style={{
+              position: 'absolute', top: 0, left: '10%', right: '10%', height: '1.5px',
+              background: 'linear-gradient(90deg, transparent, rgba(34,197,94,0.6), transparent)'
+            }} />
+            <div style={{
+              width: '14px', height: '14px', flexShrink: 0,
+              background: '#22c55e', borderRadius: '50%',
+              animation: 'pulseGreen 1.6s ease-in-out infinite',
+              boxShadow: '0 0 10px rgba(34,197,94,0.7)'
+            }} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ margin: '0 0 0.12rem', color: '#7ac896', fontWeight: '800', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '1.2px' }}>
+                Teleconsulta confirmada
+              </p>
+              <p style={{ margin: 0, color: 'white', fontWeight: '700', fontSize: '0.93rem' }}>
+                {citaConfirmada.medico_nombre ?? 'Médico asignado'}
+              </p>
+            </div>
+            <div style={{
+              flexShrink: 0, textAlign: 'center',
+              padding: '0.45rem 0.85rem',
+              background: 'rgba(255,255,255,0.06)',
+              border: '1.5px solid rgba(255,255,255,0.1)',
+              borderRadius: '12px',
+            }}>
+              <p style={{ margin: 0, lineHeight: 1, fontSize: '1rem', fontWeight: '800', color: 'white' }}>
+                {citaConfirmada.hora_solicitada ?? '—'}
+              </p>
+              <p style={{ margin: '3px 0 0', fontSize: '0.62rem', color: 'rgba(255,255,255,0.4)', fontWeight: '600' }}>
+                {formatFechaCorta(citaConfirmada.fecha_solicitada)}
+              </p>
+            </div>
+            <button
+              onClick={() => citaConfirmada?.en_llamada && setShowMeeting(true)}
+              disabled={!citaConfirmada?.en_llamada}
+              title={!citaConfirmada?.en_llamada ? 'El médico aún no ha iniciado la llamada' : ''}
+              style={{
+                flexShrink: 0,
+                background: citaConfirmada?.en_llamada ? 'linear-gradient(135deg, #16a34a, #15803d)' : 'rgba(255,255,255,0.12)',
+                border: citaConfirmada?.en_llamada ? 'none' : '1.5px solid rgba(255,255,255,0.2)',
+                borderRadius: '12px', padding: '0.65rem 1.4rem', color: 'white',
+                fontSize: '0.85rem', fontWeight: '800',
+                cursor: citaConfirmada?.en_llamada ? 'pointer' : 'not-allowed',
+                display: 'flex', alignItems: 'center', gap: '0.5rem',
+                boxShadow: citaConfirmada?.en_llamada ? '0 4px 18px rgba(22,163,74,0.45)' : 'none',
+                transition: 'all 0.3s ease', opacity: citaConfirmada?.en_llamada ? 1 : 0.65,
+              }}
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+                <polygon points="23 7 16 12 23 17 23 7"/>
+                <rect x="1" y="5" width="15" height="14" rx="2"/>
+              </svg>
+              {citaConfirmada?.en_llamada ? 'Unirse ahora' : 'Esperando al médico…'}
+            </button>
+          </div>
+        )}
 
         {/* Botón iniciar triaje */}
         <div style={{ marginBottom: '2rem', animation: mounted ? 'fadeInUp 0.5s ease 0.2s both' : 'none' }}>
