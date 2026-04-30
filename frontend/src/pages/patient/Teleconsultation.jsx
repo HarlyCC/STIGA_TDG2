@@ -62,9 +62,12 @@ export default function PatientTeleconsultation() {
   }, [selectedDate])
 
   useEffect(() => {
-    client.get('/medico/mis-citas')
+    const load = () => client.get('/medico/mis-citas')
       .then(({ data }) => setCitasConfirmadas(data.filter(c => c.status === 'confirmada')))
       .catch((e) => { console.error('Error cargando citas:', e) })
+    load()
+    const interval = setInterval(load, 5000)
+    return () => clearInterval(interval)
   }, [])
 
 
@@ -360,19 +363,25 @@ export default function PatientTeleconsultation() {
                 </div>
                 <button
                   onClick={() => setActiveMeeting(cita)}
+                  disabled={!cita.en_llamada}
                   style={{
                     display: 'flex', alignItems: 'center', gap: '0.4rem',
-                    background: 'linear-gradient(135deg, #15803d, #16a34a)',
+                    background: cita.en_llamada
+                      ? 'linear-gradient(135deg, #15803d, #16a34a)'
+                      : '#d1d5db',
                     color: 'white', border: 'none', borderRadius: '10px',
                     padding: '0.6rem 1.2rem', fontSize: '0.85rem', fontWeight: '700',
-                    cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
+                    cursor: cita.en_llamada ? 'pointer' : 'not-allowed',
+                    fontFamily: 'inherit', flexShrink: 0,
+                    transition: 'background 0.3s ease',
                   }}
+                  title={!cita.en_llamada ? 'El médico aún no ha iniciado la llamada' : ''}
                 >
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
                     <polygon points="23 7 16 12 23 17 23 7"/>
                     <rect x="1" y="5" width="15" height="14" rx="2"/>
                   </svg>
-                  Unirse a la consulta
+                  {cita.en_llamada ? 'Unirse a la consulta' : 'Esperando al médico…'}
                 </button>
               </div>
             ))}

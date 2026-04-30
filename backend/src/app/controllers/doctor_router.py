@@ -264,6 +264,28 @@ def list_appointments(medico: dict = Depends(require_medico)):
     return [dict(r) for r in rows]
 
 
+class LlamadaUpdate(BaseModel):
+    en_llamada: bool
+
+
+@router.put("/citas/{cita_id}/llamada")
+def toggle_llamada(
+    cita_id: int,
+    body: LlamadaUpdate,
+    medico: dict = Depends(require_medico),
+):
+    """Marca si el médico está actualmente en la llamada de esta cita."""
+    with get_conn() as conn:
+        affected = conn.execute(
+            "UPDATE citas SET en_llamada = ? WHERE id = ? AND medico_email = ?",
+            (1 if body.en_llamada else 0, cita_id, medico["email"]),
+        ).rowcount
+    if affected == 0:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cita no encontrada.")
+    logger.info(f"Cita {cita_id} en_llamada={body.en_llamada} | médico: {medico['email']}")
+    return {"ok": True}
+
+
 class StatusUpdate(BaseModel):
     status: str  # 'confirmada' | 'rechazada'
 

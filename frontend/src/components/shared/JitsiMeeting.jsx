@@ -21,6 +21,13 @@ export default function JitsiMeeting({ roomId, displayName, onClose, pacienteNom
     recomendaciones: '', proximaCita: ''
   })
 
+  // Bloquear scroll del body mientras la reunión está activa (evita clone visual al hacer scroll)
+  useEffect(() => {
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = prev }
+  }, [])
+
   // Cronómetro
   useEffect(() => {
     const t = setInterval(() => setElapsed(s => s + 1), 1000)

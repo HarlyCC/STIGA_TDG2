@@ -32,13 +32,15 @@ export default function PatientDashboard() {
     else setGreeting('Buenas noches')
     const t = setTimeout(() => setTipCollapsed(true), 3500)
     client.get('/medico/mis-triajes').then(({ data }) => setTriajes(data)).catch((e) => { console.error('Error cargando triajes:', e) })
-    client.get('/medico/mis-citas')
+    const loadCita = () => client.get('/medico/mis-citas')
       .then(({ data }) => {
         const confirmadas = data.filter(c => c.status === 'confirmada')
         setCitaConfirmada(confirmadas[0] ?? null)
       })
       .catch((e) => { console.error('Error cargando citas:', e) })
-    return () => clearTimeout(t)
+    loadCita()
+    const interval = setInterval(loadCita, 5000)
+    return () => { clearTimeout(t); clearInterval(interval) }
   }, [])
 
   const handleLogout = () => { logout(); navigate('/login') }
@@ -369,25 +371,29 @@ export default function PatientDashboard() {
             </div>
 
             <button
-              onClick={() => setShowMeeting(true)}
+              onClick={() => citaConfirmada?.en_llamada && setShowMeeting(true)}
+              disabled={!citaConfirmada?.en_llamada}
+              title={!citaConfirmada?.en_llamada ? 'El médico aún no ha iniciado la llamada' : ''}
               style={{
                 flexShrink: 0,
-                background: 'linear-gradient(135deg, #16a34a, #15803d)',
-                border: 'none', borderRadius: '12px',
+                background: citaConfirmada?.en_llamada
+                  ? 'linear-gradient(135deg, #16a34a, #15803d)'
+                  : 'rgba(255,255,255,0.12)',
+                border: citaConfirmada?.en_llamada ? 'none' : '1.5px solid rgba(255,255,255,0.2)',
+                borderRadius: '12px',
                 padding: '0.65rem 1.4rem', color: 'white',
-                fontSize: '0.9rem', fontWeight: '800', cursor: 'pointer',
+                fontSize: '0.85rem', fontWeight: '800',
+                cursor: citaConfirmada?.en_llamada ? 'pointer' : 'not-allowed',
                 display: 'flex', alignItems: 'center', gap: '0.5rem',
-                boxShadow: '0 4px 18px rgba(22,163,74,0.45)',
-                transition: 'all 0.2s ease'
+                boxShadow: citaConfirmada?.en_llamada ? '0 4px 18px rgba(22,163,74,0.45)' : 'none',
+                transition: 'all 0.3s ease', opacity: citaConfirmada?.en_llamada ? 1 : 0.65,
               }}
-              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 22px rgba(22,163,74,0.55)' }}
-              onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 4px 18px rgba(22,163,74,0.45)' }}
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
                 <polygon points="23 7 16 12 23 17 23 7"/>
                 <rect x="1" y="5" width="15" height="14" rx="2"/>
               </svg>
-              Unirse ahora
+              {citaConfirmada?.en_llamada ? 'Unirse ahora' : 'Esperando al médico…'}
             </button>
           </div>
         )}

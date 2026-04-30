@@ -83,6 +83,18 @@ export default function DoctorTeleconsultations() {
     loadCitas()
   }
 
+  const handleIniciarLlamada = async (cita) => {
+    try { await client.put(`/medico/citas/${cita.id}/llamada`, { en_llamada: true }) } catch {}
+    setActiveMeeting(cita)
+  }
+
+  const handleCerrarLlamada = async () => {
+    if (activeMeeting) {
+      try { await client.put(`/medico/citas/${activeMeeting.id}/llamada`, { en_llamada: false }) } catch {}
+    }
+    setActiveMeeting(null)
+  }
+
   const nivelBadge = (nivel) => {
     if (!nivel) return null
     return (
@@ -471,7 +483,7 @@ export default function DoctorTeleconsultations() {
                   {cita.status === 'confirmada' && (
                     <div style={{ padding: '0 1.25rem 1rem', display: 'flex', justifyContent: 'flex-end' }}>
                       <button
-                        onClick={() => setActiveMeeting(cita)}
+                        onClick={() => handleIniciarLlamada(cita)}
                         style={{
                           display: 'flex', alignItems: 'center', gap: '0.4rem',
                           background: 'linear-gradient(135deg, #1a56a0, #2e6fa0)',
@@ -578,7 +590,7 @@ export default function DoctorTeleconsultations() {
           nivelLabel={activeMeeting.triaje?.nivel?.label}
           nivelColor={activeMeeting.triaje?.nivel?.dot}
           isDoctor
-          onClose={() => setActiveMeeting(null)}
+          onClose={handleCerrarLlamada}
         />
       )}
     </div>
