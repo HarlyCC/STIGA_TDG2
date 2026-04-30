@@ -329,11 +329,20 @@ def update_appointment_status(
         raise HTTPException(status_code=status.HTTP_409_CONFLICT,
                             detail="Solo se pueden aceptar o rechazar citas pendientes.")
 
-    medico_email = medico["email"] if body.status == "confirmada" else None
+    cita_dict = dict(cita)
+    if body.status == "confirmada":
+        medico_email    = medico["email"]
+        fecha_confirmada = cita_dict.get("fecha_solicitada")
+        hora_confirmada  = cita_dict.get("hora_solicitada")
+    else:
+        medico_email     = None
+        fecha_confirmada = None
+        hora_confirmada  = None
+
     with get_conn() as conn:
         conn.execute(
-            "UPDATE citas SET status = ?, medico_email = ? WHERE id = ?",
-            (body.status, medico_email, cita_id),
+            "UPDATE citas SET status = ?, medico_email = ?, fecha_confirmada = ?, hora_confirmada = ? WHERE id = ?",
+            (body.status, medico_email, fecha_confirmada, hora_confirmada, cita_id),
         )
     logger.info(f"Cita {cita_id} → {body.status} | médico: {medico['email']}")
     return {"id": cita_id, "status": body.status}
