@@ -283,7 +283,7 @@ export default function Login() {
       }}>
         {/* Bloque login — margin:auto lo centra verticalmente cuando hay espacio */}
         <div style={{ width: '100%', maxWidth: '480px', margin: 'auto', padding: 'clamp(1rem, 4vh, 3rem) 2rem 1.5rem' }}>
-        <div style={{ maxWidth: '380px', width: '100%' }}>
+        <div style={{ maxWidth: '380px', width: '100%', margin: '0 auto' }}>
 
           {/* Encabezado */}
           <div style={{
