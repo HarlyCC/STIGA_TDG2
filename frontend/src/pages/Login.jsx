@@ -89,7 +89,7 @@ export default function Login() {
 
   return (
     <div style={{
-      minHeight: '100vh', display: 'flex',
+      height: '100vh', display: 'flex',
       fontFamily: "'Segoe UI', -apple-system, sans-serif",
     }}>
 
@@ -171,7 +171,7 @@ export default function Login() {
         background: 'linear-gradient(175deg, #0f2318 0%, #1a3a2e 50%, #0e2a40 100%)',
         display: 'flex', flexDirection: 'column',
         justifyContent: 'space-between', padding: '3rem',
-        position: 'sticky', top: 0, height: '100vh', overflow: 'hidden', flexShrink: 0,
+        height: '100vh', overflow: 'hidden', flexShrink: 0,
         opacity: mounted ? 1 : 0,
         transform: mounted ? 'none' : 'translateX(-20px)',
         transition: 'opacity 0.6s ease, transform 0.6s ease'
@@ -275,15 +275,13 @@ export default function Login() {
       {/* ── Panel derecho blanco ── */}
       <div style={{
         flex: 1, background: '#ffffff',
-        display: 'flex', flexDirection: 'column',
-        alignItems: 'center',
-        minHeight: '100vh',
+        height: '100vh', overflowY: 'auto',
         opacity: mounted ? 1 : 0,
         transform: mounted ? 'none' : 'translateX(20px)',
         transition: 'opacity 0.6s ease 0.1s, transform 0.6s ease 0.1s'
       }}>
         {/* Bloque login */}
-        <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', padding: 'clamp(1.5rem, 5vh, 3.5rem) 4rem' }}>
+        <div style={{ width: '100%', maxWidth: '480px', margin: '0 auto', padding: 'clamp(1.5rem, 5vh, 3.5rem) 2rem' }}>
         <div style={{ maxWidth: '380px', width: '100%' }}>
 
           {/* Encabezado */}
@@ -461,6 +459,7 @@ export default function Login() {
         {/* Formulario de solicitud médica — expande debajo */}
         <div style={{
           width: '100%', maxWidth: '480px',
+          margin: '0 auto',
           overflow: 'hidden',
           maxHeight: showMedicoForm ? '1400px' : '0',
           transition: 'max-height 0.55s cubic-bezier(0.4,0,0.2,1)',
