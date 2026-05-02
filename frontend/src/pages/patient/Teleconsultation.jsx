@@ -37,7 +37,7 @@ export default function PatientTeleconsultation() {
 
   const triajsConCitaActiva = new Set(
     todasMisCitas
-      .filter(c => c.triaje_id != null && (c.status === 'pendiente' || c.status === 'confirmada'))
+      .filter(c => c.triaje_id != null && (c.status === 'pendiente' || c.status === 'confirmada' || c.status === 'completada'))
       .map(c => c.triaje_id)
   )
 
@@ -627,7 +627,10 @@ export default function PatientTeleconsultation() {
                             <line x1="12" y1="16" x2="12.01" y2="16"/>
                           </svg>
                           <p style={{ margin: 0, color: '#1d4ed8', fontSize: '0.82rem', lineHeight: 1.5, fontWeight: '500' }}>
-                            Ya tienes una cita <strong>{todasMisCitas.find(c => c.triaje_id === t.id && (c.status === 'pendiente' || c.status === 'confirmada'))?.status === 'confirmada' ? 'confirmada' : 'pendiente'}</strong> para este triaje. Puedes verla en el panel de arriba.
+                            {todasMisCitas.find(c => c.triaje_id === t.id && c.status === 'completada')
+                              ? 'La teleconsulta de este triaje ya fue completada.'
+                              : <>Ya tienes una cita <strong>{todasMisCitas.find(c => c.triaje_id === t.id && (c.status === 'pendiente' || c.status === 'confirmada'))?.status === 'confirmada' ? 'confirmada' : 'pendiente'}</strong> para este triaje. Puedes verla en el panel de arriba.</>
+                            }
                           </p>
                         </div>
                       )}
