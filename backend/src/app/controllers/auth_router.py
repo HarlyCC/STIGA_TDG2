@@ -133,7 +133,8 @@ def reset_password_handler(request: Request, body: ResetPasswordRequest):
 
 
 @router.post("/request-doctor-access", status_code=201)
-def request_doctor_access_handler(body: DoctorAccessRequest):
+@limiter.limit("5/minute")
+def request_doctor_access_handler(request: Request, body: DoctorAccessRequest):
     return request_doctor_access(body.model_dump())
 
 
