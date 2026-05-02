@@ -89,9 +89,9 @@ export default function Login() {
 
   return (
     <div style={{
-      minHeight: '100vh', display: 'flex',
+      height: '100vh', display: 'flex',
       fontFamily: "'Segoe UI', -apple-system, sans-serif",
-      overflowX: 'hidden'
+      overflow: 'hidden'
     }}>
 
       <style>{`
@@ -278,7 +278,7 @@ export default function Login() {
         flex: 1, background: '#ffffff',
         display: 'flex', flexDirection: 'column',
         alignItems: 'center',
-        minHeight: '100vh',
+        height: '100vh', overflowY: 'auto',
         opacity: mounted ? 1 : 0,
         transform: mounted ? 'none' : 'translateX(20px)',
         transition: 'opacity 0.6s ease 0.1s, transform 0.6s ease 0.1s'
