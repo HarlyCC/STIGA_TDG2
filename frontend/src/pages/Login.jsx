@@ -172,6 +172,7 @@ export default function Login() {
         display: 'flex', flexDirection: 'column',
         justifyContent: 'space-between', padding: '3rem',
         height: '100vh', overflow: 'hidden', flexShrink: 0,
+        position: 'relative',
         opacity: mounted ? 1 : 0,
         transform: mounted ? 'none' : 'translateX(-20px)',
         transition: 'opacity 0.6s ease, transform 0.6s ease'
