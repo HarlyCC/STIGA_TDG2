@@ -108,7 +108,7 @@ export default function PatientProfile() {
 
   return (
     <div style={{
-      minHeight: '100vh', display: 'flex',
+      height: '100vh', display: 'flex',
       fontFamily: "'Segoe UI', -apple-system, sans-serif",
       background: '#f4f6f8'
     }}>
@@ -274,7 +274,7 @@ export default function PatientProfile() {
       </aside>
 
       {/* ── Contenido ── */}
-      <main style={{ marginLeft: '240px', flex: 1, padding: '2.5rem 2rem', maxWidth: '860px' }}>
+      <main style={{ marginLeft: '240px', flex: 1, padding: '2.5rem 2rem', maxWidth: '860px', overflowY: 'auto', height: '100vh' }}>
         <div style={{
           opacity: mounted ? 1 : 0, transform: mounted ? 'none' : 'translateY(16px)',
           transition: 'opacity 0.5s ease 0.1s, transform 0.5s ease 0.1s'
