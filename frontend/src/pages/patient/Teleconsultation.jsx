@@ -35,6 +35,12 @@ export default function PatientTeleconsultation() {
   const citasPendientes  = todasMisCitas.filter(c => c.status === 'pendiente')
   const citasInactivas   = todasMisCitas.filter(c => c.status === 'rechazada' || c.status === 'cancelada')
 
+  const triajsConCitaActiva = new Set(
+    todasMisCitas
+      .filter(c => c.triaje_id != null && (c.status === 'pendiente' || c.status === 'confirmada'))
+      .map(c => c.triaje_id)
+  )
+
   const handleConfirmar = async () => {
     setConfirming(true)
     setConfirmError('')
@@ -538,23 +544,25 @@ export default function PatientTeleconsultation() {
                   </p>
                 )}
                 {triajes.map(t => {
-                  const esCritico = t.nivel.label === 'Naranja' || t.nivel.label === 'Rojo'
+                  const esCritico    = t.nivel.label === 'Naranja' || t.nivel.label === 'Rojo'
+                  const tieneCita    = triajsConCitaActiva.has(t.id)
+                  const deshabilitado = esCritico || tieneCita
                   return (
                     <div key={t.id}>
                       <div
-                        className={`triaje-card ${selectedTriaje?.id === t.id && !esCritico ? 'selected' : ''}`}
-                        onClick={() => !esCritico && setSelectedTriaje(t)}
-                        style={{ opacity: esCritico ? 0.7 : 1, cursor: esCritico ? 'not-allowed' : 'pointer' }}
+                        className={`triaje-card ${selectedTriaje?.id === t.id && !deshabilitado ? 'selected' : ''}`}
+                        onClick={() => !deshabilitado && setSelectedTriaje(t)}
+                        style={{ opacity: deshabilitado ? 0.65 : 1, cursor: deshabilitado ? 'not-allowed' : 'pointer' }}
                       >
                         {/* Indicador de selección */}
                         <div style={{
                           width: '20px', height: '20px', borderRadius: '50%', flexShrink: 0, marginTop: '2px',
-                          border: `2px solid ${selectedTriaje?.id === t.id && !esCritico ? '#3d7a5a' : '#d0dcd4'}`,
-                          background: selectedTriaje?.id === t.id && !esCritico ? '#3d7a5a' : 'transparent',
+                          border: `2px solid ${selectedTriaje?.id === t.id && !deshabilitado ? '#3d7a5a' : '#d0dcd4'}`,
+                          background: selectedTriaje?.id === t.id && !deshabilitado ? '#3d7a5a' : 'transparent',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                           transition: 'all 0.2s ease',
                         }}>
-                          {selectedTriaje?.id === t.id && !esCritico && (
+                          {selectedTriaje?.id === t.id && !deshabilitado && (
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5">
                               <polyline points="20 6 9 17 4 12"/>
                             </svg>
@@ -601,6 +609,25 @@ export default function PatientTeleconsultation() {
                           </svg>
                           <p style={{ margin: 0, color: '#dc2626', fontSize: '0.82rem', lineHeight: 1.5, fontWeight: '500' }}>
                             Este triaje indica una situación <strong>crítica ({t.nivel.label})</strong>. Debe buscar atención de emergencias de inmediato — no es posible agendar teleconsulta para esta condición.
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Cita ya activa */}
+                      {!esCritico && tieneCita && (
+                        <div style={{
+                          display: 'flex', gap: '0.6rem', alignItems: 'flex-start',
+                          padding: '0.65rem 1rem', marginTop: '0.4rem',
+                          background: '#eff6ff', borderRadius: '10px',
+                          border: '1px solid #bfdbfe',
+                        }}>
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1d4ed8" strokeWidth="2" style={{ flexShrink: 0, marginTop: '1px' }}>
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="12" y1="8" x2="12" y2="12"/>
+                            <line x1="12" y1="16" x2="12.01" y2="16"/>
+                          </svg>
+                          <p style={{ margin: 0, color: '#1d4ed8', fontSize: '0.82rem', lineHeight: 1.5, fontWeight: '500' }}>
+                            Ya tienes una cita <strong>{todasMisCitas.find(c => c.triaje_id === t.id && (c.status === 'pendiente' || c.status === 'confirmada'))?.status === 'confirmada' ? 'confirmada' : 'pendiente'}</strong> para este triaje. Puedes verla en el panel de arriba.
                           </p>
                         </div>
                       )}

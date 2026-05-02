@@ -221,6 +221,18 @@ def create_appointment(body: AppointmentRequest, current_user: dict = Depends(ge
     now        = datetime.now(timezone.utc).isoformat()
     room_token = uuid.uuid4().hex
     with get_conn() as conn:
+        if body.triaje_id is not None:
+            duplicate = conn.execute(
+                """SELECT id FROM citas
+                   WHERE paciente_email = ? AND triaje_id = ?
+                     AND status IN ('pendiente', 'confirmada')""",
+                (current_user["email"], body.triaje_id),
+            ).fetchone()
+            if duplicate:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Ya tienes una cita activa para este triaje.",
+                )
         cur = conn.execute(
             """INSERT INTO citas
                (paciente_email, triaje_id, fecha_solicitada, hora_solicitada, status, creado_en, room_token)
