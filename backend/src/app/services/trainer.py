@@ -12,7 +12,6 @@ Mejoras respecto a v1:
 """
 
 import logging
-import sqlite3
 from pathlib import Path
 
 import joblib
@@ -179,8 +178,8 @@ def train_stiga_model():
         return
 
     # 1. Carga y preprocesamiento
-    with sqlite3.connect(DB_PATH) as conn:
-        df = pd.read_sql_query("SELECT * FROM master_triage", conn)
+    from app.repositories import triage_repository
+    df = pd.DataFrame([dict(r) for r in triage_repository.get_master_triage_rows()])
 
     df = df.dropna(subset=["triage_level"])
     df["triage_level"] = df["triage_level"].astype(int)

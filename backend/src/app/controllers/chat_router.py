@@ -1,15 +1,13 @@
 import logging
 import os
-from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from app.data.database import get_conn
 from app.services.gemma_service import GemmaService
 from app.services.predictor import Predictor
+from app.services.triage_service import get_patient_profile, sync_forward
 from app.core.security import get_current_user
-from app.services import email_service
 
 logger = logging.getLogger("stiga.chat")
 
@@ -19,7 +17,7 @@ gemma_service = GemmaService(api_key=os.getenv("GOOGLE_API_KEY"))
 predictor     = Predictor()
 
 
-# ── Modelos ───────────────────────────────────────────────────────────────────
+# ── Request models ────────────────────────────────────────────────────────────
 
 class MessageRequest(BaseModel):
     session_id: str
@@ -39,24 +37,8 @@ def start_conversation(
     session_id:   str,
     current_user: dict = Depends(get_current_user),
 ):
-    """
-    Inicia una sesión de triaje.
-    Lee los datos personales directamente desde el perfil del usuario autenticado,
-    por lo que el frontend no necesita reenviarlos.
-    """
-    with get_conn() as conn:
-        user = conn.execute(
-            """SELECT nombre, cedula, telefono, direccion, eps,
-                      ciudad, fecha_nacimiento, gender
-               FROM users WHERE email = ?""",
-            (current_user["email"],),
-        ).fetchone()
-
-    if not user:
-        raise HTTPException(status_code=404, detail="Perfil de usuario no encontrado.")
-
-    prefilled = dict(user)
-    logger.info(f"Iniciando conversación | sesión: {session_id} | paciente: {user['nombre']}")
+    prefilled = get_patient_profile(current_user["email"])
+    logger.info(f"Iniciando conversación | sesión: {session_id} | paciente: {prefilled['nombre']}")
     return gemma_service.start_conversation(session_id, prefilled_data=prefilled)
 
 
@@ -65,7 +47,6 @@ def send_message(
     request:      MessageRequest,
     current_user: dict = Depends(get_current_user),
 ):
-    """Envía un mensaje del usuario y recibe respuesta de Gemma."""
     response = gemma_service.chat(request.session_id, request.message)
 
     if response["ready_for_model"]:
@@ -85,7 +66,6 @@ def get_triage_result(
     session_id:   str,
     current_user: dict = Depends(get_current_user),
 ):
-    """Obtiene el resultado del triaje para una sesión completada."""
     session = gemma_service.sessions.get(session_id)
 
     if not session:
@@ -106,88 +86,17 @@ def get_triage_result(
 
 
 @router.post("/sync/forward")
-def sync_forward(
+def sync_forward_endpoint(
     request:      SyncRequest,
     current_user: dict = Depends(get_current_user),
 ):
-    """Store & Forward — persiste el registro de triaje en SQLite."""
     try:
-        triage_color      = request.triage_result.get("color")
-        paciente_nombre   = request.patient_data.get("nombre")
-        paciente_telefono = request.patient_data.get("telefono")
-        ciudad            = request.patient_data.get("ciudad")
-
-        with get_conn() as conn:
-            cur = conn.execute("""
-                INSERT INTO triage_records (
-                    session_id, timestamp, user_email,
-                    nombre, cedula, telefono, direccion, eps,
-                    age, gender, heart_rate, systolic_bp,
-                    o2_sat, body_temp, glucose, cholesterol,
-                    symptoms, symptom_severity,
-                    respiratory_rate, pain_scale, symptom_duration,
-                    ciudad, tiene_transporte, necesita_ambulancia,
-                    triage_level, triage_color, confianza, escalado
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                request.session_id,
-                datetime.now().isoformat(),
-                current_user["email"],
-                paciente_nombre,
-                request.patient_data.get("cedula"),
-                paciente_telefono,
-                request.patient_data.get("direccion"),
-                request.patient_data.get("eps"),
-                request.patient_data.get("age"),
-                request.patient_data.get("gender"),
-                request.patient_data.get("heart_rate"),
-                request.patient_data.get("systolic_bp"),
-                request.patient_data.get("o2_sat"),
-                request.patient_data.get("body_temp"),
-                request.patient_data.get("glucose"),
-                request.patient_data.get("cholesterol"),
-                request.patient_data.get("symptoms"),
-                request.patient_data.get("symptom_severity"),
-                request.patient_data.get("respiratory_rate"),
-                request.patient_data.get("pain_scale"),
-                request.patient_data.get("symptom_duration"),
-                ciudad,
-                int(request.patient_data.get("tiene_transporte") or 0),
-                int(request.patient_data.get("necesita_ambulancia") or 0),
-                request.triage_result.get("nivel"),
-                triage_color,
-                request.triage_result.get("confianza"),
-                int(request.triage_result.get("escalado") or 0),
-            ))
-            triaje_id = cur.lastrowid
-
-            if triage_color in ("Naranja", "Rojo"):
-                conn.execute(
-                    """INSERT INTO alertas_criticas
-                       (triaje_id, paciente_email, paciente_nombre, paciente_telefono, ciudad, triage_color, created_at, leida)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, 0)""",
-                    (triaje_id, current_user["email"], paciente_nombre, paciente_telefono,
-                     ciudad, triage_color, datetime.now().isoformat()),
-                )
-                logger.warning(
-                    f"Alerta crítica | triaje_id: {triaje_id} | color: {triage_color} | paciente: {current_user['email']}"
-                )
-
-        if triage_color in ("Naranja", "Rojo"):
-            try:
-                email_service.send_critical_triage_alert(
-                    paciente_nombre=paciente_nombre,
-                    paciente_email=current_user["email"],
-                    paciente_telefono=paciente_telefono,
-                    ciudad=ciudad,
-                    triage_color=triage_color,
-                )
-            except Exception as email_err:
-                logger.error(f"No se pudo enviar email de alerta crítica: {email_err}")
-
-        logger.info(f"Registro sincronizado | sesión: {request.session_id} | usuario: {current_user['email']}")
-        return {"status": "ok", "message": "Registro guardado correctamente."}
-
+        return sync_forward(
+            request.session_id,
+            current_user["email"],
+            request.patient_data,
+            request.triage_result,
+        )
     except Exception as e:
         logger.error(f"Error en sync: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Error al sincronizar el registro.")
@@ -198,7 +107,6 @@ def close_session(
     session_id:   str,
     current_user: dict = Depends(get_current_user),
 ):
-    """Cierra la sesión y libera memoria."""
     session = gemma_service.sessions.get(session_id)
 
     if not session:
