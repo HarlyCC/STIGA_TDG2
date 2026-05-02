@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 
 export default function JitsiMeeting({ roomId, displayName, onClose, pacienteNombre, pacienteCedula, nivelLabel, nivelColor, isDoctor }) {
   const containerRef    = useRef(null)
@@ -148,8 +149,8 @@ export default function JitsiMeeting({ roomId, displayName, onClose, pacienteNom
 
   const dotColor = nivelColor || '#22c55e'
 
-  return (
-    <div style={{ position:'fixed', inset:0, zIndex:500, background:'#0f2318', display:'flex', flexDirection:'column', fontFamily:"'Segoe UI',-apple-system,sans-serif" }}>
+  return createPortal(
+    <div style={{ position:'fixed', inset:0, zIndex:999999, background:'#0f2318', display:'flex', flexDirection:'column', fontFamily:"'Segoe UI',-apple-system,sans-serif" }}>
       <style>{`
         @keyframes pulseConnected { 0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,0.5)}50%{box-shadow:0 0 0 5px rgba(34,197,94,0)} }
         @keyframes confirmIn { from{opacity:0;transform:scale(0.92)}to{opacity:1;transform:scale(1)} }
@@ -489,6 +490,7 @@ export default function JitsiMeeting({ roomId, displayName, onClose, pacienteNom
           </div>
         </div>
       )}
-    </div>
+    </div>,
+    document.body
   )
 }
