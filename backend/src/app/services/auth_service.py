@@ -50,6 +50,8 @@ def register_user(data: dict) -> dict:
             "SELECT id, is_verified FROM users WHERE email = ?", (data["email"],)
         ).fetchone()
 
+        hashed_code = hash_password(code)
+
         if existing:
             if existing["is_verified"]:
                 raise HTTPException(
@@ -67,7 +69,7 @@ def register_user(data: dict) -> dict:
                     data["nombre"], hashed_pw,
                     data["cedula"], data["telefono"], data["direccion"],
                     data["eps"], data["ciudad"], data["fecha_nacimiento"], data["gender"],
-                    code, expires_at, data["email"],
+                    hashed_code, expires_at, data["email"],
                 ),
             )
         else:
@@ -80,7 +82,7 @@ def register_user(data: dict) -> dict:
                    VALUES (?, ?, ?, 'paciente', 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     data["nombre"], data["email"], hashed_pw,
-                    code, expires_at,
+                    hashed_code, expires_at,
                     data["cedula"], data["telefono"], data["direccion"],
                     data["eps"], data["ciudad"], data["fecha_nacimiento"], data["gender"],
                     now,
@@ -109,7 +111,7 @@ def verify_user(email: str, code: str) -> dict:
         if user["is_verified"]:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                 detail="La cuenta ya está verificada.")
-        if user["verification_code"] != code:
+        if not verify_password(code, user["verification_code"] or ""):
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                 detail="Código incorrecto.")
 
@@ -182,7 +184,7 @@ def resend_verification_code(email: str) -> dict:
 
         conn.execute(
             "UPDATE users SET verification_code = ?, verification_expires = ? WHERE email = ?",
-            (code, expires_at, email),
+            (hash_password(code), expires_at, email),
         )
 
     try:
@@ -212,7 +214,7 @@ def forgot_password(email: str) -> dict:
 
         conn.execute(
             "UPDATE users SET reset_code = ?, reset_code_expires = ? WHERE email = ?",
-            (code, expires_at, email),
+            (hash_password(code), expires_at, email),
         )
 
     try:
@@ -237,7 +239,7 @@ def reset_password(email: str, code: str, new_password: str) -> dict:
             "SELECT reset_code, reset_code_expires FROM users WHERE email = ?", (email,)
         ).fetchone()
 
-        if not user or user["reset_code"] != code:
+        if not user or not user["reset_code"] or not verify_password(code, user["reset_code"]):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Código incorrecto o expirado.",

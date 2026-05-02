@@ -26,6 +26,7 @@ function mapRecord(r) {
   return {
     id:          r.id ?? r.session_id,
     citaId:      r.cita_id ?? null,
+    roomToken:   r.room_token ?? null,
     nombre:      r.nombre || 'Sin nombre',
     cedula:      r.cedula || '—',
     telefono:    r.telefono || '—',
@@ -625,7 +626,7 @@ export default function DoctorDashboard() {
       {/* ── Jitsi Meeting ── */}
       {showMeeting && (
         <JitsiMeeting
-          roomId={`stiga-cita-${activePaciente?.citaId}`}
+          roomId={`stiga-${activePaciente?.roomToken}`}
           displayName={user?.name}
           pacienteNombre={activePaciente?.nombre}
           pacienteCedula={activePaciente?.cedula !== '—' ? activePaciente?.cedula : ''}

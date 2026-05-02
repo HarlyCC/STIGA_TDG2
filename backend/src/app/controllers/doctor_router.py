@@ -1,4 +1,5 @@
 import logging
+import uuid
 from datetime import date as date_type, datetime, timedelta, timezone
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -217,13 +218,14 @@ class AppointmentRequest(BaseModel):
 @router.post("/mis-citas", status_code=201)
 def create_appointment(body: AppointmentRequest, current_user: dict = Depends(get_current_user)):
     """Registra una solicitud de teleconsulta del paciente autenticado."""
-    now = datetime.now(timezone.utc).isoformat()
+    now        = datetime.now(timezone.utc).isoformat()
+    room_token = uuid.uuid4().hex
     with get_conn() as conn:
         cur = conn.execute(
             """INSERT INTO citas
-               (paciente_email, triaje_id, fecha_solicitada, hora_solicitada, status, creado_en)
-               VALUES (?, ?, ?, ?, 'pendiente', ?)""",
-            (current_user["email"], body.triaje_id, body.fecha_solicitada, body.hora_solicitada, now),
+               (paciente_email, triaje_id, fecha_solicitada, hora_solicitada, status, creado_en, room_token)
+               VALUES (?, ?, ?, ?, 'pendiente', ?, ?)""",
+            (current_user["email"], body.triaje_id, body.fecha_solicitada, body.hora_solicitada, now, room_token),
         )
         cita_id = cur.lastrowid
     logger.info(f"Cita creada | {current_user['email']} | id: {cita_id}")

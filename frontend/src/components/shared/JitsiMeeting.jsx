@@ -2,9 +2,11 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 
 export default function JitsiMeeting({ roomId, displayName, onClose, pacienteNombre, pacienteCedula, nivelLabel, nivelColor, isDoctor }) {
-  const containerRef    = useRef(null)
-  const apiRef          = useRef(null)
-  const hospitalIframe  = useRef(null)
+  const containerRef      = useRef(null)
+  const apiRef            = useRef(null)
+  const hospitalIframe    = useRef(null)
+  const iframeIntervalRef = useRef(null)
+  const iframeTimeoutRef  = useRef(null)
   const [elapsed, setElapsed]         = useState(0)
   const [showConfirm, setShowConfirm] = useState(false)
 
@@ -65,7 +67,11 @@ export default function JitsiMeeting({ roomId, displayName, onClose, pacienteNom
       })
     }
     loadJitsi()
-    return () => { apiRef.current?.dispose() }
+    return () => {
+      apiRef.current?.dispose()
+      if (iframeIntervalRef.current) clearInterval(iframeIntervalRef.current)
+      if (iframeTimeoutRef.current)  clearTimeout(iframeTimeoutRef.current)
+    }
   }, [roomId, displayName])
 
   // postMessage desde el hospital
@@ -103,8 +109,10 @@ export default function JitsiMeeting({ roomId, displayName, onClose, pacienteNom
     }
     if (iframeReady) { send() }
     else {
-      const t = setInterval(() => { if (iframeReady) { clearInterval(t); send() } }, 100)
-      setTimeout(() => clearInterval(t), 5000)
+      iframeIntervalRef.current = setInterval(() => {
+        if (iframeReady) { clearInterval(iframeIntervalRef.current); send() }
+      }, 100)
+      iframeTimeoutRef.current = setTimeout(() => clearInterval(iframeIntervalRef.current), 5000)
       hospitalIframe.current?.contentWindow?.postMessage({ type: 'HSJD_BUSCAR', cedula: cedulaInput.trim() }, window.location.origin)
     }
   }
