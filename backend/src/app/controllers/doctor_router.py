@@ -54,7 +54,7 @@ def list_patients(
             color_clause = " WHERE t.triage_color = ?"
             params.append(color)
         inner = f"""
-            SELECT t.*, MAX(c.id) AS cita_id
+            SELECT t.*, MAX(c.id) AS cita_id, c.room_token
             FROM triage_records t
             INNER JOIN citas c
                 ON c.paciente_email = t.user_email
