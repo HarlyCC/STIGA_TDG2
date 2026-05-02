@@ -276,12 +276,13 @@ export default function Login() {
       <div style={{
         flex: 1, background: '#ffffff',
         height: '100vh', overflowY: 'auto',
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
         opacity: mounted ? 1 : 0,
         transform: mounted ? 'none' : 'translateX(20px)',
         transition: 'opacity 0.6s ease 0.1s, transform 0.6s ease 0.1s'
       }}>
-        {/* Bloque login */}
-        <div style={{ width: '100%', maxWidth: '480px', margin: '0 auto', padding: 'clamp(1.5rem, 5vh, 3.5rem) 2rem' }}>
+        {/* Bloque login — margin:auto lo centra verticalmente cuando hay espacio */}
+        <div style={{ width: '100%', maxWidth: '480px', margin: 'auto', padding: 'clamp(1rem, 4vh, 3rem) 2rem 1.5rem' }}>
         <div style={{ maxWidth: '380px', width: '100%' }}>
 
           {/* Encabezado */}
@@ -459,7 +460,7 @@ export default function Login() {
         {/* Formulario de solicitud médica — expande debajo */}
         <div style={{
           width: '100%', maxWidth: '480px',
-          margin: '0 auto',
+          flexShrink: 0,
           overflow: 'hidden',
           maxHeight: showMedicoForm ? '1400px' : '0',
           transition: 'max-height 0.55s cubic-bezier(0.4,0,0.2,1)',
