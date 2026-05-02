@@ -130,6 +130,35 @@ def send_critical_triage_alert(paciente_nombre: str, paciente_email: str,
     _send(EMAIL_USER, f"STIGA — ⚠ Triaje {triage_color}: {paciente_nombre or paciente_email}", body)
 
 
+def send_doctor_credentials_email(to_email: str, nombre: str, password: str):
+    """Sends login credentials to a newly approved doctor."""
+    body = f"""
+    <html><body style="font-family:Arial,sans-serif;color:#1a2332;">
+      <div style="{_CARD_STYLE}">
+        <div style="background:linear-gradient(135deg,#0f2318,#1a3a2e);border-radius:8px 8px 0 0;padding:20px 24px;margin:-32px -32px 24px;">
+          <h2 style="color:white;margin:0;font-size:1.15rem;">¡Bienvenido/a al equipo médico, {nombre}!</h2>
+          <p style="color:rgba(255,255,255,0.5);margin:4px 0 0;font-size:0.82rem;">STIGA — Sistema de Triaje Inteligente</p>
+        </div>
+        <p style="margin:0 0 1rem;color:#374151;font-size:0.9rem;">
+          Tu solicitud de acceso médico ha sido <strong style="color:#15803d;">aprobada</strong>.
+          A continuación encontrarás tus credenciales de acceso:
+        </p>
+        <table style="width:100%;border-collapse:collapse;font-size:0.9rem;margin-bottom:1.25rem;">
+          <tr><td style="padding:9px 0;color:#6b7280;width:40%;">Correo electrónico</td><td style="padding:9px 0;font-weight:700;color:#06111f;">{to_email}</td></tr>
+          <tr style="background:#f9fafb;"><td style="padding:9px 6px;color:#6b7280;">Contraseña temporal</td><td style="padding:9px 6px;font-weight:700;color:#06111f;letter-spacing:2px;">{password}</td></tr>
+        </table>
+        <div style="padding:14px 16px;background:#fef9c3;border:1px solid #fde68a;border-radius:8px;margin-bottom:1rem;">
+          <p style="margin:0;color:#92400e;font-size:0.85rem;font-weight:600;">
+            Por seguridad, cambia tu contraseña desde tu perfil después del primer inicio de sesión.
+          </p>
+        </div>
+        <p style="margin:0;color:#9ca3af;font-size:0.75rem;">Universidad Católica Luis Amigó · STIGA 2026</p>
+      </div>
+    </body></html>
+    """
+    _send(to_email, "STIGA — Acceso médico aprobado — Credenciales de acceso", body)
+
+
 def send_reset_email(to_email: str, nombre: str, code: str, expire_minutes: int):
     """Sends the password recovery code."""
     body = f"""

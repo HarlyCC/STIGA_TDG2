@@ -20,6 +20,12 @@ export default function AdminDashboard() {
   const [loadingUsuarios, setLoadingUsuarios] = useState(false)
   const [loadingTriajes, setLoadingTriajes]   = useState(false)
 
+  /* ── Solicitudes médico ── */
+  const [solicitudes, setSolicitudes]             = useState([])
+  const [loadingSolicitudes, setLoadingSolicitudes] = useState(false)
+  const [expandedSolicitud, setExpandedSolicitud] = useState(null)
+  const [procesandoId, setProcesandoId]           = useState(null)
+
   /* ── Modales ── */
   const [showNuevoUsuario, setShowNuevoUsuario] = useState(false)
   const [nuevoForm, setNuevoForm] = useState({ nombre: '', role: 'medico', ciudad: '', email: '', password: '' })
@@ -147,12 +153,13 @@ export default function AdminDashboard() {
 
   /* ── Nav unificado ── */
   const navItems = [
-    { key: 'metricas', label: 'Métricas',          icon: 'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z' },
-    { key: 'alertas',  label: 'Alertas',            icon: 'M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01' },
-    { key: 'usuarios', label: 'Usuarios',           icon: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75' },
-    { key: 'triajes',  label: 'Historial triajes',  icon: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M16 13H8M16 17H8M10 9H8' },
-    { key: 'mapa',     label: 'Mapa de pacientes',  icon: 'M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0zM12 10a1 1 0 1 1-2 0 1 1 0 0 1 2 0z' },
-    { key: 'horarios', label: 'Horarios médicos',   icon: 'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01' },
+    { key: 'metricas',    label: 'Métricas',            icon: 'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z' },
+    { key: 'alertas',     label: 'Alertas',             icon: 'M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01' },
+    { key: 'usuarios',    label: 'Usuarios',            icon: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75' },
+    { key: 'solicitudes', label: 'Solicitudes médico',  icon: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8M19 8v6M22 11h-6' },
+    { key: 'triajes',     label: 'Historial triajes',   icon: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M16 13H8M16 17H8M10 9H8' },
+    { key: 'mapa',        label: 'Mapa de pacientes',   icon: 'M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0zM12 10a1 1 0 1 1-2 0 1 1 0 0 1 2 0z' },
+    { key: 'horarios',    label: 'Horarios médicos',    icon: 'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01' },
   ]
 
   /* ── Helpers alertas ── */
@@ -200,7 +207,7 @@ export default function AdminDashboard() {
     try {
       await client.put(`/admin/usuarios/${encodeURIComponent(editUsuario.correo)}/rol`, { role: editRol })
       const { data } = await client.get('/admin/usuarios')
-      setUsuarios(data.map(mapUsuario))
+      setUsuarios((data.items ?? data).map(mapUsuario))
       setEditUsuario(null)
     } catch (err) {
       setEditError(err.response?.data?.detail || 'Error al guardar.')
@@ -214,7 +221,7 @@ export default function AdminDashboard() {
     try {
       await client.delete(`/admin/usuarios/${encodeURIComponent(email)}`)
       const { data } = await client.get('/admin/usuarios')
-      setUsuarios(data.map(mapUsuario))
+      setUsuarios((data.items ?? data).map(mapUsuario))
     } catch {}
   }
 
@@ -233,7 +240,7 @@ export default function AdminDashboard() {
       setNuevoForm({ nombre: '', role: 'medico', ciudad: '', email: '', password: '' })
       setShowNuevoUsuario(false)
       const { data } = await client.get('/admin/usuarios')
-      setUsuarios(data.map(mapUsuario))
+      setUsuarios((data.items ?? data).map(mapUsuario))
       const { data: est } = await client.get('/admin/estadisticas')
       setEstadisticas(est)
     } catch (err) {
@@ -357,6 +364,29 @@ export default function AdminDashboard() {
       }
     }
   }, [activeTab, estadisticas?.triajes?.por_ciudad?.length ?? 0])
+
+  /* ── Solicitudes: carga al abrir la pestaña ── */
+  useEffect(() => {
+    if (activeTab !== 'solicitudes') return
+    setLoadingSolicitudes(true)
+    client.get('/admin/solicitudes')
+      .then(({ data }) => setSolicitudes(data))
+      .catch((e) => { console.error('Error cargando solicitudes:', e) })
+      .finally(() => setLoadingSolicitudes(false))
+  }, [activeTab])
+
+  const handleAccionSolicitud = async (id, accion) => {
+    setProcesandoId(id)
+    try {
+      await client.put(`/admin/solicitudes/${id}/accion`, { accion })
+      setSolicitudes(prev => prev.map(s => s.id === id ? { ...s, estado: accion === 'aceptar' ? 'aceptada' : 'rechazada' } : s))
+      setExpandedSolicitud(null)
+    } catch (err) {
+      alert(err?.response?.data?.detail || 'Error al procesar la solicitud.')
+    } finally {
+      setProcesandoId(null)
+    }
+  }
 
   /* ── Horarios: carga médicos + todos sus horarios al abrir la pestaña ── */
   useEffect(() => {
@@ -884,6 +914,13 @@ export default function AdminDashboard() {
                   background: '#b91c1c', color: 'white', fontSize: '0.68rem', fontWeight: '700',
                   borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 5px'
                 }}>{alertasPendientes.length}</span>
+              )}
+              {item.key === 'solicitudes' && solicitudes.filter(s => s.estado === 'pendiente').length > 0 && (
+                <span style={{
+                  marginLeft: 'auto', minWidth: '20px', height: '20px',
+                  background: '#1a5f8a', color: 'white', fontSize: '0.68rem', fontWeight: '700',
+                  borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 5px'
+                }}>{solicitudes.filter(s => s.estado === 'pendiente').length}</span>
               )}
             </div>
           ))}
@@ -1495,6 +1532,162 @@ export default function AdminDashboard() {
                 </div>
               )}
             </div>
+          </div>
+        )}
+
+        {/* ── TAB Solicitudes médico ── */}
+        {activeTab === 'solicitudes' && (
+          <div style={{ animation: 'tabSlide 0.35s ease' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <div>
+                <h2 style={{ margin: '0 0 0.2rem', fontSize: '1.1rem', fontWeight: '700', color: '#06111f' }}>
+                  Solicitudes de acceso médico
+                </h2>
+                <p style={{ margin: 0, color: '#6b7280', fontSize: '0.83rem' }}>
+                  {solicitudes.filter(s => s.estado === 'pendiente').length} pendiente{solicitudes.filter(s => s.estado === 'pendiente').length !== 1 ? 's' : ''}
+                </p>
+              </div>
+              <button
+                className="btn-outline-admin"
+                onClick={() => {
+                  setLoadingSolicitudes(true)
+                  client.get('/admin/solicitudes')
+                    .then(({ data }) => setSolicitudes(data))
+                    .catch(() => {})
+                    .finally(() => setLoadingSolicitudes(false))
+                }}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <polyline points="23 4 23 10 17 10"/>
+                  <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                </svg>
+                Actualizar
+              </button>
+            </div>
+
+            {loadingSolicitudes ? (
+              <div style={{ padding: '3rem', textAlign: 'center', color: '#9ca3af', fontSize: '0.88rem' }}>
+                Cargando solicitudes…
+              </div>
+            ) : solicitudes.length === 0 ? (
+              <div style={{
+                background: 'white', border: '1px solid #e5e7eb', borderRadius: '16px',
+                padding: '3rem', textAlign: 'center'
+              }}>
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" strokeWidth="1.5" style={{ marginBottom: '0.75rem' }}>
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8M19 8v6M22 11h-6"/>
+                </svg>
+                <p style={{ margin: 0, color: '#9ca3af', fontSize: '0.88rem' }}>No hay solicitudes registradas.</p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {solicitudes.map(sol => {
+                  const isPendiente = sol.estado === 'pendiente'
+                  const isExpanded  = expandedSolicitud === sol.id
+                  const estadoCfg   = {
+                    pendiente: { color: '#b45309', bg: '#fffbeb', border: '#fde68a', label: 'Pendiente' },
+                    aceptada:  { color: '#15803d', bg: '#f0fdf4', border: '#bbf7d0', label: 'Aceptada'  },
+                    rechazada: { color: '#b91c1c', bg: '#fef2f2', border: '#fecaca', label: 'Rechazada' },
+                  }[sol.estado] || { color: '#6b7280', bg: '#f9fafb', border: '#e5e7eb', label: sol.estado }
+
+                  return (
+                    <div key={sol.id} style={{
+                      background: 'white', border: '1px solid #e5e7eb',
+                      borderRadius: '14px', overflow: 'hidden',
+                      transition: 'box-shadow 0.2s ease',
+                    }}>
+                      {/* Cabecera de la card */}
+                      <div
+                        style={{
+                          padding: '1rem 1.4rem', display: 'flex', alignItems: 'center',
+                          gap: '1rem', cursor: 'pointer',
+                        }}
+                        onClick={() => setExpandedSolicitud(isExpanded ? null : sol.id)}
+                      >
+                        <div style={{
+                          width: '38px', height: '38px', borderRadius: '50%', flexShrink: 0,
+                          background: 'linear-gradient(135deg, #1a3a2e, #2d6a4f)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}>
+                          <span style={{ color: 'white', fontWeight: '700', fontSize: '0.95rem' }}>
+                            {sol.nombre?.charAt(0)?.toUpperCase()}
+                          </span>
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ margin: '0 0 0.15rem', fontWeight: '600', color: '#06111f', fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {sol.nombre}
+                          </p>
+                          <p style={{ margin: 0, color: '#6b7280', fontSize: '0.79rem' }}>
+                            {sol.centro_salud}{sol.especialidad ? ` · ${sol.especialidad}` : ''}
+                          </p>
+                        </div>
+                        <span style={{
+                          padding: '0.25rem 0.75rem', borderRadius: '20px', fontSize: '0.75rem', fontWeight: '700',
+                          color: estadoCfg.color, background: estadoCfg.bg, border: `1px solid ${estadoCfg.border}`,
+                          flexShrink: 0,
+                        }}>
+                          {estadoCfg.label}
+                        </span>
+                        <svg
+                          width="14" height="14" viewBox="0 0 24 24" fill="none"
+                          stroke="#9ca3af" strokeWidth="2.5"
+                          style={{ flexShrink: 0, transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }}
+                        >
+                          <polyline points="6 9 12 15 18 9"/>
+                        </svg>
+                      </div>
+
+                      {/* Detalle expandible */}
+                      {isExpanded && (
+                        <div style={{ borderTop: '1px solid #f3f4f6', padding: '1.25rem 1.4rem' }}>
+                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', marginBottom: '1rem' }}>
+                            {[
+                              ['Tipo de documento', sol.tipo_documento],
+                              ['Número de documento', sol.numero_documento],
+                              ['Centro de salud / IPS', sol.centro_salud],
+                              ['Especialidad', sol.especialidad || '—'],
+                              ['Teléfono', sol.telefono],
+                              ['Correo electrónico', sol.email],
+                              ['Fecha de solicitud', sol.created_at ? new Date(sol.created_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'],
+                            ].map(([label, value]) => (
+                              <tr key={label} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                                <td style={{ padding: '0.5rem 0', color: '#6b7280', width: '45%', verticalAlign: 'top' }}>{label}</td>
+                                <td style={{ padding: '0.5rem 0', fontWeight: '600', color: '#06111f' }}>{value}</td>
+                              </tr>
+                            ))}
+                          </table>
+
+                          {isPendiente && (
+                            <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'flex-end' }}>
+                              <button
+                                className="btn-danger"
+                                disabled={procesandoId === sol.id}
+                                onClick={() => handleAccionSolicitud(sol.id, 'rechazar')}
+                              >
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                                </svg>
+                                Rechazar
+                              </button>
+                              <button
+                                className="btn-success"
+                                disabled={procesandoId === sol.id}
+                                onClick={() => handleAccionSolicitud(sol.id, 'aceptar')}
+                              >
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                  <polyline points="20 6 9 17 4 12"/>
+                                </svg>
+                                {procesandoId === sol.id ? 'Procesando…' : 'Aceptar y crear cuenta'}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
           </div>
         )}
       </main>

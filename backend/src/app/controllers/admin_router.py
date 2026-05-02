@@ -1,10 +1,13 @@
 import logging
+import secrets
+import string
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, EmailStr, field_validator
 from app.data.database import get_conn
 from datetime import date as date_type, datetime, timedelta, timezone
 from app.services.auth_service import CODE_EXPIRE_MINUTES
+from app.services.email_service import send_doctor_credentials_email
 from app.core.security import (
     get_current_user,
     hash_password,
@@ -405,3 +408,104 @@ def ignorar_alerta(alerta_id: int, admin: dict = Depends(require_admin)):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Alerta no encontrada.")
     logger.info(f"Alerta {alerta_id} eliminada (ignorada) | admin: {admin['email']}")
     return {"ok": True}
+
+
+# ── Solicitudes de acceso médico ──────────────────────────────────────────────
+
+class SolicitudAccionRequest(BaseModel):
+    accion: str  # 'aceptar' | 'rechazar'
+
+
+@router.get("/solicitudes")
+def list_solicitudes(
+    estado: Optional[str] = None,
+    admin:  dict = Depends(require_admin),
+):
+    """Lista las solicitudes de acceso médico. ?estado=pendiente|aceptada|rechazada"""
+    conditions, params = [], []
+    if estado:
+        conditions.append("estado = ?")
+        params.append(estado)
+    where = f" WHERE {' AND '.join(conditions)}" if conditions else ""
+    with get_conn() as conn:
+        rows = conn.execute(
+            f"SELECT * FROM solicitudes_medico{where} ORDER BY created_at DESC",
+            params,
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+@router.put("/solicitudes/{solicitud_id}/accion")
+def accion_solicitud(
+    solicitud_id: int,
+    body:  SolicitudAccionRequest,
+    admin: dict = Depends(require_admin),
+):
+    """
+    Acepta o rechaza una solicitud de acceso médico.
+    Al aceptar: crea la cuenta del médico y envía credenciales por correo.
+    """
+    if body.accion not in ("aceptar", "rechazar"):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="accion debe ser 'aceptar' o 'rechazar'.",
+        )
+
+    with get_conn() as conn:
+        sol = conn.execute(
+            "SELECT * FROM solicitudes_medico WHERE id = ?", (solicitud_id,)
+        ).fetchone()
+
+    if not sol:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail="Solicitud no encontrada.")
+
+    sol = dict(sol)
+    if sol["estado"] != "pendiente":
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT,
+                            detail="Esta solicitud ya fue procesada.")
+
+    if body.accion == "rechazar":
+        with get_conn() as conn:
+            conn.execute(
+                "UPDATE solicitudes_medico SET estado = 'rechazada' WHERE id = ?",
+                (solicitud_id,),
+            )
+        logger.info(f"Solicitud {solicitud_id} rechazada | admin: {admin['email']}")
+        return {"ok": True, "accion": "rechazada"}
+
+    # ── Aceptar: crear cuenta de médico ───────────────────────────────────────
+    alphabet = string.ascii_letters + string.digits
+    temp_password = "".join(secrets.choice(alphabet) for _ in range(12))
+    hashed_pw = hash_password(temp_password)
+    now = datetime.now(timezone.utc).isoformat()
+
+    with get_conn() as conn:
+        existing = conn.execute(
+            "SELECT id FROM users WHERE email = ?", (sol["email"],)
+        ).fetchone()
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Ya existe un usuario con este correo.",
+            )
+        conn.execute(
+            """INSERT INTO users
+               (nombre, email, hashed_password, role, is_verified,
+                cedula, telefono, created_at)
+               VALUES (?, ?, ?, 'medico', 1, ?, ?, ?)""",
+            (sol["nombre"], sol["email"], hashed_pw,
+             sol["numero_documento"], sol["telefono"], now),
+        )
+        conn.execute(
+            "UPDATE solicitudes_medico SET estado = 'aceptada' WHERE id = ?",
+            (solicitud_id,),
+        )
+
+    try:
+        send_doctor_credentials_email(sol["email"], sol["nombre"], temp_password)
+    except Exception as e:
+        logger.error(f"Credenciales creadas pero no se pudo enviar email a {sol['email']}: {e}")
+
+    logger.info(f"Solicitud {solicitud_id} aceptada | médico creado: {sol['email']} | admin: {admin['email']}")
+    return {"ok": True, "accion": "aceptada", "medico_email": sol["email"]}
