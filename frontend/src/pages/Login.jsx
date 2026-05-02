@@ -89,9 +89,8 @@ export default function Login() {
 
   return (
     <div style={{
-      height: '100vh', display: 'flex',
+      minHeight: '100vh', display: 'flex',
       fontFamily: "'Segoe UI', -apple-system, sans-serif",
-      overflow: 'hidden'
     }}>
 
       <style>{`
@@ -172,7 +171,7 @@ export default function Login() {
         background: 'linear-gradient(175deg, #0f2318 0%, #1a3a2e 50%, #0e2a40 100%)',
         display: 'flex', flexDirection: 'column',
         justifyContent: 'space-between', padding: '3rem',
-        position: 'relative', overflow: 'hidden',
+        position: 'sticky', top: 0, height: '100vh', overflow: 'hidden', flexShrink: 0,
         opacity: mounted ? 1 : 0,
         transform: mounted ? 'none' : 'translateX(-20px)',
         transition: 'opacity 0.6s ease, transform 0.6s ease'
@@ -278,7 +277,7 @@ export default function Login() {
         flex: 1, background: '#ffffff',
         display: 'flex', flexDirection: 'column',
         alignItems: 'center',
-        height: '100vh', overflowY: 'auto',
+        minHeight: '100vh',
         opacity: mounted ? 1 : 0,
         transform: mounted ? 'none' : 'translateX(20px)',
         transition: 'opacity 0.6s ease 0.1s, transform 0.6s ease 0.1s'
