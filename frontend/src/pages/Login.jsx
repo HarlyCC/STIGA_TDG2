@@ -283,8 +283,8 @@ export default function Login() {
         transform: mounted ? 'none' : 'translateX(20px)',
         transition: 'opacity 0.6s ease 0.1s, transform 0.6s ease 0.1s'
       }}>
-        {/* Bloque login — centrado verticalmente */}
-        <div style={{ flex: showMedicoForm ? '0 0 auto' : '1', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', padding: '3rem 4rem' }}>
+        {/* Bloque login */}
+        <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', padding: 'clamp(1.5rem, 5vh, 3.5rem) 4rem' }}>
         <div style={{ maxWidth: '380px', width: '100%' }}>
 
           {/* Encabezado */}
