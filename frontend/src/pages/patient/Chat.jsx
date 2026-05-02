@@ -16,6 +16,7 @@ export default function PatientChat() {
   const [apiError, setApiError] = useState('')
   const bottomRef = useRef(null)
   const sessionIdRef = useRef(null)
+  const startedRef = useRef(false)
 
   const levelConfig = {
     Verde:    { color: '#15803d', bg: '#f0fdf4', border: '#bbf7d0', dot: '#22c55e' },
@@ -26,6 +27,8 @@ export default function PatientChat() {
 
   useEffect(() => {
     if (!user?.email) { navigate('/login'); return }
+    if (startedRef.current) return
+    startedRef.current = true
 
     sessionIdRef.current = `${user.email}_${Date.now()}`
     const sessionId = sessionIdRef.current
