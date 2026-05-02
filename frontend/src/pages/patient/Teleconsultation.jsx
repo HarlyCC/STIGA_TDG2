@@ -640,7 +640,7 @@ export default function PatientTeleconsultation() {
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
               <button
                 className="btn-primary"
-                disabled={!selectedTriaje || selectedTriaje.nivel.label === 'Naranja' || selectedTriaje.nivel.label === 'Rojo'}
+                disabled={!selectedTriaje || selectedTriaje.nivel.label === 'Naranja' || selectedTriaje.nivel.label === 'Rojo' || triajsConCitaActiva.has(selectedTriaje?.id)}
                 onClick={() => setStep(2)}
               >
                 Continuar →
