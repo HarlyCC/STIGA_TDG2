@@ -1038,7 +1038,7 @@ export default function PatientTeleconsultation() {
 
       {activeMeeting && (
         <JitsiMeeting
-          roomId={activeMeeting.room_token ? `stiga-${activeMeeting.room_token}` : `stiga-cita-${activeMeeting.id}`}
+          roomId={`stiga-cita-${activeMeeting.id}`}
           displayName={user?.name ?? 'Paciente'}
           onClose={() => setActiveMeeting(null)}
         />

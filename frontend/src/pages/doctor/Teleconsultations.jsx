@@ -648,7 +648,7 @@ export default function DoctorTeleconsultations() {
 
       {activeMeeting && (
         <JitsiMeeting
-          roomId={activeMeeting.room_token ? `stiga-${activeMeeting.room_token}` : `stiga-cita-${activeMeeting.cita_id}`}
+          roomId={`stiga-cita-${activeMeeting.id}`}
           displayName={user?.name ?? 'Médico'}
           pacienteNombre={activeMeeting.pacienteNombre}
           pacienteCedula={activeMeeting.pacienteCedula}
