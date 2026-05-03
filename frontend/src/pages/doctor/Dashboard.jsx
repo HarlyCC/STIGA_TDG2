@@ -631,7 +631,7 @@ export default function DoctorDashboard() {
       {/* ── Jitsi Meeting ── */}
       {showMeeting && (
         <JitsiMeeting
-          roomId={activePaciente?.roomToken ? `stiga-${activePaciente.roomToken}` : `stiga-cita-${activePaciente?.citaId}`}
+          roomId={`stiga-cita-${activePaciente?.citaId}`}
           displayName={user?.name}
           pacienteNombre={activePaciente?.nombre}
           pacienteCedula={activePaciente?.cedula !== '—' ? activePaciente?.cedula : ''}
