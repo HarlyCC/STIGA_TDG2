@@ -522,10 +522,10 @@ export default function Login() {
                         required
                         style={{ width: '100%', padding: '0.7rem 0.85rem', border: '1.5px solid #e2e8ee', borderRadius: '10px', fontSize: '0.88rem', color: '#1a2332', background: '#f8fafb', outline: 'none', fontFamily: 'inherit', cursor: 'pointer' }}
                       >
-                        <option value="CC">Cédula de ciudadanía</option>
-                        <option value="CE">Cédula de extranjería</option>
-                        <option value="PA">Pasaporte</option>
-                        <option value="TI">Tarjeta de identidad</option>
+                        <option value="CC">CC</option>
+                        <option value="CE">CE</option>
+                        <option value="PP">PP</option>
+                        <option value="TI">TI</option>
                       </select>
                     </div>
                     <div>
