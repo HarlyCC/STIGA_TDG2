@@ -133,6 +133,7 @@ ${t.confianza!=null?`<p class="meta">Confianza del modelo: ${Math.round(t.confia
 
   const graficaNiveles = triajes.slice(-6).map(t => ({
     mes:   (() => { const p = t.fecha.split(' '); return p[0] + (p[2] ? ' ' + p[2].slice(0, 3) : '') })(),
+    hora:  t.hora,
     nivel: ['Verde', 'Amarillo', 'Naranja', 'Rojo'].indexOf(t.nivel.label),
     label: t.nivel.label,
   }))
@@ -462,11 +463,11 @@ ${t.confianza!=null?`<p class="meta">Confianza del modelo: ${Math.round(t.confia
           </div>
 
           {/* Gráfica SVG */}
-          <div style={{ position: 'relative', height: '140px' }}>
-            <svg width="100%" height="140" viewBox="0 0 600 140" preserveAspectRatio="none">
+          <div style={{ position: 'relative', height: '160px' }}>
+            <svg width="100%" height="160" viewBox="0 0 600 160" preserveAspectRatio="none">
               {/* Líneas de referencia */}
               {[0, 33, 66, 100].map(p => (
-                <line key={p} x1="0" y1={140 - p * 1.2} x2="600" y2={140 - p * 1.2}
+                <line key={p} x1="0" y1={120 - p * 1.1} x2="600" y2={120 - p * 1.1}
                   stroke="#f0f4f2" strokeWidth="1"/>
               ))}
 
@@ -481,11 +482,11 @@ ${t.confianza!=null?`<p class="meta">Confianza del modelo: ${Math.round(t.confia
               {graficaNiveles.length > 1 && (() => {
                 const pts = graficaNiveles.map((p, i) => ({
                   x: 60 + i * (480 / (graficaNiveles.length - 1)),
-                  y: 140 - nivelAltura[p.nivel] * 1.2
+                  y: 120 - nivelAltura[p.nivel] * 1.1
                 }))
-                const areaPath = `M${pts[0].x},130 ` +
+                const areaPath = `M${pts[0].x},115 ` +
                   pts.map(p => `L${p.x},${p.y}`).join(' ') +
-                  ` L${pts[pts.length-1].x},130 Z`
+                  ` L${pts[pts.length-1].x},115 Z`
                 const linePath = `M${pts[0].x},${pts[0].y} ` +
                   pts.slice(1).map(p => `L${p.x},${p.y}`).join(' ')
                 return (
@@ -499,9 +500,13 @@ ${t.confianza!=null?`<p class="meta">Confianza del modelo: ${Math.round(t.confia
                           stroke={nivelColor[graficaNiveles[i].label]} strokeWidth="2.5"/>
                         <circle cx={p.x} cy={p.y} r="3"
                           fill={nivelColor[graficaNiveles[i].label]}/>
-                        <text x={p.x} y={130} textAnchor="middle"
+                        <text x={p.x} y={132} textAnchor="middle"
                           fontSize="10" fill="#6b8070" fontWeight="500">
                           {graficaNiveles[i].mes}
+                        </text>
+                        <text x={p.x} y={145} textAnchor="middle"
+                          fontSize="9" fill="#9aaa9a">
+                          {graficaNiveles[i].hora}
                         </text>
                       </g>
                     ))}
