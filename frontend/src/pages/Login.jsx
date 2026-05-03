@@ -520,7 +520,7 @@ export default function Login() {
                         value={medicoForm.tipo_documento}
                         onChange={e => setMedicoForm(f => ({ ...f, tipo_documento: e.target.value }))}
                         required
-                        style={{ width: '100%', padding: '0.7rem 0.85rem', border: '1.5px solid #e2e8ee', borderRadius: '10px', fontSize: '0.88rem', color: '#1a2332', background: '#f8fafb', outline: 'none', fontFamily: 'inherit', cursor: 'pointer', textAlign: 'center', textAlignLast: 'center' }}
+                        style={{ width: '100%', padding: '0.7rem 0.85rem', border: '1.5px solid #e2e8ee', borderRadius: '10px', fontSize: '0.88rem', color: '#1a2332', background: '#f8fafb', outline: 'none', fontFamily: 'inherit', cursor: 'pointer', textAlign: 'center', appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none', backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231a2332' stroke-width='2'%3e%3cpolyline points='6 9 12 15 18 9'/%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.75rem center', backgroundSize: '1rem', paddingRight: '2rem' }}
                       >
                         <option value="CC">CC</option>
                         <option value="CE">CE</option>
