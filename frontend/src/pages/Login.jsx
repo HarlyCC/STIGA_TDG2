@@ -16,6 +16,7 @@ export default function Login() {
     tipo_documento: 'CC', numero_documento: '', nombre: '',
     centro_salud: '', especialidad: '', telefono: '', email: '',
   })
+  const [showDocDropdown, setShowDocDropdown] = useState(false)
   const [medicoSubmitting, setMedicoSubmitting] = useState(false)
   const [medicoSuccess, setMedicoSuccess] = useState(false)
   const [medicoError, setMedicoError] = useState('')
@@ -516,17 +517,33 @@ export default function Login() {
                       <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#3a4a3e', marginBottom: '0.35rem' }}>
                         Tipo de documento *
                       </label>
-                      <select
-                        value={medicoForm.tipo_documento}
-                        onChange={e => setMedicoForm(f => ({ ...f, tipo_documento: e.target.value }))}
-                        required
-                        style={{ width: '100%', padding: '0.7rem 0.85rem', border: '1.5px solid #e2e8ee', borderRadius: '10px', fontSize: '0.88rem', color: '#1a2332', background: '#f8fafb', outline: 'none', fontFamily: 'inherit', cursor: 'pointer', textAlign: 'center', appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none', backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231a2332' stroke-width='2'%3e%3cpolyline points='6 9 12 15 18 9'/%3e%3c/svg%3e")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.75rem center', backgroundSize: '1rem', paddingRight: '2rem' }}
-                      >
-                        <option value="CC">CC</option>
-                        <option value="CE">CE</option>
-                        <option value="PP">PP</option>
-                        <option value="TI">TI</option>
-                      </select>
+                      <div style={{ position: 'relative' }}>
+                        <button
+                          type="button"
+                          onClick={() => setShowDocDropdown(v => !v)}
+                          style={{ width: '100%', padding: '0.7rem 0.85rem', border: `1.5px solid ${showDocDropdown ? '#3d7a5a' : '#e2e8ee'}`, borderRadius: '10px', fontSize: '0.88rem', color: '#1a2332', background: '#f8fafb', fontFamily: 'inherit', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}
+                        >
+                          {medicoForm.tipo_documento}
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#1a2332" strokeWidth="2" style={{ transform: showDocDropdown ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}>
+                            <polyline points="6 9 12 15 18 9"/>
+                          </svg>
+                        </button>
+                        {showDocDropdown && (
+                          <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, width: '100%', background: 'white', border: '1.5px solid #e2e8ee', borderRadius: '10px', overflow: 'hidden', zIndex: 50, boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
+                            {['CC','CE','PP','TI'].map(opt => (
+                              <div
+                                key={opt}
+                                onClick={() => { setMedicoForm(f => ({ ...f, tipo_documento: opt })); setShowDocDropdown(false) }}
+                                style={{ padding: '0.65rem', textAlign: 'center', fontSize: '0.88rem', cursor: 'pointer', color: medicoForm.tipo_documento === opt ? '#3d7a5a' : '#1a2332', background: medicoForm.tipo_documento === opt ? '#f0fdf4' : 'white', fontWeight: medicoForm.tipo_documento === opt ? '600' : '400' }}
+                                onMouseEnter={e => { if (medicoForm.tipo_documento !== opt) e.currentTarget.style.background = '#f8fafb' }}
+                                onMouseLeave={e => { if (medicoForm.tipo_documento !== opt) e.currentTarget.style.background = 'white' }}
+                              >
+                                {opt}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
                     <div>
                       <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: '#3a4a3e', marginBottom: '0.35rem' }}>
