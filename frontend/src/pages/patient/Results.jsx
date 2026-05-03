@@ -132,7 +132,7 @@ ${t.confianza!=null?`<p class="meta">Confianza del modelo: ${Math.round(t.confia
   }
 
   const graficaNiveles = triajes.slice(-6).map(t => ({
-    mes:   t.fecha.split(' ').slice(0, 2).join(' '),
+    mes:   (() => { const p = t.fecha.split(' '); return p[0] + (p[2] ? ' ' + p[2].slice(0, 3) : '') })(),
     nivel: ['Verde', 'Amarillo', 'Naranja', 'Rojo'].indexOf(t.nivel.label),
     label: t.nivel.label,
   }))
