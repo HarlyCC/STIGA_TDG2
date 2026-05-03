@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import AccessibilityMenu from '../../components/shared/AccessibilityMenu'
-import { startChat, sendMessage, syncForward, closeSession } from '../../api/api'
+import { startChat, sendMessage, syncForward, closeSession, getTriageResult } from '../../api/api'
 
 export default function PatientChat() {
   const { user, logout } = useAuth()
@@ -67,13 +67,25 @@ export default function PatientChat() {
       setTyping(false)
       setMessages(prev => [...prev, { id: Date.now(), from: 'stiga', text: data.message }])
 
-      if (data.status === 'complete' && data.triage_result) {
-        const tr = data.triage_result
-        setResult(tr)
-        setSessionDone(true)
-        syncForward(sessionIdRef.current, data.patient_data, tr).catch(() => {
-          setApiError('No se pudo guardar el registro de triaje. Contacte al administrador.')
-        })
+      if (data.status === 'complete') {
+        if (data.triage_result) {
+          const tr = data.triage_result
+          setResult(tr)
+          setSessionDone(true)
+          syncForward(sessionIdRef.current, data.patient_data, tr).catch(() => {
+            setApiError('No se pudo guardar el registro de triaje. Contacte al administrador.')
+          })
+        } else {
+          getTriageResult(sessionIdRef.current)
+            .then(({ data: rd }) => {
+              setResult(rd.triage_result)
+              setSessionDone(true)
+              syncForward(sessionIdRef.current, rd.patient_data, rd.triage_result).catch(() => {
+                setApiError('No se pudo guardar el registro de triaje. Contacte al administrador.')
+              })
+            })
+            .catch(() => setApiError('No se pudo obtener el resultado del triaje. Intente de nuevo.'))
+        }
       }
     } catch {
       setTyping(false)

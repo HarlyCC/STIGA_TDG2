@@ -103,8 +103,7 @@ VITAL_RANGES = {
     "symptom_duration": (0,   365),
 }
 
-MINIMUM_FEATURES = ["age", "symptoms"]
-MAX_RETRIES      = 3
+MAX_RETRIES = 3
 
 # Campos que llegan del formulario y no debe preguntar Gemma
 PERSONAL_FIELDS = {"nombre", "cedula", "telefono", "direccion", "eps", "ciudad", "age", "gender"}
@@ -386,8 +385,5 @@ class GemmaService:
             "status":          status,
             "message":         message,
             "patient_data":    session.patient_data,
-            "ready_for_model": status == "complete" and self._has_minimum_data(session.patient_data),
+            "ready_for_model": session.is_complete,
         }
-
-    def _has_minimum_data(self, data: dict) -> bool:
-        return all(data.get(f) is not None for f in MINIMUM_FEATURES)

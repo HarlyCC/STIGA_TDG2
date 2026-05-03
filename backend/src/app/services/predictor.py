@@ -71,7 +71,8 @@ class Predictor:
           3. pain_scale (dolor, escala 0-10)
         """
         # ── Construir input del RF ──
-        row             = {feat: patient_data.get(feat, np.nan) for feat in FEATURES}
+        raw_row         = {feat: patient_data.get(feat) for feat in FEATURES}
+        row             = {k: (v if v is not None else np.nan) for k, v in raw_row.items()}
         X               = pd.DataFrame([row])
         features_reales = sum(1 for v in row.values() if not pd.isna(v))
         calidad_datos   = round(features_reales / len(FEATURES), 4)
