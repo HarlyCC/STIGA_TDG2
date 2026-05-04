@@ -466,8 +466,8 @@ ${t.confianza!=null?`<p class="meta">Confianza del modelo: ${Math.round(t.confia
           <div style={{ position: 'relative', height: '160px' }}>
             <svg width="100%" height="160" viewBox="0 0 600 160" preserveAspectRatio="none">
               {/* Líneas de referencia */}
-              {[0, 33, 66, 100].map(p => (
-                <line key={p} x1="0" y1={120 - p * 1.1} x2="600" y2={120 - p * 1.1}
+              {[0, 1, 2, 3].map(nivel => (
+                <line key={nivel} x1="0" y1={120 - nivelAltura[nivel] * 1.1} x2="600" y2={120 - nivelAltura[nivel] * 1.1}
                   stroke="#f0f4f2" strokeWidth="1"/>
               ))}
 
@@ -516,16 +516,19 @@ ${t.confianza!=null?`<p class="meta">Confianza del modelo: ${Math.round(t.confia
             </svg>
 
             {/* Labels de nivel */}
-            <div style={{
-              position: 'absolute', left: 0, top: 0,
-              height: '100%', display: 'flex',
-              flexDirection: 'column', justifyContent: 'space-between',
-              paddingBottom: '20px'
-            }}>
-              {['Rojo', 'Naranja', 'Amarillo', 'Verde'].map(n => (
-                <span key={n} style={{
+            <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', pointerEvents: 'none' }}>
+              {[
+                { label: 'Verde',    nivel: 0 },
+                { label: 'Amarillo', nivel: 1 },
+                { label: 'Naranja',  nivel: 2 },
+                { label: 'Rojo',     nivel: 3 },
+              ].map(({ label, nivel }) => (
+                <span key={label} style={{
+                  position: 'absolute',
+                  top: `${((120 - nivelAltura[nivel] * 1.1) / 160) * 100}%`,
+                  transform: 'translateY(-50%)',
                   fontSize: '0.68rem', color: '#aabcb0', fontWeight: '500'
-                }}>{n}</span>
+                }}>{label}</span>
               ))}
             </div>
           </div>
