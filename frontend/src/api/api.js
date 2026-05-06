@@ -26,7 +26,7 @@ client.interceptors.response.use(
   }
 )
 
-// ── Triaje / Chat ─────────────────────────────────────────
+// Triaje y Chat
 export const startChat = (sessionId) =>
   client.post(`/chat/start/${sessionId}`)
 
@@ -46,7 +46,7 @@ export const syncForward = (sessionId, patientData, triageResult) =>
 export const closeSession = (sessionId) =>
   client.delete(`/chat/session/${sessionId}`)
 
-// ── Auth (preparado para cuando implementemos login) ──────
+// Autenticación
 export const login = (email, password) =>
   client.post('/auth/login', { email, password })
 

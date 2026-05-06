@@ -17,7 +17,7 @@ gemma_service = GemmaService(api_key=os.getenv("GOOGLE_API_KEY"))
 predictor     = Predictor()
 
 
-# ── Request models ────────────────────────────────────────────────────────────
+# Modelos de solicitud
 
 class MessageRequest(BaseModel):
     session_id: str
@@ -30,7 +30,7 @@ class SyncRequest(BaseModel):
     triage_result: dict
 
 
-# ── Endpoints ─────────────────────────────────────────────────────────────────
+# Endpoints
 
 @router.post("/chat/start/{session_id}")
 def start_conversation(

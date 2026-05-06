@@ -45,7 +45,7 @@ from config.paths import DB_PATH, MODELS_DIR
 logger = logging.getLogger("stiga.trainer")
 MODEL_PATH = MODELS_DIR / "stiga_triage_model.pkl"
 
-# ── Features depuradas ────────────────────────────────────────────────────────
+# Características depuradas
 # Eliminados: gender (importancia 0.008, 73 % nulos)
 #             cholesterol (importancia 0.028, 73 % nulos)
 # Agregados:  respiratory_rate (criterio SIRS), pain_scale (escala numérica dolor)
@@ -63,7 +63,7 @@ FEATURES = [
 
 COLORS = {0: "Verde", 1: "Amarillo", 2: "Naranja", 3: "Rojo"}
 
-# ── Distribuciones clínicas para augmentación ────────────────────────────────
+# Distribuciones clínicas para augmentación
 #
 # respiratory_rate (respiraciones/min) — Criterios SIRS/OMS:
 #   Normal adulto:  12-20  (SIRS umbral: > 20)
@@ -121,7 +121,7 @@ def _augment(df: pd.DataFrame, seed: int = 42) -> pd.DataFrame:
     return df
 
 
-# ── Modelos candidatos ────────────────────────────────────────────────────────
+# Modelos candidatos
 
 def _build_candidates() -> dict:
     candidates = {
@@ -166,7 +166,7 @@ def _build_candidates() -> dict:
     return candidates
 
 
-# ── Pipeline ──────────────────────────────────────────────────────────────────
+# Pipeline de entrenamiento
 
 def train_stiga_model():
     logger.info("=" * 60)
@@ -275,16 +275,16 @@ def train_stiga_model():
         explainer  = shap.TreeExplainer(inner_clf)
         shap_vals  = explainer.shap_values(X_shap)
 
-        # Normalise to ndarray shape (n_classes, n_samples, n_features)
+        # Normalizar al formato ndarray (n_clases, n_muestras, n_características)
         if isinstance(shap_vals, list):
-            shap_arr = np.stack(shap_vals, axis=0)          # old SHAP: list of 2D arrays
+            shap_arr = np.stack(shap_vals, axis=0)          # SHAP antiguo: lista de arrays 2D
         elif isinstance(shap_vals, np.ndarray) and shap_vals.ndim == 3:
-            shap_arr = shap_vals                             # new SHAP: (n_samples, n_features, n_classes)
-            shap_arr = np.moveaxis(shap_arr, -1, 0)         # → (n_classes, n_samples, n_features)
+            shap_arr = shap_vals                             # SHAP nuevo: (n_muestras, n_características, n_clases)
+            shap_arr = np.moveaxis(shap_arr, -1, 0)         # → (n_clases, n_muestras, n_características)
         else:
-            shap_arr = shap_vals[np.newaxis, ...]            # binary / fallback
+            shap_arr = shap_vals[np.newaxis, ...]            # binario / fallback
 
-        mean_abs = np.abs(shap_arr).mean(axis=(0, 1))       # average over classes and samples
+        mean_abs = np.abs(shap_arr).mean(axis=(0, 1))       # promedio sobre clases y muestras
 
         logger.info("SHAP mean |value| por feature:")
         for feat, val in sorted(zip(FEATURES, mean_abs), key=lambda x: -x[1]):

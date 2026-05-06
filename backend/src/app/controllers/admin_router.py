@@ -11,7 +11,7 @@ logger = logging.getLogger("stiga.admin")
 router = APIRouter(prefix="/admin", tags=["Administración"])
 
 
-# ── Role guard ────────────────────────────────────────────────────────────────
+# Validación de rol
 
 def require_admin(current_user: dict = Depends(get_current_user)) -> dict:
     if current_user["role"] != "admin":
@@ -22,7 +22,7 @@ def require_admin(current_user: dict = Depends(get_current_user)) -> dict:
     return current_user
 
 
-# ── Request models ────────────────────────────────────────────────────────────
+# Modelos de solicitud
 
 VALID_ROLES = {"medico", "admin"}
 
@@ -82,7 +82,7 @@ class SolicitudAccionRequest(BaseModel):
         return v
 
 
-# ── User management ───────────────────────────────────────────────────────────
+# Gestión de usuarios
 
 @router.post("/usuarios", status_code=status.HTTP_201_CREATED)
 def create_user(body: CreateUserRequest, admin: dict = Depends(require_admin)):
@@ -119,14 +119,14 @@ def delete_user(email: str, admin: dict = Depends(require_admin)):
     return admin_service.delete_user(email, admin["email"])
 
 
-# ── Statistics ────────────────────────────────────────────────────────────────
+# Estadísticas
 
 @router.get("/estadisticas")
 def estadisticas(admin: dict = Depends(require_admin)):
     return admin_service.estadisticas()
 
 
-# ── Doctor schedules ──────────────────────────────────────────────────────────
+# Horarios de médicos
 
 @router.get("/medicos/{email}/horarios")
 def get_horarios_medico(email: str, admin: dict = Depends(require_admin)):
@@ -145,7 +145,7 @@ def delete_horario_medico(email: str, dia_semana: int, admin: dict = Depends(req
     return admin_service.delete_horario_medico(email, dia_semana, admin["email"])
 
 
-# ── Critical alerts ───────────────────────────────────────────────────────────
+# Alertas críticas
 
 @router.get("/alertas")
 def list_alertas(admin: dict = Depends(require_admin)):
@@ -162,7 +162,7 @@ def ignorar_alerta(alerta_id: int, admin: dict = Depends(require_admin)):
     return admin_service.ignorar_alerta(alerta_id, admin["email"])
 
 
-# ── Doctor access requests ────────────────────────────────────────────────────
+# Solicitudes de acceso médico
 
 @router.get("/solicitudes")
 def list_solicitudes(estado: Optional[str] = None, admin: dict = Depends(require_admin)):

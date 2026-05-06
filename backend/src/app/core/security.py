@@ -6,15 +6,15 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 
-# ── JWT configuration ────────────────────────────────────────────────────────
+# Configuración JWT
 
 _WEAK_SECRETS = {"stiga_jwt_secret_key_2024", "", "secret", "changeme"}
 
 JWT_SECRET = os.getenv("JWT_SECRET", "")
 if not JWT_SECRET or JWT_SECRET in _WEAK_SECRETS:
     raise RuntimeError(
-        "JWT_SECRET is not set or is insecure. "
-        "Define a random key of at least 32 characters in the .env file."
+        "JWT_SECRET no está configurado o es inseguro. "
+        "Define una clave aleatoria de al menos 32 caracteres en el archivo .env."
     )
 
 JWT_ALGORITHM  = os.getenv("JWT_ALGORITHM", "HS256")
@@ -23,7 +23,7 @@ JWT_EXPIRE_MIN = int(os.getenv("JWT_EXPIRE_MINUTES", "120"))
 pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
 bearer  = HTTPBearer()
 
-# ── Password hashing ─────────────────────────────────────────────────────────
+# Hasheo de contraseñas
 
 def hash_password(plain: str) -> str:
     return pwd_ctx.hash(plain)
@@ -33,7 +33,7 @@ def verify_password(plain: str, hashed: str) -> bool:
     return pwd_ctx.verify(plain, hashed)
 
 
-# ── JWT ──────────────────────────────────────────────────────────────────────
+# JWT
 
 def create_jwt(email: str, role: str, nombre: str) -> str:
     payload = {
@@ -48,14 +48,14 @@ def create_jwt(email: str, role: str, nombre: str) -> str:
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(bearer),
 ) -> dict:
-    """FastAPI dependency: validates the JWT and returns {email, role, nombre}."""
+    """Dependencia FastAPI: valida el JWT y retorna {email, role, nombre}."""
     try:
         payload = jwt.decode(
             credentials.credentials, JWT_SECRET, algorithms=[JWT_ALGORITHM]
         )
         email: str = payload.get("sub")
         if not email:
-            raise ValueError("Token has no subject")
+            raise ValueError("Token sin sujeto")
         return {
             "email":  email,
             "role":   payload.get("role"),
@@ -64,28 +64,28 @@ def get_current_user(
     except JWTError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token.",
+            detail="Token inválido o expirado.",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
 
-# ── Birth date validation ────────────────────────────────────────────────────
+# Validación de fecha de nacimiento
 
 def validate_fecha_nacimiento(v: str | None) -> str | None:
     """
-    Validates that fecha_nacimiento is strictly YYYY-MM-DD and corresponds
-    to an age between 0 and 120. Used as a shared Pydantic validator.
+    Valida que fecha_nacimiento sea estrictamente AAAA-MM-DD y corresponda
+    a una edad entre 0 y 120 años. Usado como validador Pydantic compartido.
     """
     if v is None:
         return v
     try:
         born = date.fromisoformat(v)
     except ValueError:
-        raise ValueError("Invalid format. Use YYYY-MM-DD (e.g. 1990-05-20).")
+        raise ValueError("Formato inválido. Use AAAA-MM-DD (ej. 1990-05-20).")
     today = date.today()
     if born > today:
-        raise ValueError("Birth date cannot be in the future.")
+        raise ValueError("La fecha de nacimiento no puede ser en el futuro.")
     age = today.year - born.year - ((today.month, today.day) < (born.month, born.day))
     if age > 120:
-        raise ValueError("Birth date indicates an age greater than 120 years.")
+        raise ValueError("La fecha de nacimiento indica una edad mayor a 120 años.")
     return v

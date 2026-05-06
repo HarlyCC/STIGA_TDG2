@@ -1,4 +1,3 @@
-# src/app/services/predictor.py
 import joblib
 import logging
 import warnings
@@ -6,8 +5,8 @@ import numpy as np
 import pandas as pd
 from config.paths import MODELS_DIR
 
-# CalibratedClassifierCV passes numpy arrays to LightGBM internally; suppress the
-# sklearn feature-name mismatch warning that arises from that interaction.
+# CalibratedClassifierCV pasa arrays de numpy a LightGBM internamente; suprime
+# la advertencia de sklearn sobre nombres de características que surge de esa interacción.
 warnings.filterwarnings(
     "ignore",
     message="X does not have valid feature names",
@@ -70,7 +69,7 @@ class Predictor:
           2. respiratory_rate (fisiológico, estándares OMS/sepsis)
           3. pain_scale (dolor, escala 0-10)
         """
-        # ── Construir input del RF ──
+        # Construir input del RF
         raw_row         = {feat: patient_data.get(feat) for feat in FEATURES}
         row             = {k: (v if v is not None else np.nan) for k, v in raw_row.items()}
         X               = pd.DataFrame([row])
@@ -86,7 +85,7 @@ class Predictor:
         level = int(self.model.predict(X)[0])
         proba = self.model.predict_proba(X)[0]
 
-        # ── Post-procesamiento clínico ──
+        # Post-procesamiento clínico
         severity  = float(patient_data.get("symptom_severity") or 0)
         resp_rate = float(patient_data.get("respiratory_rate") or 0)
         pain      = float(patient_data.get("pain_scale") or 0)
@@ -130,7 +129,7 @@ class Predictor:
                 f"vitales core presentes: {core_presentes}/{len(self._CORE_FEATURES)}"
             )
 
-        # ── Confianza ──
+        # Confianza
         confianza_rf = round(float(proba[original_level]), 4)
 
         result = {

@@ -17,7 +17,7 @@ from app.services.email_service import send_doctor_credentials_email
 logger = logging.getLogger("stiga.admin_service")
 
 
-# ── User management ───────────────────────────────────────────────────────────
+# Gestión de usuarios
 
 def create_user(data: dict, admin_email: str) -> dict:
     if len(data["password"]) < 6:
@@ -73,7 +73,7 @@ def delete_user(email: str, admin_email: str) -> dict:
     return {"message": f"Usuario {email} eliminado correctamente."}
 
 
-# ── Statistics ────────────────────────────────────────────────────────────────
+# Estadísticas
 
 def estadisticas() -> dict:
     hoy = date_type.today()
@@ -120,7 +120,7 @@ def estadisticas() -> dict:
     }
 
 
-# ── Doctor schedules ──────────────────────────────────────────────────────────
+# Horarios de médicos
 
 def get_horarios_medico(email: str) -> list:
     return [dict(r) for r in horario_repository.list_by_medico(email)]
@@ -147,7 +147,7 @@ def delete_horario_medico(email: str, dia_semana: int, admin_email: str) -> dict
     return {"message": "Horario eliminado correctamente."}
 
 
-# ── Critical alerts ───────────────────────────────────────────────────────────
+# Alertas críticas
 
 def list_alertas() -> list:
     return [dict(r) for r in triage_repository.list_alertas()]
@@ -171,7 +171,7 @@ def ignorar_alerta(alerta_id: int, admin_email: str) -> dict:
     return {"ok": True}
 
 
-# ── Doctor access requests ────────────────────────────────────────────────────
+# Solicitudes de acceso médico
 
 def list_solicitudes(estado) -> list:
     return [dict(r) for r in solicitud_repository.list_with_filter(estado)]

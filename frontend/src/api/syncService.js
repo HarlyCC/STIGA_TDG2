@@ -2,7 +2,7 @@ import { syncForward } from './api'
 
 const PENDING_KEY = 'stiga_pending_syncs'
 
-// ── Almacenamiento local ──────────────────────────────────────────────────────
+// Almacenamiento local
 
 function getPending() {
   try {
@@ -24,7 +24,7 @@ export function getPendingCount() {
   return getPending().length
 }
 
-// ── Guardar offline ───────────────────────────────────────────────────────────
+// Guardar sin conexión
 
 export function saveOffline(sessionId, patientData, triageResult) {
   const pending = getPending()
@@ -41,7 +41,7 @@ export function saveOffline(sessionId, patientData, triageResult) {
   console.log(`[STIGA] Registro guardado offline: ${sessionId}`)
 }
 
-// ── Sincronizar pendientes ────────────────────────────────────────────────────
+// Sincronizar pendientes
 
 export async function syncPending() {
   const pending = getPending()
@@ -65,7 +65,7 @@ export async function syncPending() {
   return { synced, failed }
 }
 
-// ── Sincronizar un registro (con fallback offline) ────────────────────────────
+// Sincronizar con fallback sin conexión
 
 export async function syncOrSaveOffline(sessionId, patientData, triageResult) {
   try {
@@ -77,7 +77,7 @@ export async function syncOrSaveOffline(sessionId, patientData, triageResult) {
   }
 }
 
-// ── Listener de reconexión ────────────────────────────────────────────────────
+// Escuchar reconexión
 
 export function initSyncOnReconnect(onSynced) {
   window.addEventListener('online', async () => {

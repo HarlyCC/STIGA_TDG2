@@ -186,7 +186,7 @@ class GemmaService:
         self.cleaner  = DataCleaner()
         logger.info("GemmaService inicializado | modelo: %s", GEMMA_MODEL)
 
-    # ── Gestión de sesiones ──────────────────
+    # Gestión de sesiones
 
     def _create_session(self, session_id: str, system_prompt: str) -> ConversationSession:
         session = ConversationSession(session_id, system_prompt)
@@ -207,7 +207,7 @@ class GemmaService:
             del self.sessions[session_id]
             logger.info(f"Sesión cerrada: {session_id}")
 
-    # ── Conversación ─────────────────────────
+    # Conversación
 
     def start_conversation(self, session_id: str, prefilled_data: dict | None = None) -> dict:
         """
@@ -305,7 +305,7 @@ class GemmaService:
                         session
                     )
 
-    # ── Parseo ───────────────────────────────
+    # Parseo
 
     def _parse_response(self, session: ConversationSession, raw: str) -> dict:
         try:
@@ -341,7 +341,7 @@ class GemmaService:
                 session.patient_data["symptoms"] = raw
             return self._build_response("collecting", raw, session)
 
-    # ── Validaciones ─────────────────────────
+    # Validaciones
 
     def _sanitize_data(self, data: dict) -> dict:
         text_fields    = {"nombre", "cedula", "telefono", "direccion",
@@ -378,7 +378,7 @@ class GemmaService:
                 validated[field] = result
         return validated
 
-    # ── Utilidades ───────────────────────────
+    # Utilidades
 
     def _build_response(self, status: str, message: str, session: ConversationSession) -> dict:
         return {

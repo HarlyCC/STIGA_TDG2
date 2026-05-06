@@ -19,19 +19,18 @@ from app.core.limiter import limiter
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
-# ── Request models ────────────────────────────────────────────────────────────
+# Modelos de solicitud
 
 class RegisterRequest(BaseModel):
     nombre:           str
     email:            EmailStr
-    password:         str
     cedula:           str
     telefono:         str
     direccion:        str
     eps:              str
     ciudad:           str
     fecha_nacimiento: str
-    gender:           int   # 0=Female, 1=Male, 2=Unknown
+    gender:           int   # 0=Femenino, 1=Masculino, 2=Sin especificar
 
     @field_validator("fecha_nacimiento")
     @classmethod
@@ -94,7 +93,7 @@ class UpdateProfileRequest(BaseModel):
         return validate_fecha_nacimiento(v)
 
 
-# ── Routes ────────────────────────────────────────────────────────────────────
+# Rutas
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 @limiter.limit("10/minute")

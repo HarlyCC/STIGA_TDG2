@@ -26,15 +26,17 @@ def _code_expires_at() -> str:
 
 
 def register_user(data: dict) -> dict:
-    if len(data["password"]) < 6:
+    cedula = str(data["cedula"]).strip()
+    if len(cedula) < 6:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="La contraseña debe tener al menos 6 caracteres.",
+            detail="La cédula debe tener al menos 6 dígitos.",
         )
+    initial_password = cedula[-6:]
 
     code        = _generate_code()
     expires_at  = _code_expires_at()
-    hashed_pw   = hash_password(data["password"])
+    hashed_pw   = hash_password(initial_password)
     hashed_code = hash_password(code)
     now         = datetime.now(timezone.utc).isoformat()
 

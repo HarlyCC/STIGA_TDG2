@@ -4,7 +4,7 @@ from app.data.database import get_conn
 
 logger = logging.getLogger("stiga.db")
 
-# ── Esquemas ─────────────────────────────────────────────────────────────────
+# Esquemas
 
 _CREATE_USERS = """
 CREATE TABLE IF NOT EXISTS users (
@@ -117,7 +117,7 @@ CREATE TABLE IF NOT EXISTS alertas_criticas (
 )
 """
 
-# ── Inicialización ────────────────────────────────────────────────────────────
+# Inicialización
 
 def init_db():
     """
@@ -137,7 +137,7 @@ def init_db():
         conn.execute(_CREATE_CITAS)
         conn.execute(_CREATE_ALERTAS_CRITICAS)
 
-        # ── Migraciones de columnas ───────────────────────────────────────────
+        # Migraciones de columnas
         _migrations = [
             "ALTER TABLE triage_records ADD COLUMN user_email TEXT",
             "ALTER TABLE users ADD COLUMN reset_code TEXT",
@@ -159,7 +159,7 @@ def init_db():
             except Exception:
                 pass
 
-        # ── Índices ───────────────────────────────────────────────────────────
+        # Índices
         _indexes = [
             "CREATE INDEX IF NOT EXISTS idx_triage_user_email  ON triage_records(user_email)",
             "CREATE INDEX IF NOT EXISTS idx_triage_color       ON triage_records(triage_color)",

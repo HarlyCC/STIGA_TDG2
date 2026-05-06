@@ -11,7 +11,7 @@ logger = logging.getLogger("stiga.medico")
 router = APIRouter(prefix="/medico", tags=["Médico"])
 
 
-# ── Role guard ────────────────────────────────────────────────────────────────
+# Validación de rol
 
 def require_medico(current_user: dict = Depends(get_current_user)) -> dict:
     if current_user["role"] not in ("medico", "admin"):
@@ -22,7 +22,7 @@ def require_medico(current_user: dict = Depends(get_current_user)) -> dict:
     return current_user
 
 
-# ── Request models ────────────────────────────────────────────────────────────
+# Modelos de solicitud
 
 class AppointmentRequest(BaseModel):
     triaje_id:        Optional[int] = None
@@ -38,7 +38,7 @@ class StatusUpdate(BaseModel):
     status: str  # 'confirmada' | 'rechazada' | 'cancelada'
 
 
-# ── Patients & triages ────────────────────────────────────────────────────────
+# Pacientes y triajes
 
 @router.get("/pacientes")
 def list_patients(
@@ -60,7 +60,7 @@ def my_triages(current_user: dict = Depends(get_current_user)):
     return doctor_service.my_triages(current_user["email"])
 
 
-# ── Schedules & availability ──────────────────────────────────────────────────
+# Horarios y disponibilidad
 
 @router.get("/horarios")
 def get_schedule(medico: dict = Depends(require_medico)):
@@ -72,7 +72,7 @@ def get_availability(fecha: str, current_user: dict = Depends(get_current_user))
     return doctor_service.get_availability(fecha)
 
 
-# ── Appointments ──────────────────────────────────────────────────────────────
+# Citas
 
 @router.post("/mis-citas", status_code=201)
 def create_appointment(body: AppointmentRequest, current_user: dict = Depends(get_current_user)):

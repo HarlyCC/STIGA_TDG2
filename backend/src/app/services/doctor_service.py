@@ -14,7 +14,7 @@ from app.repositories import (
 logger = logging.getLogger("stiga.doctor_service")
 
 
-# ── Patient views ─────────────────────────────────────────────────────────────
+# Vista de pacientes
 
 def list_patients(role: str, medico_email: str, color, limit: int, offset: int) -> dict:
     limit  = min(limit, 500)
@@ -39,7 +39,7 @@ def my_triages(user_email: str) -> list:
     return [dict(r) for r in triage_repository.list_by_user(user_email)]
 
 
-# ── Schedules & availability ──────────────────────────────────────────────────
+# Horarios y disponibilidad
 
 def get_schedule(medico_email: str) -> list:
     return [dict(r) for r in horario_repository.list_by_medico(medico_email)]
@@ -51,12 +51,12 @@ def get_availability(fecha: str) -> list:
     except ValueError:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Invalid date format. Use YYYY-MM-DD.",
+            detail="Formato de fecha inválido. Use AAAA-MM-DD.",
         )
     if date_obj < date_type.today():
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Date cannot be in the past.",
+            detail="La fecha no puede ser en el pasado.",
         )
 
     dia_semana = date_obj.weekday()
@@ -86,7 +86,7 @@ def get_availability(fecha: str) -> list:
     ]
 
 
-# ── Appointments ──────────────────────────────────────────────────────────────
+# Citas
 
 def create_appointment(user_email: str, triaje_id, fecha_solicitada, hora_solicitada) -> dict:
     if triaje_id is not None:

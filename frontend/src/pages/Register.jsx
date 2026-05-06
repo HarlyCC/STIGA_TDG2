@@ -27,7 +27,7 @@ export default function Register() {
   const code = digits.join('')
 
   const [form, setForm] = useState({
-    nombre: '', email: '', password: '', cedula: '',
+    nombre: '', email: '', cedula: '',
     telefono: '', direccion: '', eps: '', ciudad: '',
     fecha_nacimiento: '', gender: '0',
   })
@@ -56,7 +56,6 @@ export default function Register() {
   const CAMPOS_OBLIGATORIOS = [
     { key: 'nombre',           label: 'Nombre completo' },
     { key: 'email',            label: 'Correo electrónico' },
-    { key: 'password',         label: 'Contraseña' },
     { key: 'cedula',           label: 'Cédula' },
     { key: 'telefono',         label: 'Teléfono' },
     { key: 'ciudad',           label: 'Ciudad / Municipio' },
@@ -430,25 +429,16 @@ export default function Register() {
                   />
                 </Field>
 
-                {/* Email + Contraseña */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
-                  <Field label="Correo electrónico" error={emailError}>
-                    <input
-                      className={`input-stiga${emailError ? ' input-error' : ''}`}
-                      name="email" type="email" required
-                      value={form.email} onChange={handleChange}
-                      onBlur={validateEmail}
-                      placeholder="correo@ejemplo.com"
-                    />
-                  </Field>
-                  <Field label="Contraseña">
-                    <input
-                      className="input-stiga" name="password" type="password" required
-                      value={form.password} onChange={handleChange}
-                      placeholder="Mínimo 6 caracteres"
-                    />
-                  </Field>
-                </div>
+                {/* Email */}
+                <Field label="Correo electrónico" error={emailError}>
+                  <input
+                    className={`input-stiga${emailError ? ' input-error' : ''}`}
+                    name="email" type="email" required
+                    value={form.email} onChange={handleChange}
+                    onBlur={validateEmail}
+                    placeholder="correo@ejemplo.com"
+                  />
+                </Field>
 
                 {/* Cédula + Teléfono */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
@@ -467,6 +457,18 @@ export default function Register() {
                     />
                   </Field>
                 </div>
+                <p style={{
+                  margin: '-0.3rem 0 0.85rem',
+                  fontSize: '0.76rem', color: '#7a9080',
+                  display: 'flex', alignItems: 'center', gap: '0.35rem'
+                }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="8" x2="12" y2="12"/>
+                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                  </svg>
+                  Tu contraseña inicial serán los últimos 6 dígitos de tu cédula. Puedes cambiarla desde tu perfil.
+                </p>
 
                 {/* Dirección */}
                 <Field label="Dirección">
