@@ -60,6 +60,7 @@ import PatientTeleconsultation from './pages/patient/Teleconsultation'
 import PatientProfile from './pages/patient/Profile'
 import DoctorDashboard from './pages/doctor/Dashboard'
 import DoctorTeleconsultations from './pages/doctor/Teleconsultations'
+import DoctorProfile from './pages/doctor/Profile'
 import AdminDashboard from './pages/admin/Dashboard'
 
 function AnimatedRoutes() {
@@ -93,6 +94,9 @@ function AnimatedRoutes() {
         } />
         <Route path="/medico/teleconsultas" element={
           <ProtectedRoute role="medico"><DoctorTeleconsultations /></ProtectedRoute>
+        } />
+        <Route path="/medico/perfil" element={
+          <ProtectedRoute role="medico"><DoctorProfile /></ProtectedRoute>
         } />
         <Route path="/admin" element={
           <ProtectedRoute role="admin"><AdminDashboard /></ProtectedRoute>
