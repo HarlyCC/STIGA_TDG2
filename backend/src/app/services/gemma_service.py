@@ -8,7 +8,7 @@ from app.data.data_cleaner import DataCleaner
 
 logger = logging.getLogger("stiga.gemma_service")
 
-GEMMA_MODEL = "gemma-3-12b-it"
+GEMMA_MODEL = "gemma-4-31b-it"
 
 # Las llaves del JSON dentro del prompt deben estar escapadas ({{ }})
 # para que .format() no las interprete como variables.
