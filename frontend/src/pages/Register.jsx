@@ -474,18 +474,20 @@ export default function Register() {
                     />
                   </Field>
                 </div>
-                <p style={{
-                  margin: '-0.3rem 0 0.85rem',
-                  fontSize: '0.76rem', color: '#7a9080',
-                  display: 'flex', alignItems: 'center', gap: '0.35rem'
+                <div style={{
+                  display: 'flex', alignItems: 'flex-start', gap: '0.6rem',
+                  background: '#fffbeb', border: '1.5px solid #fde68a',
+                  borderRadius: '10px', padding: '0.75rem 1rem',
+                  margin: '0.1rem 0 0.85rem',
                 }}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <circle cx="12" cy="12" r="10"/>
-                    <line x1="12" y1="8" x2="12" y2="12"/>
-                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2" style={{ flexShrink: 0, marginTop: '1px' }}>
+                    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
                   </svg>
-                  Tu contraseña inicial serán los últimos 6 dígitos de tu cédula. Puedes cambiarla desde tu perfil.
-                </p>
+                  <p style={{ margin: 0, fontSize: '0.82rem', color: '#92400e', lineHeight: 1.5 }}>
+                    <strong>Contraseña inicial:</strong> los últimos 6 dígitos de tu cédula.<br />
+                    <span style={{ color: '#b45309' }}>Ejemplo: cédula 1020104208 → contraseña <strong>104208</strong></span>
+                  </p>
+                </div>
 
                 {/* Dirección */}
                 <Field label="Dirección">
@@ -641,9 +643,23 @@ export default function Register() {
                   </div>
                 </div>
 
-                <p style={{ fontSize: '0.8rem', color: '#aabcb0', margin: '0.5rem 0 1.5rem', textAlign: 'center' }}>
+                <p style={{ fontSize: '0.8rem', color: '#aabcb0', margin: '0.5rem 0 1.25rem', textAlign: 'center' }}>
                   El código expira en 15 minutos
                 </p>
+
+                <div style={{
+                  display: 'flex', alignItems: 'flex-start', gap: '0.6rem',
+                  background: '#fffbeb', border: '1.5px solid #fde68a',
+                  borderRadius: '10px', padding: '0.75rem 1rem', marginBottom: '1.25rem',
+                }}>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2" style={{ flexShrink: 0, marginTop: '1px' }}>
+                    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                  </svg>
+                  <p style={{ margin: 0, fontSize: '0.82rem', color: '#92400e', lineHeight: 1.5 }}>
+                    <strong>Tu contraseña inicial</strong> son los últimos 6 dígitos de tu cédula.<br />
+                    Úsala para iniciar sesión una vez verifiques tu cuenta.
+                  </p>
+                </div>
 
                 <button className="btn-primary" type="submit" disabled={loading}>
                   {loading ? (
