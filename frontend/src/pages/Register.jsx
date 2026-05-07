@@ -145,7 +145,7 @@ export default function Register() {
 
   return (
     <div style={{
-      minHeight: '100vh', display: 'flex',
+      height: '100vh', display: 'flex',
       fontFamily: "'Segoe UI', -apple-system, sans-serif",
       overflow: 'hidden'
     }}>
@@ -393,10 +393,10 @@ export default function Register() {
 
       {/* ── Panel derecho ── */}
       <div style={{
-        flex: 1, background: '#ffffff',
+        flex: 1, minWidth: 0, background: '#ffffff',
+        height: '100vh', overflowY: 'auto',
         display: 'flex', flexDirection: 'column',
         justifyContent: 'center', padding: '2.5rem 3.5rem',
-        overflowY: 'auto',
         opacity: mounted ? 1 : 0,
         transform: mounted ? 'none' : 'translateX(20px)',
         transition: 'opacity 0.6s ease 0.1s, transform 0.6s ease 0.1s'
