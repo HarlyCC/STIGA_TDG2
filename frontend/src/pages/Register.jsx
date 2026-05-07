@@ -396,12 +396,12 @@ export default function Register() {
         flex: 1, minWidth: 0, background: '#ffffff',
         height: '100vh', overflowY: 'auto',
         display: 'flex', flexDirection: 'column',
-        justifyContent: 'center', padding: '2.5rem 3.5rem',
+        alignItems: 'center', padding: '2.5rem 3.5rem',
         opacity: mounted ? 1 : 0,
         transform: mounted ? 'none' : 'translateX(20px)',
         transition: 'opacity 0.6s ease 0.1s, transform 0.6s ease 0.1s'
       }}>
-        <div style={{ maxWidth: '520px', width: '100%' }}>
+        <div style={{ maxWidth: '520px', width: '100%', margin: 'auto 0' }}>
 
           {/* ── STEP 1: Formulario de registro ── */}
           {step === 1 && (
@@ -410,19 +410,18 @@ export default function Register() {
                 type="button"
                 onClick={() => navigate('/login')}
                 style={{
-                  display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
-                  background: 'none', border: 'none', padding: '0 0 1.5rem',
-                  color: '#7a9080', fontSize: '0.85rem', fontWeight: '500',
-                  cursor: 'pointer', fontFamily: 'inherit',
-                  transition: 'color 0.18s',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  width: '38px', height: '38px', marginBottom: '1.5rem',
+                  background: '#f0fdf4', border: '1.5px solid #bbf7d0',
+                  borderRadius: '50%', cursor: 'pointer', transition: 'all 0.18s',
+                  flexShrink: 0,
                 }}
-                onMouseEnter={e => e.currentTarget.style.color = '#0f2318'}
-                onMouseLeave={e => e.currentTarget.style.color = '#7a9080'}
+                onMouseEnter={e => { e.currentTarget.style.background = '#1a3a2e'; e.currentTarget.style.borderColor = '#1a3a2e' }}
+                onMouseLeave={e => { e.currentTarget.style.background = '#f0fdf4'; e.currentTarget.style.borderColor = '#bbf7d0' }}
               >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1a3a2e" strokeWidth="2.5" style={{ pointerEvents: 'none' }}>
                   <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
                 </svg>
-                Volver al inicio de sesión
               </button>
               <div style={{
                 marginBottom: '2rem',

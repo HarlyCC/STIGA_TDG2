@@ -97,7 +97,7 @@ export default function ForgotPassword() {
 
   return (
     <div style={{
-      minHeight: '100vh', display: 'flex',
+      height: '100vh', display: 'flex',
       fontFamily: "'Segoe UI', -apple-system, sans-serif",
       overflow: 'hidden'
     }}>
@@ -267,13 +267,13 @@ export default function ForgotPassword() {
 
       {/* ── Panel derecho ───────────────────────────────────────────────── */}
       <div style={{
-        flex:1, background:'#ffffff',
+        flex:1, minWidth:0, background:'#ffffff',
+        height:'100vh', overflowY:'auto',
         display:'flex', flexDirection:'column',
-        justifyContent:'center', padding:'3rem 4rem',
+        alignItems:'center', justifyContent:'center', padding:'3rem 4rem',
         opacity: mounted ? 1 : 0,
         transform: mounted ? 'none' : 'translateX(20px)',
-        transition:'opacity 0.6s ease 0.1s, transform 0.6s ease 0.1s',
-        position:'relative'
+        transition:'opacity 0.6s ease 0.1s, transform 0.6s ease 0.1s'
       }}>
 
         {/* Toast */}
@@ -295,6 +295,22 @@ export default function ForgotPassword() {
           {/* ── PASO 1: email ── */}
           {step === 1 && (
             <div style={{ animation:'fadeInRight 0.5s ease' }}>
+              <button
+                type="button"
+                onClick={() => navigate('/login')}
+                style={{
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                  width:'38px', height:'38px', marginBottom:'1.5rem',
+                  background:'#f0fdf4', border:'1.5px solid #bbf7d0',
+                  borderRadius:'50%', cursor:'pointer', transition:'all 0.18s', flexShrink:0,
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background='#1a3a2e'; e.currentTarget.style.borderColor='#1a3a2e' }}
+                onMouseLeave={e => { e.currentTarget.style.background='#f0fdf4'; e.currentTarget.style.borderColor='#bbf7d0' }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1a3a2e" strokeWidth="2.5" style={{pointerEvents:'none'}}>
+                  <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+                </svg>
+              </button>
               <div style={{ marginBottom:'2.5rem' }}>
                 <h1 style={{ margin:'0 0 0.4rem', fontSize:'1.75rem', fontWeight:'700', color:'#0f2318' }}>
                   ¿Olvidaste tu contraseña?
@@ -344,11 +360,6 @@ export default function ForgotPassword() {
                   ) : 'Enviar código'}
                 </button>
 
-                <p style={{ textAlign:'center', marginTop:'1.1rem', fontSize:'0.85rem', color:'#7a9080' }}>
-                  <button type="button" className="link-btn" onClick={() => navigate('/login')}>
-                    Volver al inicio de sesión
-                  </button>
-                </p>
               </form>
             </div>
           )}
