@@ -406,6 +406,24 @@ export default function Register() {
           {/* ── STEP 1: Formulario de registro ── */}
           {step === 1 && (
             <>
+              <button
+                type="button"
+                onClick={() => navigate('/login')}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+                  background: 'none', border: 'none', padding: '0 0 1.5rem',
+                  color: '#7a9080', fontSize: '0.85rem', fontWeight: '500',
+                  cursor: 'pointer', fontFamily: 'inherit',
+                  transition: 'color 0.18s',
+                }}
+                onMouseEnter={e => e.currentTarget.style.color = '#0f2318'}
+                onMouseLeave={e => e.currentTarget.style.color = '#7a9080'}
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+                </svg>
+                Volver al inicio de sesión
+              </button>
               <div style={{
                 marginBottom: '2rem',
                 animation: mounted ? 'fadeInRight 0.6s ease 0.2s both' : 'none'
