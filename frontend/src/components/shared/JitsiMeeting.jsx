@@ -152,6 +152,17 @@ export default function JitsiMeeting({ roomId, displayName, onClose, pacienteNom
     if (hospitalTimerRef.current) { clearTimeout(hospitalTimerRef.current); hospitalTimerRef.current = null }
   }
 
+  const abrirFormularioNota = () => {
+    const ultimo = hcData?.triajes?.[0]
+    if (ultimo?.symptoms) {
+      setNotaForm({
+        titulo: '',
+        contenido: `Motivo de consulta: ${ultimo.symptoms}\nNivel de triaje: ${ultimo.triage_color || '—'}\n\nDiagnóstico:\n\nIndicaciones:\n`,
+      })
+    }
+    setMostrarNota(true)
+  }
+
   const guardarNota = async () => {
     if (!notaForm.titulo.trim() || !notaForm.contenido.trim()) return
     setGuardandoNota(true)
@@ -496,7 +507,7 @@ export default function JitsiMeeting({ roomId, displayName, onClose, pacienteNom
 
                     {!mostrarNota ? (
                       <button
-                        onClick={() => setMostrarNota(true)}
+                        onClick={abrirFormularioNota}
                         style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', background: 'none', border: '1.5px dashed #c7ddf7', borderRadius: '8px', padding: '0.6rem 1rem', color: '#1a56a0', fontSize: '0.82rem', fontWeight: '700', cursor: 'pointer', width: '100%', justifyContent: 'center', transition: 'all 0.18s', fontFamily: 'inherit' }}
                       >
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>

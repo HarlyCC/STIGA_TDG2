@@ -494,7 +494,7 @@
 // ═══════════════════════════════════════════════════════════
 //  BASE DE DATOS INICIAL
 // ═══════════════════════════════════════════════════════════
-const STORAGE_KEY = 'hospital_hsjd_pacientes_v2';
+const STORAGE_KEY = 'hospital_hsjd_pacientes_v3';
 
 const PACIENTES_INICIALES = [
   {
@@ -504,12 +504,38 @@ const PACIENTES_INICIALES = [
     fechaNacimiento: "2004-07-22",
     sexo: "M",
     municipio: "Támesis",
-    telefono: "",
-    grupoSanguineo: "",
-    alergias: [],
-    enfermedadesCronicas: [],
-    medicamentosActuales: [],
-    consultasPrevias: [],
+    telefono: "3146782901",
+    grupoSanguineo: "O+",
+    alergias: ["Penicilina", "Polen", "Ácaros del polvo"],
+    enfermedadesCronicas: ["Asma leve intermitente", "Rinitis alérgica"],
+    medicamentosActuales: [
+      { nombre: "Salbutamol (inhalador)", dosis: "100 mcg/dosis", frecuencia: "Según necesidad (máx. 4/día)" },
+      { nombre: "Budesonida (inhalador)", dosis: "200 mcg/dosis", frecuencia: "2 veces al día" },
+      { nombre: "Loratadina", dosis: "10 mg", frecuencia: "1 vez al día (nocturno)" }
+    ],
+    consultasPrevias: [
+      {
+        fecha: "2024-03-15",
+        medico: "Dr. Ramiro Salazar Vélez",
+        motivo: "Crisis asmática leve con disnea de esfuerzo",
+        diagnostico: "Asma leve intermitente en exacerbación. SpO₂ 95% al ingreso.",
+        tratamiento: "Nebulización con salbutamol 2.5 mg c/20 min × 3 dosis. Ajuste de budesonida a 200 mcg c/12 h. Reposo relativo 48 h. Control en 1 semana."
+      },
+      {
+        fecha: "2024-09-08",
+        medico: "Dra. Consuelo Arango Restrepo",
+        motivo: "Rinorrea persistente, estornudos frecuentes y prurito nasal de 3 semanas",
+        diagnostico: "Rinitis alérgica estacional. Sensibilización a ácaros y polen confirmada por historia clínica.",
+        tratamiento: "Loratadina 10 mg/día. Lavado nasal con solución salina isotónica 2 veces/día. Medidas de control ambiental: funda antiácaros, ventilación cruzada. Evitar exposición a plantas con floración activa."
+      },
+      {
+        fecha: "2025-01-20",
+        medico: "Dr. Ramiro Salazar Vélez",
+        motivo: "Control de asma + espirometría de seguimiento semestral",
+        diagnostico: "Asma leve controlada. VEF1 88% del valor predicho. Sin exacerbaciones en los últimos 4 meses.",
+        tratamiento: "Mantiene esquema actual: budesonida 200 mcg c/12 h + salbutamol PRN. Técnica inhalatoria supervisada y correcta. Próximo control en 6 meses o ante cualquier exacerbación."
+      }
+    ],
     consultasStiga: []
   }
 ];
