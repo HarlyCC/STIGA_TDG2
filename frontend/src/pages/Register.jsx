@@ -485,7 +485,7 @@ export default function Register() {
                   </svg>
                   <p style={{ margin: 0, fontSize: '0.82rem', color: '#92400e', lineHeight: 1.5 }}>
                     <strong>Contraseña inicial:</strong> los últimos 6 dígitos de tu cédula.<br />
-                    <span style={{ color: '#b45309' }}>Ejemplo: cédula 1020104208 → contraseña <strong>104208</strong></span>
+                    <span style={{ color: '#b45309' }}>Ejemplo: cédula 1020107203 → contraseña <strong>107203</strong></span>
                   </p>
                 </div>
 
