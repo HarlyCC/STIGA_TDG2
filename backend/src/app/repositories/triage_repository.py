@@ -22,14 +22,13 @@ def list_by_medico(medico_email: str, color, limit: int, offset: int) -> tuple:
         color_clause = " WHERE t.triage_color = ?"
         params.append(color)
     inner = f"""
-        SELECT t.*, MAX(c.id) AS cita_id, c.room_token
+        SELECT t.*, c.id AS cita_id, c.room_token
         FROM triage_records t
         INNER JOIN citas c
-            ON c.paciente_email = t.user_email
+            ON c.triaje_id = t.id
            AND c.medico_email = ?
            AND c.status = 'confirmada'
         {color_clause}
-        GROUP BY t.id
     """
     count_q = f"SELECT COUNT(*) FROM ({inner}) sub"
     query   = inner + " ORDER BY t.timestamp DESC LIMIT ? OFFSET ?"
