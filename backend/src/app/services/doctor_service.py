@@ -9,6 +9,7 @@ from app.repositories import (
     triage_repository,
     cita_repository,
     horario_repository,
+    nota_repository,
 )
 
 logger = logging.getLogger("stiga.doctor_service")
@@ -33,6 +34,32 @@ def patient_detail(cedula: str) -> dict:
                             detail="Paciente no encontrado.")
     triajes = triage_repository.list_by_cedula(cedula)
     return {"perfil": dict(perfil), "triajes": [dict(t) for t in triajes]}
+
+
+def get_historia(cedula: str) -> dict:
+    perfil = user_repository.find_by_cedula(cedula)
+    if not perfil:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail="Paciente no encontrado.")
+    triajes = triage_repository.list_by_cedula(cedula)
+    notas   = nota_repository.list_by_cedula(cedula)
+    return {
+        "perfil":  dict(perfil),
+        "triajes": [dict(t) for t in triajes],
+        "notas":   [dict(n) for n in notas],
+    }
+
+
+def add_nota(cedula: str, medico_email: str, medico_nombre: str,
+             titulo: str, contenido: str) -> dict:
+    perfil = user_repository.find_by_cedula(cedula)
+    if not perfil:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail="Paciente no encontrado.")
+    now = datetime.now(timezone.utc).isoformat()
+    nota_id = nota_repository.insert(cedula, medico_email, medico_nombre, titulo, contenido, now)
+    logger.info(f"Nota clínica guardada | paciente: {cedula} | médico: {medico_email}")
+    return {"id": nota_id, "ok": True}
 
 
 def my_triages(user_email: str) -> list:

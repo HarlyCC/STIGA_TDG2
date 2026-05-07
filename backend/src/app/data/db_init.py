@@ -102,6 +102,18 @@ CREATE TABLE IF NOT EXISTS citas (
 )
 """
 
+_CREATE_NOTAS_CLINICAS = """
+CREATE TABLE IF NOT EXISTS notas_clinicas (
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    cedula_paciente  TEXT    NOT NULL,
+    medico_email     TEXT    NOT NULL,
+    medico_nombre    TEXT,
+    titulo           TEXT    NOT NULL,
+    contenido        TEXT    NOT NULL,
+    created_at       TEXT    NOT NULL
+)
+"""
+
 _CREATE_ALERTAS_CRITICAS = """
 CREATE TABLE IF NOT EXISTS alertas_criticas (
     id                 INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -136,6 +148,7 @@ def init_db():
         conn.execute(_CREATE_SOLICITUDES_MEDICO)
         conn.execute(_CREATE_CITAS)
         conn.execute(_CREATE_ALERTAS_CRITICAS)
+        conn.execute(_CREATE_NOTAS_CLINICAS)
 
         # Migraciones de columnas
         _migrations = [

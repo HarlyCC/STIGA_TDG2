@@ -30,6 +30,11 @@ class AppointmentRequest(BaseModel):
     hora_solicitada:  Optional[str] = None
 
 
+class AddNotaRequest(BaseModel):
+    titulo:    str
+    contenido: str
+
+
 class LlamadaUpdate(BaseModel):
     en_llamada: bool
 
@@ -53,6 +58,19 @@ def list_patients(
 @router.get("/pacientes/{cedula}")
 def patient_detail(cedula: str, medico: dict = Depends(require_medico)):
     return doctor_service.patient_detail(cedula)
+
+
+@router.get("/historia/{cedula}")
+def get_historia(cedula: str, medico: dict = Depends(require_medico)):
+    return doctor_service.get_historia(cedula)
+
+
+@router.post("/historia/{cedula}/nota", status_code=201)
+def add_nota(cedula: str, body: AddNotaRequest, medico: dict = Depends(require_medico)):
+    return doctor_service.add_nota(
+        cedula, medico["email"], medico.get("nombre", ""),
+        body.titulo, body.contenido,
+    )
 
 
 @router.get("/mis-triajes")

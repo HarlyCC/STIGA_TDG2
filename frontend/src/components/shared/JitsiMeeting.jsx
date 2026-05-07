@@ -1,30 +1,38 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { createPortal } from 'react-dom'
+import client from '../../api/api'
+
+const NIVEL_DOT  = { Rojo: '#ef4444', Naranja: '#f97316', Amarillo: '#eab308', Verde: '#22c55e' }
+const NIVEL_BG   = { Rojo: '#fef2f2', Naranja: '#fff7ed', Amarillo: '#fefce8', Verde: '#f0fdf4' }
+const NIVEL_TEXT = { Rojo: '#dc2626', Naranja: '#c2410c', Amarillo: '#d97706', Verde: '#15803d' }
+
+function fmtFecha(iso) {
+  if (!iso) return '—'
+  return new Date(iso).toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric' })
+}
+function fmtHora(iso) {
+  if (!iso) return ''
+  return new Date(iso).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
+}
+function vital(v, u) { return v != null ? `${v} ${u}` : '—' }
 
 export default function JitsiMeeting({ roomId, displayName, onClose, pacienteNombre, pacienteCedula, nivelLabel, nivelColor, isDoctor }) {
-  const containerRef      = useRef(null)
-  const apiRef            = useRef(null)
-  const hospitalIframe    = useRef(null)
-  const iframeIntervalRef = useRef(null)
-  const iframeTimeoutRef  = useRef(null)
-  const [elapsed, setElapsed]         = useState(0)
+  const containerRef   = useRef(null)
+  const apiRef         = useRef(null)
+  const [elapsed, setElapsed]       = useState(0)
   const [showConfirm, setShowConfirm] = useState(false)
 
-  // ── Historia clínica ──────────────────────────────────────
-  const [panelOpen, setPanelOpen]         = useState(false)
-  const [cedulaInput, setCedulaInput]     = useState(pacienteCedula || '')
-  const [busquedaState, setBusquedaState] = useState('idle') // idle | buscando | encontrado | no_encontrado
-  const [pacienteHC, setPacienteHC]       = useState(null)
-  const [iframeReady, setIframeReady]     = useState(false)
-  const [guardando, setGuardando]         = useState(false)
-  const [exitoGuardado, setExitoGuardado] = useState(false)
-  const [formConsulta, setFormConsulta]   = useState({
-    motivo: '', hallazgos: '', diagnostico: '',
-    medicamentos: [{ nombre: '', dosis: '', frecuencia: '' }],
-    recomendaciones: '', proximaCita: ''
-  })
+  // Panel historia clínica
+  const [panelOpen, setPanelOpen]           = useState(false)
+  const [hcLoading, setHcLoading]           = useState(false)
+  const [hcData, setHcData]                 = useState(null)
+  const [hcError, setHcError]               = useState('')
+  const [mostrarNota, setMostrarNota]       = useState(false)
+  const [notaForm, setNotaForm]             = useState({ titulo: '', contenido: '' })
+  const [guardandoNota, setGuardandoNota]   = useState(false)
+  const [notaExito, setNotaExito]           = useState(false)
 
-  // Bloquear scroll del body mientras la reunión está activa (evita clone visual al hacer scroll)
+  // Bloquear scroll del body
   useEffect(() => {
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
@@ -67,92 +75,51 @@ export default function JitsiMeeting({ roomId, displayName, onClose, pacienteNom
       })
     }
     loadJitsi()
-    return () => {
-      apiRef.current?.dispose()
-      if (iframeIntervalRef.current) clearInterval(iframeIntervalRef.current)
-      if (iframeTimeoutRef.current)  clearTimeout(iframeTimeoutRef.current)
-    }
+    return () => { apiRef.current?.dispose() }
   }, [roomId, displayName])
 
-  // postMessage desde el hospital
-  const handleMessage = useCallback((event) => {
-    if (event.origin !== window.location.origin) return
-    if (!event.data?.type) return
-    if (event.data.type === 'HSJD_RESULTADO') {
-      if (event.data.data) {
-        setPacienteHC(event.data.data)
-        setBusquedaState('encontrado')
-      } else {
-        setBusquedaState('no_encontrado')
-      }
+  // Historia clínica — carga desde STIGA
+  const fetchHistoria = useCallback(async () => {
+    if (!pacienteCedula) { setHcError('No hay cédula registrada para este paciente.'); return }
+    setHcLoading(true)
+    setHcError('')
+    try {
+      const { data } = await client.get(`/medico/historia/${pacienteCedula}`)
+      setHcData(data)
+    } catch {
+      setHcError('No se pudo cargar la historia clínica.')
+    } finally {
+      setHcLoading(false)
     }
-    if (event.data.type === 'HSJD_GUARDADO') {
-      setGuardando(false)
-      if (event.data.success) {
-        setExitoGuardado(true)
-        setTimeout(() => { setPanelOpen(false); setExitoGuardado(false) }, 2000)
-      }
-    }
-  }, [])
+  }, [pacienteCedula])
 
-  useEffect(() => {
-    window.addEventListener('message', handleMessage)
-    return () => window.removeEventListener('message', handleMessage)
-  }, [handleMessage])
-
-  const buscarPaciente = () => {
-    if (!cedulaInput.trim()) return
-    setBusquedaState('buscando')
-    setPacienteHC(null)
-    const send = () => {
-      hospitalIframe.current?.contentWindow?.postMessage({ type: 'HSJD_BUSCAR', cedula: cedulaInput.trim() }, window.location.origin)
-    }
-    if (iframeReady) { send() }
-    else {
-      iframeIntervalRef.current = setInterval(() => {
-        if (iframeReady) { clearInterval(iframeIntervalRef.current); send() }
-      }, 100)
-      iframeTimeoutRef.current = setTimeout(() => clearInterval(iframeIntervalRef.current), 5000)
-      hospitalIframe.current?.contentWindow?.postMessage({ type: 'HSJD_BUSCAR', cedula: cedulaInput.trim() }, window.location.origin)
-    }
-  }
-
-  const guardarConsulta = () => {
-    if (!pacienteHC) return
-    setGuardando(true)
-    const consulta = {
-      fecha: new Date().toISOString().split('T')[0],
-      medico: displayName || 'Médico STIGA',
-      motivo: formConsulta.motivo,
-      hallazgos: formConsulta.hallazgos,
-      diagnostico: formConsulta.diagnostico,
-      medicamentos: formConsulta.medicamentos.filter(m => m.nombre.trim()),
-      recomendaciones: formConsulta.recomendaciones,
-      proximaCita: formConsulta.proximaCita,
-    }
-    hospitalIframe.current?.contentWindow?.postMessage({ type: 'HSJD_ACTUALIZAR', cedula: pacienteHC.cedula, consulta }, window.location.origin)
-  }
-
-  const agregarMed = () => setFormConsulta(f => ({ ...f, medicamentos: [...f.medicamentos, { nombre: '', dosis: '', frecuencia: '' }] }))
-  const quitarMed  = (i) => setFormConsulta(f => ({ ...f, medicamentos: f.medicamentos.filter((_, idx) => idx !== i) }))
-  const updateMed  = (i, k, v) => setFormConsulta(f => {
-    const meds = [...f.medicamentos]; meds[i] = { ...meds[i], [k]: v }; return { ...f, medicamentos: meds }
-  })
+  const abrirPanel = () => { setPanelOpen(true); fetchHistoria() }
 
   const cerrarPanel = () => {
     setPanelOpen(false)
-    setBusquedaState('idle')
-    setCedulaInput('')
-    setPacienteHC(null)
-    setExitoGuardado(false)
-    setFormConsulta({ motivo: '', hallazgos: '', diagnostico: '', medicamentos: [{ nombre: '', dosis: '', frecuencia: '' }], recomendaciones: '', proximaCita: '' })
+    setHcData(null)
+    setHcError('')
+    setMostrarNota(false)
+    setNotaForm({ titulo: '', contenido: '' })
+    setNotaExito(false)
   }
 
-  const calcEdad = (fecha) => {
-    const hoy = new Date(), nac = new Date(fecha)
-    let e = hoy.getFullYear() - nac.getFullYear()
-    if (hoy.getMonth() < nac.getMonth() || (hoy.getMonth() === nac.getMonth() && hoy.getDate() < nac.getDate())) e--
-    return e
+  const guardarNota = async () => {
+    if (!notaForm.titulo.trim() || !notaForm.contenido.trim()) return
+    setGuardandoNota(true)
+    try {
+      await client.post(`/medico/historia/${pacienteCedula}/nota`, notaForm)
+      setNotaForm({ titulo: '', contenido: '' })
+      setMostrarNota(false)
+      setNotaExito(true)
+      setTimeout(() => setNotaExito(false), 4000)
+      const { data } = await client.get(`/medico/historia/${pacienteCedula}`)
+      setHcData(data)
+    } catch {
+      // silently fail — the note already saved
+    } finally {
+      setGuardandoNota(false)
+    }
   }
 
   const dotColor = nivelColor || '#22c55e'
@@ -164,6 +131,7 @@ export default function JitsiMeeting({ roomId, displayName, onClose, pacienteNom
         @keyframes confirmIn { from{opacity:0;transform:scale(0.92)}to{opacity:1;transform:scale(1)} }
         @keyframes slideIn { from{transform:translateX(100%)}to{transform:translateX(0)} }
         @keyframes fadeUp { from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)} }
+        @keyframes spin { to{transform:rotate(360deg)} }
         .end-btn { display:flex;align-items:center;gap:0.45rem;background:rgba(220,50,50,0.12);border:1.5px solid rgba(220,50,50,0.25);color:#ff8080;border-radius:8px;padding:0.48rem 1rem;font-size:0.82rem;font-weight:700;cursor:pointer;transition:all 0.18s ease;font-family:inherit; }
         .end-btn:hover { background:rgba(220,50,50,0.22);border-color:rgba(220,50,50,0.45);color:#fca5a5; }
         .hc-btn { display:flex;align-items:center;gap:0.45rem;background:rgba(255,255,255,0.08);border:1.5px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.85);border-radius:8px;padding:0.48rem 1rem;font-size:0.82rem;font-weight:700;cursor:pointer;transition:all 0.18s ease;font-family:inherit; }
@@ -173,23 +141,21 @@ export default function JitsiMeeting({ roomId, displayName, onClose, pacienteNom
         .confirm-cancel:hover { border-color:#b0c8b8;background:#f8faf8; }
         .confirm-end { flex:1;background:#dc2626;border:none;border-radius:10px;padding:0.7rem;font-size:0.88rem;font-weight:700;color:white;cursor:pointer;transition:all 0.18s ease;font-family:inherit; }
         .confirm-end:hover { background:#b91c1c; }
-        .hc-panel { position:absolute;top:60px;right:0;bottom:0;width:480px;background:white;box-shadow:-8px 0 32px rgba(0,0,0,0.25);z-index:8;display:flex;flex-direction:column;animation:slideIn 0.32s cubic-bezier(0.4,0,0.2,1); }
+        .hc-panel { position:absolute;top:60px;right:0;bottom:0;width:520px;background:#eef2f7;box-shadow:-8px 0 32px rgba(0,0,0,0.3);z-index:8;display:flex;flex-direction:column;animation:slideIn 0.32s cubic-bezier(0.4,0,0.2,1); }
         @media(max-width:600px){.hc-panel{width:100%;}}
-        .hc-inp { width:100%;border:1.5px solid #e2e8f0;border-radius:9px;padding:0.65rem 0.9rem;font-size:0.88rem;font-family:inherit;color:#1e293b;transition:border-color 0.2s;background:#f8fafc; }
-        .hc-inp:focus { outline:none;border-color:#1a56a0;box-shadow:0 0 0 3px rgba(26,86,160,0.1);background:white; }
-        .hc-inp::placeholder { color:#94a3b8; }
-        .btn-hcp { display:inline-flex;align-items:center;gap:0.4rem;border:none;border-radius:9px;padding:0.65rem 1.1rem;font-size:0.85rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all 0.18s ease; }
-        .btn-hcp:disabled { opacity:0.55;cursor:wait; }
-        .tag-r { display:inline-block;padding:0.18rem 0.6rem;border-radius:20px;font-size:0.72rem;font-weight:600;background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;margin:2px; }
-        .tag-b { display:inline-block;padding:0.18rem 0.6rem;border-radius:20px;font-size:0.72rem;font-weight:600;background:#dbeafe;color:#1e40af;border:1px solid #93c5fd;margin:2px; }
-        .hc-section { font-size:0.7rem;font-weight:800;color:#1a56a0;text-transform:uppercase;letter-spacing:1px;padding:0.85rem 1.25rem 0.4rem;border-top:1px solid #f1f5f9;margin-top:0.5rem; }
-        .consulta-prev { background:#f8fafc;border:1px solid #e2e8f0;border-left:3px solid #1a56a0;border-radius:8px;padding:0.85rem 1rem;margin:0 1.25rem 0.65rem;font-size:0.82rem; }
-        .consulta-stiga { border-left-color:#059669;background:#f0fdf4; }
-        .spinner { width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin 0.7s linear infinite; }
-        @keyframes spin{to{transform:rotate(360deg)}}
+        .doc-section-title { font-size:0.65rem;font-weight:800;color:#1a56a0;text-transform:uppercase;letter-spacing:1.5px;margin:0 0 0.75rem;display:flex;align-items:center;gap:0.45rem; }
+        .doc-section-title::after { content:'';flex:1;height:1px;background:#dce8f5; }
+        .vital-chip { background:#f0f6ff;border:1px solid #c7ddf7;border-radius:6px;padding:0.35rem 0.6rem;font-size:0.75rem;color:#1e3a5f; }
+        .vital-val { font-weight:700;color:#0f2a4a; }
+        .nota-card { background:white;border:1px solid #e2e8f0;border-left:3px solid #1a56a0;border-radius:8px;padding:0.9rem 1rem;margin-bottom:0.65rem; }
+        .hc-inp { width:100%;border:1.5px solid #d1dae6;border-radius:8px;padding:0.6rem 0.85rem;font-size:0.85rem;font-family:inherit;color:#1e293b;background:white;transition:border-color 0.18s;outline:none; }
+        .hc-inp:focus { border-color:#1a56a0;box-shadow:0 0 0 3px rgba(26,86,160,0.1); }
+        .btn-nota { display:flex;align-items:center;gap:0.4rem;border:none;border-radius:8px;padding:0.6rem 1.1rem;font-size:0.83rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all 0.18s; }
+        .btn-nota:disabled { opacity:0.5;cursor:not-allowed; }
+        .spinner { width:14px;height:14px;border:2px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin 0.7s linear infinite; }
       `}</style>
 
-      {/* ── Header ── */}
+      {/* Header */}
       <div style={{ height:'60px', flexShrink:0, background:'linear-gradient(135deg,#060f09,#1a3a2e)', display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 1.5rem', borderBottom:'1px solid rgba(255,255,255,0.06)' }}>
         <div style={{ display:'flex', alignItems:'center', gap:'0.85rem' }}>
           <div style={{ width:'32px', height:'32px', flexShrink:0, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:'9px', display:'flex', alignItems:'center', justifyContent:'center' }}>
@@ -217,9 +183,8 @@ export default function JitsiMeeting({ roomId, displayName, onClose, pacienteNom
         </div>
 
         <div style={{ display:'flex', alignItems:'center', gap:'0.75rem' }}>
-          {/* Botón Historia clínica — solo médico */}
           {isDoctor && (
-            <button className={`hc-btn${panelOpen ? ' active' : ''}`} onClick={() => panelOpen ? cerrarPanel() : setPanelOpen(true)}>
+            <button className={`hc-btn${panelOpen ? ' active' : ''}`} onClick={() => panelOpen ? cerrarPanel() : abrirPanel()}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
               Historia clínica
             </button>
@@ -231,29 +196,21 @@ export default function JitsiMeeting({ roomId, displayName, onClose, pacienteNom
         </div>
       </div>
 
-      {/* ── Jitsi ── */}
+      {/* Jitsi */}
       <div ref={containerRef} style={{ flex:1 }} />
 
-      {/* ── iframe oculto del hospital ── */}
-      <iframe
-        ref={hospitalIframe}
-        src="/hospital/index.html"
-        style={{ display:'none' }}
-        onLoad={() => setIframeReady(true)}
-        title="Hospital HSJD"
-      />
-
-      {/* ── Panel Historia Clínica ── */}
+      {/* Panel Historia Clínica */}
       {panelOpen && (
         <div className="hc-panel">
-          {/* Cabecera panel */}
-          <div style={{ background:'linear-gradient(135deg,#123e7a,#1a56a0)', padding:'1.1rem 1.25rem', display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 }}>
+
+          {/* Cabecera del panel */}
+          <div style={{ background:'linear-gradient(135deg,#0f2a4a,#1a56a0)', padding:'1rem 1.25rem', display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 }}>
             <div style={{ display:'flex', alignItems:'center', gap:'0.65rem' }}>
               <div style={{ width:'32px', height:'32px', background:'rgba(255,255,255,0.12)', borderRadius:'8px', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
               </div>
               <div>
-                <p style={{ margin:0, color:'rgba(255,255,255,0.45)', fontSize:'0.65rem', textTransform:'uppercase', letterSpacing:'1px' }}>Hospital San Juan de Dios</p>
+                <p style={{ margin:0, color:'rgba(255,255,255,0.5)', fontSize:'0.65rem', textTransform:'uppercase', letterSpacing:'1px' }}>STIGA TeleTriaje</p>
                 <p style={{ margin:0, color:'white', fontWeight:'700', fontSize:'0.9rem' }}>Historia Clínica</p>
               </div>
             </div>
@@ -262,232 +219,203 @@ export default function JitsiMeeting({ roomId, displayName, onClose, pacienteNom
             </button>
           </div>
 
-          {/* Búsqueda */}
-          <div style={{ padding:'1rem 1.25rem', borderBottom:'1px solid #f1f5f9', flexShrink:0 }}>
-            <label style={{ fontSize:'0.72rem', fontWeight:'700', color:'#475569', textTransform:'uppercase', letterSpacing:'0.5px', display:'block', marginBottom:'0.5rem' }}>Cédula del paciente</label>
-            <div style={{ display:'flex', gap:'0.5rem' }}>
-              <input
-                className="hc-inp"
-                placeholder="Ingrese el número de cédula…"
-                value={cedulaInput}
-                onChange={e => setCedulaInput(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && buscarPaciente()}
-              />
-              <button
-                className="btn-hcp"
-                style={{ background:'#1a56a0', color:'white', flexShrink:0 }}
-                onClick={buscarPaciente}
-                disabled={busquedaState === 'buscando' || !cedulaInput.trim()}
-              >
-                {busquedaState === 'buscando' ? <div className="spinner" /> : (
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                )}
-                {busquedaState === 'buscando' ? 'Buscando…' : 'Buscar'}
-              </button>
-            </div>
-            {busquedaState === 'no_encontrado' && (
-              <p style={{ margin:'0.6rem 0 0', fontSize:'0.8rem', color:'#dc2626', display:'flex', alignItems:'center', gap:'0.4rem' }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                Paciente no encontrado en el sistema del hospital.
-              </p>
-            )}
-          </div>
+          {/* Cuerpo scrollable */}
+          <div style={{ flex:1, overflowY:'auto', padding:'1rem' }}>
 
-          {/* Contenido scrollable */}
-          <div style={{ flex:1, overflowY:'auto' }}>
-
-            {/* Estado vacío */}
-            {busquedaState === 'idle' && (
-              <div style={{ padding:'2.5rem 1.5rem', textAlign:'center' }}>
-                <div style={{ width:'56px', height:'56px', background:'#eff6ff', borderRadius:'14px', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 1rem' }}>
-                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#1a56a0" strokeWidth="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-                </div>
-                <p style={{ margin:0, fontWeight:'600', color:'#1e293b', fontSize:'0.9rem' }}>Consultar historia clínica</p>
-                <p style={{ margin:'0.4rem 0 0', color:'#94a3b8', fontSize:'0.8rem', lineHeight:1.6 }}>Ingresa la cédula del paciente para acceder a su historia clínica en el Hospital San Juan de Dios.</p>
+            {hcLoading && (
+              <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:'3rem 1rem', gap:'0.75rem' }}>
+                <div style={{ width:'32px', height:'32px', border:'3px solid #c7ddf7', borderTopColor:'#1a56a0', borderRadius:'50%', animation:'spin 0.8s linear infinite' }} />
+                <p style={{ margin:0, color:'#64748b', fontSize:'0.84rem' }}>Cargando historia clínica…</p>
               </div>
             )}
 
-            {/* Paciente encontrado */}
-            {busquedaState === 'encontrado' && pacienteHC && !exitoGuardado && (
+            {hcError && !hcLoading && (
+              <div style={{ background:'#fef2f2', border:'1px solid #fecaca', borderRadius:'10px', padding:'1rem', margin:'0.5rem 0', color:'#dc2626', fontSize:'0.84rem', textAlign:'center' }}>
+                {hcError}
+              </div>
+            )}
+
+            {hcData && !hcLoading && (
               <div style={{ animation:'fadeUp 0.3s ease' }}>
 
-                {/* Datos personales */}
-                <div style={{ background:'#1a56a0', padding:'1rem 1.25rem' }}>
-                  <p style={{ margin:0, color:'rgba(255,255,255,0.6)', fontSize:'0.7rem', textTransform:'uppercase', letterSpacing:'1px' }}>Paciente encontrado</p>
-                  <p style={{ margin:'2px 0 0', color:'white', fontWeight:'800', fontSize:'1rem' }}>{pacienteHC.nombre}</p>
-                  <p style={{ margin:'2px 0 0', color:'rgba(255,255,255,0.55)', fontSize:'0.78rem' }}>C.C. {pacienteHC.cedula} · {pacienteHC.municipio}</p>
-                </div>
+                {/* Documento — imita una hoja de papel */}
+                <div style={{ background:'white', borderRadius:'8px', boxShadow:'0 2px 12px rgba(0,0,0,0.1), 0 0 0 1px rgba(0,0,0,0.05)', overflow:'hidden', marginBottom:'1rem' }}>
 
-                <div style={{ padding:'0.85rem 1.25rem', background:'#f8fafc', borderBottom:'1px solid #e2e8f0' }}>
-                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'0.65rem' }}>
-                    {[
-                      ['Edad', calcEdad(pacienteHC.fechaNacimiento) + ' años'],
-                      ['Sexo', pacienteHC.sexo === 'F' ? 'Femenino' : 'Masculino'],
-                      ['Grupo sanguíneo', pacienteHC.grupoSanguineo],
-                      ['Teléfono', pacienteHC.telefono],
-                    ].map(([l, v]) => (
-                      <div key={l}>
-                        <p style={{ margin:0, fontSize:'0.68rem', color:'#94a3b8', textTransform:'uppercase', letterSpacing:'0.5px' }}>{l}</p>
-                        <p style={{ margin:'1px 0 0', fontSize:'0.84rem', fontWeight:'600', color:'#1e293b' }}>{v}</p>
+                  {/* Membrete del documento */}
+                  <div style={{ background:'linear-gradient(135deg,#0f2a4a,#1e3f6e)', padding:'1.25rem 1.5rem', display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
+                    <div>
+                      <div style={{ display:'flex', alignItems:'center', gap:'0.5rem', marginBottom:'0.3rem' }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2L3 7v10l9 5 9-5V7L12 2z" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5" fill="none"/><path d="M12 8v8M8 12h8" stroke="#7ac896" strokeWidth="2" strokeLinecap="round"/></svg>
+                        <span style={{ color:'rgba(255,255,255,0.5)', fontSize:'0.65rem', fontWeight:'700', letterSpacing:'2px', textTransform:'uppercase' }}>STIGA</span>
                       </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Alergias */}
-                <p className="hc-section">⚠ Alergias</p>
-                <div style={{ padding:'0 1.25rem 0.5rem' }}>
-                  {pacienteHC.alergias.length
-                    ? pacienteHC.alergias.map(a => <span key={a} className="tag-r">{a}</span>)
-                    : <span style={{ color:'#94a3b8', fontSize:'0.82rem' }}>Sin alergias conocidas</span>}
-                </div>
-
-                {/* Enfermedades crónicas */}
-                <p className="hc-section">Enfermedades crónicas</p>
-                <div style={{ padding:'0 1.25rem 0.5rem' }}>
-                  {pacienteHC.enfermedadesCronicas.length
-                    ? pacienteHC.enfermedadesCronicas.map(e => <span key={e} className="tag-b">{e}</span>)
-                    : <span style={{ color:'#94a3b8', fontSize:'0.82rem' }}>Ninguna registrada</span>}
-                </div>
-
-                {/* Medicamentos actuales */}
-                <p className="hc-section">Medicamentos actuales</p>
-                <div style={{ padding:'0 1.25rem 0.5rem' }}>
-                  {pacienteHC.medicamentosActuales.length ? pacienteHC.medicamentosActuales.map((m, i) => (
-                    <div key={i} style={{ background:'white', border:'1px solid #e2e8f0', borderRadius:'8px', padding:'0.65rem 0.85rem', marginBottom:'0.45rem', fontSize:'0.82rem' }}>
-                      <strong style={{ color:'#1e293b' }}>{m.nombre}</strong>
-                      <span style={{ color:'#475569', marginLeft:'6px' }}>{m.dosis} · {m.frecuencia}</span>
+                      <p style={{ margin:0, color:'white', fontWeight:'800', fontSize:'1rem' }}>Historia Clínica</p>
+                      <p style={{ margin:'2px 0 0', color:'rgba(255,255,255,0.45)', fontSize:'0.72rem' }}>Sistema de Triaje Inteligente para Gestión Asistencial</p>
                     </div>
-                  )) : <span style={{ color:'#94a3b8', fontSize:'0.82rem' }}>Sin medicación actual</span>}
-                </div>
-
-                {/* Consultas previas */}
-                <p className="hc-section">Consultas previas ({pacienteHC.consultasPrevias.length})</p>
-                {[...pacienteHC.consultasPrevias].reverse().slice(0, 3).map((c, i) => (
-                  <div key={i} className="consulta-prev">
-                    <div style={{ display:'flex', justifyContent:'space-between', marginBottom:'0.3rem' }}>
-                      <span style={{ fontWeight:'700', color:'#1e293b', fontSize:'0.82rem' }}>{c.medico}</span>
-                      <span style={{ color:'#94a3b8', fontSize:'0.75rem' }}>{c.fecha}</span>
+                    <div style={{ textAlign:'right' }}>
+                      <p style={{ margin:0, color:'rgba(255,255,255,0.4)', fontSize:'0.65rem', textTransform:'uppercase', letterSpacing:'0.5px' }}>Fecha de consulta</p>
+                      <p style={{ margin:'2px 0 0', color:'white', fontWeight:'600', fontSize:'0.8rem' }}>{new Date().toLocaleDateString('es-CO', { day:'2-digit', month:'long', year:'numeric' })}</p>
                     </div>
-                    <p style={{ margin:0, color:'#475569', fontSize:'0.8rem' }}><strong>Dx:</strong> {c.diagnostico}</p>
                   </div>
-                ))}
 
-                {/* Teleconsultas STIGA previas */}
-                {(pacienteHC.consultasStiga || []).length > 0 && (
-                  <>
-                    <p className="hc-section" style={{ color:'#059669' }}>Teleconsultas STIGA ({pacienteHC.consultasStiga.length})</p>
-                    {[...pacienteHC.consultasStiga].reverse().slice(0, 2).map((c, i) => (
-                      <div key={i} className="consulta-prev consulta-stiga">
-                        <div style={{ display:'flex', justifyContent:'space-between', marginBottom:'0.3rem' }}>
-                          <span style={{ fontWeight:'700', color:'#1e293b', fontSize:'0.82rem' }}>{c.medico}</span>
-                          <span style={{ color:'#94a3b8', fontSize:'0.75rem' }}>{c.fecha}</span>
-                        </div>
-                        <p style={{ margin:0, color:'#475569', fontSize:'0.8rem' }}><strong>Dx:</strong> {c.diagnostico}</p>
-                      </div>
-                    ))}
-                  </>
-                )}
-
-                {/* ── Formulario nueva consulta ── */}
-                <div style={{ margin:'0.75rem 1.25rem', background:'white', border:'1.5px solid #dbeafe', borderRadius:'12px', overflow:'hidden' }}>
-                  <div style={{ background:'#eff6ff', padding:'0.85rem 1rem', borderBottom:'1px solid #dbeafe' }}>
-                    <p style={{ margin:0, fontWeight:'700', color:'#1e40af', fontSize:'0.84rem' }}>Nueva consulta</p>
-                    <p style={{ margin:0, color:'#64748b', fontSize:'0.75rem' }}>Completar al finalizar la teleconsulta</p>
-                  </div>
-                  <div style={{ padding:'1rem' }}>
-                    {[
-                      ['motivo', 'Motivo de consulta *', 'Ej. Dolor abdominal de 3 días de evolución'],
-                      ['hallazgos', 'Hallazgos clínicos', 'Ej. Abdomen blando, dolor en FID…'],
-                      ['diagnostico', 'Diagnóstico *', 'Ej. Apendicitis aguda probable'],
-                      ['recomendaciones', 'Recomendaciones', 'Ej. Reposo, hidratación, acudir a urgencias si…'],
-                    ].map(([key, label, ph]) => (
-                      <div key={key} style={{ marginBottom:'0.75rem' }}>
-                        <label style={{ fontSize:'0.72rem', fontWeight:'600', color:'#475569', display:'block', marginBottom:'0.3rem' }}>{label}</label>
-                        <textarea
-                          className="hc-inp"
-                          rows={2}
-                          style={{ resize:'vertical', minHeight:'52px' }}
-                          placeholder={ph}
-                          value={formConsulta[key]}
-                          onChange={e => setFormConsulta(f => ({ ...f, [key]: e.target.value }))}
-                        />
-                      </div>
-                    ))}
-
-                    {/* Medicamentos recetados */}
-                    <div style={{ marginBottom:'0.75rem' }}>
-                      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'0.4rem' }}>
-                        <label style={{ fontSize:'0.72rem', fontWeight:'600', color:'#475569' }}>Medicamentos recetados</label>
-                        <button onClick={agregarMed} style={{ background:'none', border:'none', color:'#1a56a0', fontSize:'0.75rem', fontWeight:'700', cursor:'pointer', padding:'0', fontFamily:'inherit' }}>+ Agregar</button>
-                      </div>
-                      {formConsulta.medicamentos.map((m, i) => (
-                        <div key={i} style={{ display:'grid', gridTemplateColumns:'2fr 1fr 1.5fr 24px', gap:'0.4rem', marginBottom:'0.4rem', alignItems:'center' }}>
-                          <input className="hc-inp" placeholder="Medicamento" value={m.nombre} onChange={e => updateMed(i,'nombre',e.target.value)} style={{ fontSize:'0.78rem', padding:'0.45rem 0.7rem' }} />
-                          <input className="hc-inp" placeholder="Dosis" value={m.dosis} onChange={e => updateMed(i,'dosis',e.target.value)} style={{ fontSize:'0.78rem', padding:'0.45rem 0.7rem' }} />
-                          <input className="hc-inp" placeholder="Frecuencia" value={m.frecuencia} onChange={e => updateMed(i,'frecuencia',e.target.value)} style={{ fontSize:'0.78rem', padding:'0.45rem 0.7rem' }} />
-                          {formConsulta.medicamentos.length > 1 && (
-                            <button onClick={() => quitarMed(i)} style={{ background:'none', border:'none', color:'#dc2626', cursor:'pointer', padding:'0', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                            </button>
-                          )}
+                  {/* Datos del paciente */}
+                  <div style={{ padding:'1.25rem 1.5rem', borderBottom:'1px solid #e8eef5' }}>
+                    <p className="doc-section-title">Datos del paciente</p>
+                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'0.7rem' }}>
+                      {[
+                        ['Nombre completo', hcData.perfil.nombre || '—'],
+                        ['Cédula',          hcData.perfil.cedula || '—'],
+                        ['EPS',             hcData.perfil.eps    || '—'],
+                        ['Municipio',       hcData.perfil.ciudad || '—'],
+                        ['Teléfono',        hcData.perfil.telefono || '—'],
+                        ['Correo',          hcData.perfil.email || '—'],
+                      ].map(([l, v]) => (
+                        <div key={l}>
+                          <p style={{ margin:0, fontSize:'0.65rem', color:'#94a3b8', textTransform:'uppercase', letterSpacing:'0.5px', fontWeight:'600' }}>{l}</p>
+                          <p style={{ margin:'2px 0 0', fontSize:'0.83rem', fontWeight:'600', color:'#1e293b' }}>{v}</p>
                         </div>
                       ))}
                     </div>
+                  </div>
 
-                    {/* Próxima cita */}
-                    <div style={{ marginBottom:'0.75rem' }}>
-                      <label style={{ fontSize:'0.72rem', fontWeight:'600', color:'#475569', display:'block', marginBottom:'0.3rem' }}>Próxima cita sugerida</label>
-                      <input className="hc-inp" type="date" value={formConsulta.proximaCita} onChange={e => setFormConsulta(f => ({ ...f, proximaCita: e.target.value }))} />
-                    </div>
+                  {/* Triajes registrados */}
+                  <div style={{ padding:'1.25rem 1.5rem', borderBottom:'1px solid #e8eef5' }}>
+                    <p className="doc-section-title">Triajes registrados ({hcData.triajes.length})</p>
+                    {hcData.triajes.length === 0 ? (
+                      <p style={{ margin:0, color:'#94a3b8', fontSize:'0.82rem' }}>Sin triajes registrados.</p>
+                    ) : hcData.triajes.map((t, i) => {
+                      const dot  = NIVEL_DOT[t.triage_color]  || '#22c55e'
+                      const bg   = NIVEL_BG[t.triage_color]   || '#f0fdf4'
+                      const txt  = NIVEL_TEXT[t.triage_color] || '#15803d'
+                      return (
+                        <div key={t.id || i} style={{ background:'#f8fafc', border:'1px solid #e2e8f0', borderLeft:`3px solid ${dot}`, borderRadius:'8px', padding:'0.85rem 1rem', marginBottom:'0.65rem' }}>
+                          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'0.5rem' }}>
+                            <span style={{ background:bg, color:txt, fontSize:'0.7rem', fontWeight:'800', padding:'0.15rem 0.6rem', borderRadius:'20px', border:`1px solid ${dot}40` }}>
+                              {t.triage_color || 'Verde'}
+                            </span>
+                            <span style={{ color:'#94a3b8', fontSize:'0.72rem' }}>{fmtFecha(t.timestamp)} {fmtHora(t.timestamp)}</span>
+                          </div>
+                          {t.symptoms && (
+                            <p style={{ margin:'0 0 0.5rem', fontSize:'0.8rem', color:'#334155', fontStyle:'italic' }}>"{t.symptoms}"</p>
+                          )}
+                          <div style={{ display:'flex', flexWrap:'wrap', gap:'0.35rem' }}>
+                            {t.heart_rate      != null && <span className="vital-chip">FC: <span className="vital-val">{t.heart_rate} lpm</span></span>}
+                            {t.systolic_bp     != null && <span className="vital-chip">PAS: <span className="vital-val">{t.systolic_bp} mmHg</span></span>}
+                            {t.o2_sat          != null && <span className="vital-chip">SpO₂: <span className="vital-val">{t.o2_sat}%</span></span>}
+                            {t.body_temp       != null && <span className="vital-chip">Temp: <span className="vital-val">{t.body_temp}°C</span></span>}
+                            {t.respiratory_rate!= null && <span className="vital-chip">FR: <span className="vital-val">{t.respiratory_rate} rpm</span></span>}
+                            {t.pain_scale      != null && <span className="vital-chip">Dolor: <span className="vital-val">{t.pain_scale}/10</span></span>}
+                            {t.glucose         != null && <span className="vital-chip">Glucosa: <span className="vital-val">{t.glucose} mg/dL</span></span>}
+                          </div>
+                          {t.confianza != null && (
+                            <p style={{ margin:'0.45rem 0 0', fontSize:'0.7rem', color:'#94a3b8' }}>
+                              Confianza IA: <strong>{Math.round(t.confianza * 100)}%</strong>
+                              {t.escalado ? <span style={{ marginLeft:'0.5rem', color:'#dc2626', fontWeight:'700' }}>· Escalado SIRS</span> : null}
+                            </p>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
 
-                    {/* Botón guardar */}
-                    <button
-                      className="btn-hcp"
-                      style={{ width:'100%', background: guardando ? '#64748b' : '#16a34a', color:'white', justifyContent:'center', marginTop:'0.25rem' }}
-                      onClick={guardarConsulta}
-                      disabled={guardando || !formConsulta.motivo.trim() || !formConsulta.diagnostico.trim()}
-                    >
-                      {guardando ? <><div className="spinner" />Guardando…</> : (
-                        <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>Guardar en historia clínica</>
-                      )}
-                    </button>
-                    {(!formConsulta.motivo.trim() || !formConsulta.diagnostico.trim()) && (
-                      <p style={{ margin:'0.4rem 0 0', fontSize:'0.72rem', color:'#94a3b8', textAlign:'center' }}>Completa el motivo y diagnóstico para guardar.</p>
+                  {/* Notas médicas */}
+                  <div style={{ padding:'1.25rem 1.5rem' }}>
+                    <p className="doc-section-title">Notas médicas ({hcData.notas.length})</p>
+
+                    {notaExito && (
+                      <div style={{ background:'#f0fdf4', border:'1px solid #bbf7d0', borderRadius:'8px', padding:'0.65rem 0.9rem', marginBottom:'0.75rem', display:'flex', alignItems:'center', gap:'0.5rem', animation:'fadeUp 0.3s ease' }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span style={{ fontSize:'0.82rem', color:'#15803d', fontWeight:'600' }}>Nota guardada correctamente.</span>
+                      </div>
+                    )}
+
+                    {hcData.notas.length === 0 && (
+                      <p style={{ margin:'0 0 0.75rem', color:'#94a3b8', fontSize:'0.82rem' }}>Sin notas registradas aún.</p>
+                    )}
+
+                    {hcData.notas.map((n, i) => (
+                      <div key={n.id || i} className="nota-card">
+                        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:'0.35rem' }}>
+                          <p style={{ margin:0, fontWeight:'700', color:'#1e293b', fontSize:'0.84rem' }}>{n.titulo}</p>
+                          <span style={{ color:'#94a3b8', fontSize:'0.7rem', flexShrink:0, marginLeft:'0.5rem' }}>{fmtFecha(n.created_at)}</span>
+                        </div>
+                        {n.medico_nombre && (
+                          <p style={{ margin:'0 0 0.4rem', fontSize:'0.7rem', color:'#64748b' }}>Dr(a). {n.medico_nombre}</p>
+                        )}
+                        <p style={{ margin:0, fontSize:'0.82rem', color:'#334155', lineHeight:1.6, whiteSpace:'pre-wrap' }}>{n.contenido}</p>
+                      </div>
+                    ))}
+
+                    {/* Agregar nota */}
+                    {!mostrarNota ? (
+                      <button
+                        onClick={() => setMostrarNota(true)}
+                        style={{ display:'flex', alignItems:'center', gap:'0.4rem', background:'none', border:'1.5px dashed #c7ddf7', borderRadius:'8px', padding:'0.6rem 1rem', color:'#1a56a0', fontSize:'0.82rem', fontWeight:'700', cursor:'pointer', width:'100%', justifyContent:'center', transition:'all 0.18s', fontFamily:'inherit' }}
+                      >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        Agregar nota médica
+                      </button>
+                    ) : (
+                      <div style={{ background:'#f0f6ff', border:'1.5px solid #c7ddf7', borderRadius:'10px', padding:'1rem', animation:'fadeUp 0.25s ease' }}>
+                        <p style={{ margin:'0 0 0.75rem', fontWeight:'700', color:'#1a3a6e', fontSize:'0.84rem' }}>Nueva nota médica</p>
+                        <div style={{ marginBottom:'0.6rem' }}>
+                          <label style={{ fontSize:'0.7rem', fontWeight:'600', color:'#475569', display:'block', marginBottom:'0.3rem', textTransform:'uppercase', letterSpacing:'0.5px' }}>Título</label>
+                          <input
+                            className="hc-inp"
+                            placeholder="Ej: Diagnóstico, Evolución, Prescripción…"
+                            value={notaForm.titulo}
+                            onChange={e => setNotaForm(f => ({ ...f, titulo: e.target.value }))}
+                          />
+                        </div>
+                        <div style={{ marginBottom:'0.75rem' }}>
+                          <label style={{ fontSize:'0.7rem', fontWeight:'600', color:'#475569', display:'block', marginBottom:'0.3rem', textTransform:'uppercase', letterSpacing:'0.5px' }}>Contenido</label>
+                          <textarea
+                            className="hc-inp"
+                            rows={4}
+                            style={{ resize:'vertical', minHeight:'80px' }}
+                            placeholder="Hallazgos, diagnóstico, indicaciones, medicamentos…"
+                            value={notaForm.contenido}
+                            onChange={e => setNotaForm(f => ({ ...f, contenido: e.target.value }))}
+                          />
+                        </div>
+                        <div style={{ display:'flex', gap:'0.5rem' }}>
+                          <button
+                            className="btn-nota"
+                            style={{ background:'#1a56a0', color:'white', flex:1, justifyContent:'center' }}
+                            onClick={guardarNota}
+                            disabled={guardandoNota || !notaForm.titulo.trim() || !notaForm.contenido.trim()}
+                          >
+                            {guardandoNota
+                              ? <><div className="spinner" />Guardando…</>
+                              : <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>Guardar nota</>
+                            }
+                          </button>
+                          <button
+                            className="btn-nota"
+                            style={{ background:'white', border:'1.5px solid #d1dae6', color:'#64748b' }}
+                            onClick={() => { setMostrarNota(false); setNotaForm({ titulo:'', contenido:'' }) }}
+                          >
+                            Cancelar
+                          </button>
+                        </div>
+                      </div>
                     )}
                   </div>
                 </div>
-                <div style={{ height:'1.5rem' }} />
+
               </div>
             )}
-
-            {/* Éxito guardado */}
-            {exitoGuardado && (
-              <div style={{ padding:'3rem 1.5rem', textAlign:'center', animation:'fadeUp 0.3s ease' }}>
-                <div style={{ width:'64px', height:'64px', background:'#f0fdf4', border:'2px solid #bbf7d0', borderRadius:'18px', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 1.25rem' }}>
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                </div>
-                <p style={{ margin:0, fontWeight:'800', color:'#15803d', fontSize:'1rem' }}>Historia clínica actualizada</p>
-                <p style={{ margin:'0.5rem 0 0', color:'#475569', fontSize:'0.84rem', lineHeight:1.6 }}>
-                  La consulta fue guardada correctamente en el<br />
-                  <strong>Hospital San Juan de Dios</strong>.
-                </p>
-                <p style={{ margin:'1rem 0 0', color:'#94a3b8', fontSize:'0.78rem' }}>El panel se cerrará automáticamente…</p>
-              </div>
-            )}
-
           </div>
         </div>
       )}
 
-      {/* ── Confirmación terminar consulta ── */}
+      {/* Confirmación terminar consulta */}
       {showConfirm && (
         <div style={{ position:'absolute', inset:0, zIndex:10, background:'rgba(0,0,0,0.72)', display:'flex', alignItems:'center', justifyContent:'center', backdropFilter:'blur(6px)' }}>
           <div style={{ background:'white', borderRadius:'22px', padding:'2.25rem 2.5rem', maxWidth:'370px', width:'90%', animation:'confirmIn 0.28s cubic-bezier(0.34,1.56,0.64,1)', textAlign:'center', boxShadow:'0 24px 64px rgba(0,0,0,0.4)' }}>
             <div style={{ width:'56px', height:'56px', background:'#fef2f2', borderRadius:'16px', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 1.5rem' }}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.93 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.86 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 8.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
             </div>
-            <h3 style={{ margin:'0 0 0.6rem', fontSize:'1.08rem', fontWeight:'700', color:'#0f2318' }}>¿Está seguro que desea terminar la consulta?</h3>
+            <h3 style={{ margin:'0 0 0.6rem', fontSize:'1.08rem', fontWeight:'700', color:'#0f2318' }}>¿Terminar la consulta?</h3>
             <p style={{ margin:'0 0 1.75rem', color:'#6a8070', fontSize:'0.88rem', lineHeight:1.55 }}>
               {pacienteNombre ? `${pacienteNombre} será desconectado/a de la sala.` : 'El paciente será desconectado de la sala.'}{' '}Esta acción no se puede deshacer.
             </p>
