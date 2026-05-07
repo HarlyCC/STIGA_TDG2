@@ -54,6 +54,19 @@ def list_for_medico(medico_email: str) -> list:
         ).fetchall()
 
 
+def list_patients_for_medico(medico_email: str) -> list:
+    with get_conn() as conn:
+        return conn.execute(
+            """SELECT DISTINCT u.nombre, u.cedula, u.ciudad, u.telefono,
+                      u.email AS paciente_email
+               FROM citas c
+               JOIN users u ON u.email = c.paciente_email
+               WHERE c.medico_email = ?
+               ORDER BY u.nombre""",
+            (medico_email,),
+        ).fetchall()
+
+
 def find_by_id(cita_id: int):
     with get_conn() as conn:
         return conn.execute("SELECT * FROM citas WHERE id = ?", (cita_id,)).fetchone()
