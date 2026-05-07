@@ -90,7 +90,7 @@ export default function Login() {
 
   return (
     <div style={{
-      height: '100vh', display: 'flex',
+      height: '100vh', display: 'flex', overflow: 'hidden',
       fontFamily: "'Segoe UI', -apple-system, sans-serif",
     }}>
 
