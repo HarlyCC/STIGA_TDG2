@@ -617,6 +617,19 @@ export default function AdminDashboard() {
 
     // Valle de Aburrá adicionales
     'Sabaneta':                [6.150, -75.617],
+
+    // Urabá
+    'Turbo':                   [8.100, -76.733],
+    'Apartadó':                [7.883, -76.633],
+    'Chigorodó':               [7.667, -76.683],
+    'Carepa':                  [7.750, -76.650],
+    'Mutatá':                  [7.233, -76.433],
+    'Necoclí':                 [8.433, -76.783],
+    'Arboletes':               [8.850, -76.433],
+    'San Juan de Urabá':       [8.750, -76.533],
+    'San Pedro de Urabá':      [8.283, -76.383],
+    'Vigía del Fuerte':        [6.917, -76.883],
+    'Murindó':                 [6.983, -76.733],
   }
 
   const mapaPoints = (() => {
