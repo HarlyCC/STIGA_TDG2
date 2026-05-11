@@ -67,13 +67,16 @@ export default function DoctorDashboard() {
   const [activePaciente, setActivePaciente] = useState(null)
   const [pacientes, setPacientes] = useState([])
   const [loadingData, setLoadingData] = useState(true)
+  const [errorData, setErrorData] = useState(false)
+  const [errorConsulta, setErrorConsulta] = useState('')
   const [fichaAbierta, setFichaAbierta] = useState(null)
 
   const fetchPacientes = () => {
     setLoadingData(true)
+    setErrorData(false)
     client.get('/medico/pacientes')
-      .then(({ data }) => setPacientes((data.items ?? data).map(mapRecord)))
-      .catch((e) => { console.error('Error cargando pacientes:', e) })
+      .then(({ data }) => { setPacientes((data.items ?? data).map(mapRecord)); setErrorData(false) })
+      .catch(() => setErrorData(true))
       .finally(() => setLoadingData(false))
   }
 
@@ -99,8 +102,9 @@ export default function DoctorDashboard() {
       setTransitPaciente(paciente)
       setTimeout(() => { setTransitPaciente(null); setShowMeeting(true) }, 2000)
     } catch (err) {
-      console.error('Error iniciando consulta:', err)
       setLoadingId(null)
+      setErrorConsulta('No se pudo iniciar la consulta. Verifica tu conexión e intenta de nuevo.')
+      setTimeout(() => setErrorConsulta(''), 5000)
     }
   }
 
@@ -422,9 +426,44 @@ export default function DoctorDashboard() {
           display: 'flex', flexDirection: 'column', gap: '0.75rem',
           animation: mounted ? 'fadeInUp 0.5s ease 0.25s both' : 'none'
         }}>
+          {errorConsulta && (
+            <div style={{
+              background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '12px',
+              padding: '0.75rem 1.1rem', display: 'flex', alignItems: 'center', gap: '0.65rem',
+              fontSize: '0.85rem', color: '#991b1b', marginBottom: '0.5rem'
+            }}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0 }}>
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              {errorConsulta}
+            </div>
+          )}
           {loadingData && (
             <div style={{ textAlign: 'center', padding: '2rem', color: '#aabcb0', fontSize: '0.9rem' }}>
               Cargando pacientes...
+            </div>
+          )}
+          {!loadingData && errorData && (
+            <div style={{
+              background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '14px',
+              padding: '2rem', textAlign: 'center'
+            }}>
+              <p style={{ margin: '0 0 0.75rem', color: '#991b1b', fontWeight: '600', fontSize: '0.9rem' }}>
+                No se pudo cargar la lista de pacientes
+              </p>
+              <p style={{ margin: '0 0 1rem', color: '#b91c1c', fontSize: '0.83rem' }}>
+                Verifica tu conexión e intenta de nuevo.
+              </p>
+              <button
+                onClick={fetchPacientes}
+                style={{
+                  background: '#1a3a2e', color: 'white', border: 'none',
+                  borderRadius: '8px', padding: '0.5rem 1.25rem',
+                  fontSize: '0.83rem', fontWeight: '600', cursor: 'pointer'
+                }}
+              >
+                Reintentar
+              </button>
             </div>
           )}
           {!loadingData && filtrados.map((p, i) => (
@@ -527,7 +566,7 @@ export default function DoctorDashboard() {
             </div>
           ))}
 
-          {!loadingData && filtrados.length === 0 && (
+          {!loadingData && !errorData && filtrados.length === 0 && (
             <div style={{
               textAlign: 'center', padding: '3rem',
               background: 'white', borderRadius: '14px',

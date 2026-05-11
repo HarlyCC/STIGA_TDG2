@@ -13,6 +13,8 @@ export default function PatientDashboard() {
   const [showMeeting, setShowMeeting] = useState(false)
   const [triajes, setTriajes] = useState([])
   const [citaConfirmada, setCitaConfirmada] = useState(null)
+  const [errorTriajes, setErrorTriajes] = useState(false)
+  const [errorCitas, setErrorCitas] = useState(false)
 
   const tips = [
     'Tomar entre 6 y 8 vasos de agua al día ayuda a prevenir infecciones y mejora la circulación.',
@@ -29,13 +31,16 @@ export default function PatientDashboard() {
     if (h < 12) setGreeting('Buenos días')
     else if (h < 18) setGreeting('Buenas tardes')
     else setGreeting('Buenas noches')
-    client.get('/medico/mis-triajes').then(({ data }) => setTriajes(data)).catch((e) => { console.error('Error cargando triajes:', e) })
+    client.get('/medico/mis-triajes')
+      .then(({ data }) => { setTriajes(data); setErrorTriajes(false) })
+      .catch(() => setErrorTriajes(true))
     const loadCita = () => client.get('/medico/mis-citas')
       .then(({ data }) => {
         const confirmadas = data.filter(c => c.status === 'confirmada')
         setCitaConfirmada(confirmadas[0] ?? null)
+        setErrorCitas(false)
       })
-      .catch((e) => { console.error('Error cargando citas:', e) })
+      .catch(() => setErrorCitas(true))
     loadCita()
     const interval = setInterval(loadCita, 5000)
     return () => { clearInterval(interval) }
@@ -309,6 +314,22 @@ export default function PatientDashboard() {
           </div>
           <AccessibilityMenu inline />
         </div>
+
+        {/* Banners de error */}
+        {(errorTriajes || errorCitas) && (
+          <div style={{
+            marginBottom: '1rem',
+            background: '#fef2f2', border: '1px solid #fecaca',
+            borderRadius: '12px', padding: '0.75rem 1.1rem',
+            display: 'flex', alignItems: 'center', gap: '0.65rem',
+            fontSize: '0.85rem', color: '#991b1b'
+          }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0 }}>
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            No se pudo cargar tu información. Verifica tu conexión e intenta recargar la página.
+          </div>
+        )}
 
         {/* Recomendación de hoy */}
         <div style={{ marginBottom: '1.5rem', animation: mounted ? 'fadeInUp 0.5s ease 0.1s both' : 'none' }}>
