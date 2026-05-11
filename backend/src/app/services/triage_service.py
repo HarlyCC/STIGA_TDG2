@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import HTTPException
 
@@ -23,7 +23,7 @@ def sync_forward(session_id: str, user_email: str,
     paciente_telefono = patient_data.get("telefono")
     paciente_direccion = patient_data.get("direccion")
     ciudad            = patient_data.get("ciudad")
-    timestamp         = datetime.now().isoformat()
+    timestamp         = datetime.now(timezone.utc).isoformat()
 
     triaje_id = triage_repository.insert_triage(
         session_id, timestamp, user_email, patient_data, triage_result

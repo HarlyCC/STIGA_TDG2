@@ -74,7 +74,7 @@ def delete_user(email: str, admin_email: str) -> dict:
 
 
 def approve_user(email: str, admin_email: str) -> dict:
-    user = user_repository.get_by_email(email)
+    user = user_repository.find_by_email(email)
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail="Usuario no encontrado.")

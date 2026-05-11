@@ -48,7 +48,7 @@ def list_for_medico(medico_email: str) -> list:
                FROM citas c
                LEFT JOIN users          u ON u.email = c.paciente_email
                LEFT JOIN triage_records t ON t.id    = c.triaje_id
-               WHERE c.status = 'pendiente' OR c.medico_email = ?
+               WHERE (c.status = 'pendiente' AND c.medico_email IS NULL) OR c.medico_email = ?
                ORDER BY c.creado_en DESC""",
             (medico_email,),
         ).fetchall()
@@ -108,6 +108,6 @@ def update_llamada(cita_id: int, medico_email: str, en_llamada: bool) -> int:
 def list_taken_slots(fecha: str) -> list:
     with get_conn() as conn:
         return conn.execute(
-            "SELECT hora_solicitada FROM citas WHERE fecha_solicitada = ? AND status != 'cancelada'",
+            "SELECT hora_solicitada FROM citas WHERE fecha_solicitada = ? AND status NOT IN ('cancelada', 'rechazada')",
             (fecha,),
         ).fetchall()

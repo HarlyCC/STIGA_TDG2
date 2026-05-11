@@ -177,7 +177,7 @@ export default function JitsiMeeting({ roomId, displayName, onClose, pacienteNom
       const { data } = await client.get(`/medico/historia/${pacienteCedula}`)
       setHcData(data)
     } catch {
-      // silently fail — note already saved
+      alert('No se pudo guardar la nota. Verifica tu conexión e intenta de nuevo.')
     } finally {
       setGuardandoNota(false)
     }

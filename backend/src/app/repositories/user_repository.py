@@ -206,11 +206,12 @@ def create_medico_from_solicitud(nombre: str, email: str, hashed_pw: str,
 
 
 def list_users(role, limit: int, offset: int) -> tuple:
-    conditions, params = [], []
+    conditions = ["(role != 'paciente' OR is_verified = 1)"]
+    params = []
     if role:
         conditions.append("role = ?")
         params.append(role)
-    where = f" WHERE {' AND '.join(conditions)}" if conditions else ""
+    where = f" WHERE {' AND '.join(conditions)}"
     query = f"""SELECT id, nombre, email, role, is_verified,
                        cedula, telefono, ciudad, created_at
                 FROM users{where}
