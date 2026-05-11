@@ -449,111 +449,162 @@ ${t.confianza!=null?`<p class="meta">Confianza del modelo: ${Math.round(t.confia
                 Últimos triajes registrados
               </p>
             </div>
-            <div style={{ display: 'flex', gap: '0.75rem' }}>
-              {['Verde', 'Amarillo', 'Naranja', 'Rojo'].map(n => (
-                <div key={n} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+            {graficaNiveles.length > 1 && (
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                {['Verde', 'Amarillo', 'Naranja', 'Rojo'].map(n => (
+                  <div key={n} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                    <div style={{ width: '8px', height: '8px', background: nivelColor[n], borderRadius: '50%' }} />
+                    <span style={{ fontSize: '0.72rem', color: '#6b8070', fontWeight: '500' }}>{n}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* 0 triajes — estado vacío */}
+          {graficaNiveles.length === 0 && (
+            <div style={{
+              display: 'flex', flexDirection: 'column',
+              alignItems: 'center', justifyContent: 'center',
+              padding: '2.5rem 1rem', gap: '0.75rem'
+            }}>
+              <div style={{
+                width: '52px', height: '52px', background: '#f4f6f8',
+                borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center'
+              }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#aabcb0" strokeWidth="1.8">
+                  <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                </svg>
+              </div>
+              <p style={{ margin: 0, color: '#aabcb0', fontSize: '0.88rem' }}>
+                Aún no has registrado ningún triaje
+              </p>
+              <button
+                onClick={() => navigate('/paciente/chat')}
+                style={{
+                  marginTop: '0.25rem', background: '#1a3a2e', color: 'white',
+                  border: 'none', borderRadius: '10px',
+                  padding: '0.55rem 1.25rem', fontSize: '0.84rem',
+                  fontWeight: '600', cursor: 'pointer'
+                }}
+              >
+                Realizar primer triaje
+              </button>
+            </div>
+          )}
+
+          {/* 1 triaje — tarjeta resumen */}
+          {graficaNiveles.length === 1 && (() => {
+            const p   = graficaNiveles[0]
+            const dot = nivelColor[p.label]
+            const bg  = { Verde: '#f0fdf4', Amarillo: '#fefce8', Naranja: '#fff7ed', Rojo: '#fef2f2' }[p.label] || '#f4f6f8'
+            return (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', padding: '1rem 0.25rem' }}>
+                <div style={{
+                  width: '60px', height: '60px', borderRadius: '50%', flexShrink: 0,
+                  background: bg, border: `2px solid ${dot}40`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}>
                   <div style={{
-                    width: '8px', height: '8px',
-                    background: nivelColor[n], borderRadius: '50%'
+                    width: '26px', height: '26px', borderRadius: '50%',
+                    background: dot, boxShadow: `0 0 14px ${dot}70`
                   }} />
-                  <span style={{ fontSize: '0.72rem', color: '#6b8070', fontWeight: '500' }}>{n}</span>
                 </div>
-              ))}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ margin: '0 0 0.15rem', fontWeight: '700', fontSize: '1rem', color: dot }}>
+                    {p.label}
+                  </p>
+                  <p style={{ margin: '0 0 0.35rem', color: '#6b8070', fontSize: '0.82rem' }}>
+                    {p.mes} · {p.hora}
+                  </p>
+                  <p style={{ margin: 0, color: '#aabcb0', fontSize: '0.78rem' }}>
+                    Realiza más triajes para ver tu evolución de urgencia
+                  </p>
+                </div>
+                <button
+                  onClick={() => navigate('/paciente/chat')}
+                  style={{
+                    flexShrink: 0, background: 'none',
+                    border: '1.5px solid #c8ddd0', borderRadius: '10px',
+                    padding: '0.5rem 1rem', fontSize: '0.82rem',
+                    fontWeight: '600', color: '#3d7a5a', cursor: 'pointer'
+                  }}
+                >
+                  Nuevo triaje
+                </button>
+              </div>
+            )
+          })()}
+
+          {/* 2+ triajes — gráfica SVG */}
+          {graficaNiveles.length > 1 && (
+            <div style={{ position: 'relative', height: '160px' }}>
+              <svg width="100%" height="160" viewBox="0 0 600 160" preserveAspectRatio="none">
+                {[0, 1, 2, 3].map(nivel => (
+                  <line key={nivel}
+                    x1="0" y1={120 - nivelAltura[nivel] * 1.1}
+                    x2="600" y2={120 - nivelAltura[nivel] * 1.1}
+                    stroke="#f0f4f2" strokeWidth="1"
+                  />
+                ))}
+                <defs>
+                  <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#3d7a5a" stopOpacity="0.15"/>
+                    <stop offset="100%" stopColor="#3d7a5a" stopOpacity="0"/>
+                  </linearGradient>
+                </defs>
+                {(() => {
+                  const pts = graficaNiveles.map((p, i) => ({
+                    x: 60 + i * (480 / (graficaNiveles.length - 1)),
+                    y: 120 - nivelAltura[p.nivel] * 1.1,
+                  }))
+                  const areaPath = `M${pts[0].x},115 ` +
+                    pts.map(p => `L${p.x},${p.y}`).join(' ') +
+                    ` L${pts[pts.length - 1].x},115 Z`
+                  const linePath = `M${pts[0].x},${pts[0].y} ` +
+                    pts.slice(1).map(p => `L${p.x},${p.y}`).join(' ')
+                  return (
+                    <>
+                      <path d={areaPath} fill="url(#areaGrad)"/>
+                      <path d={linePath} fill="none" stroke="#3d7a5a" strokeWidth="2.5"
+                        strokeLinecap="round" strokeLinejoin="round"/>
+                      {pts.map((p, i) => (
+                        <g key={i}>
+                          <circle cx={p.x} cy={p.y} r="6" fill="white"
+                            stroke={nivelColor[graficaNiveles[i].label]} strokeWidth="2.5"/>
+                          <circle cx={p.x} cy={p.y} r="3"
+                            fill={nivelColor[graficaNiveles[i].label]}/>
+                          <text x={p.x} y={132} textAnchor="middle"
+                            fontSize="10" fill="#6b8070" fontWeight="500">
+                            {graficaNiveles[i].mes}
+                          </text>
+                          <text x={p.x} y={145} textAnchor="middle"
+                            fontSize="9" fill="#9aaa9a">
+                            {graficaNiveles[i].hora}
+                          </text>
+                        </g>
+                      ))}
+                    </>
+                  )
+                })()}
+              </svg>
+              <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', pointerEvents: 'none' }}>
+                {[
+                  { label: 'Verde',    nivel: 0 },
+                  { label: 'Amarillo', nivel: 1 },
+                  { label: 'Naranja',  nivel: 2 },
+                  { label: 'Rojo',     nivel: 3 },
+                ].map(({ label, nivel }) => (
+                  <span key={label} style={{
+                    position: 'absolute',
+                    top: `${((120 - nivelAltura[nivel] * 1.1) / 160) * 100}%`,
+                    transform: 'translateY(-50%)',
+                    fontSize: '0.68rem', color: '#aabcb0', fontWeight: '500'
+                  }}>{label}</span>
+                ))}
+              </div>
             </div>
-          </div>
-
-          {/* Gráfica SVG */}
-          <div style={{ position: 'relative', height: '160px' }}>
-            <svg width="100%" height="160" viewBox="0 0 600 160" preserveAspectRatio="none">
-              {/* Líneas de referencia */}
-              {[0, 1, 2, 3].map(nivel => (
-                <line key={nivel} x1="0" y1={120 - nivelAltura[nivel] * 1.1} x2="600" y2={120 - nivelAltura[nivel] * 1.1}
-                  stroke="#f0f4f2" strokeWidth="1"/>
-              ))}
-
-              {/* Área bajo la línea */}
-              <defs>
-                <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#3d7a5a" stopOpacity="0.15"/>
-                  <stop offset="100%" stopColor="#3d7a5a" stopOpacity="0"/>
-                </linearGradient>
-              </defs>
-
-              {graficaNiveles.length === 0 && (
-                <text x="300" y="75" textAnchor="middle" fontSize="12" fill="#aabcb0">
-                  Aún no hay triajes registrados
-                </text>
-              )}
-
-              {graficaNiveles.length === 1 && (() => {
-                const p = graficaNiveles[0]
-                const cx = 300, cy = 120 - nivelAltura[p.nivel] * 1.1
-                return (
-                  <g>
-                    <circle cx={cx} cy={cy} r="6" fill="white"
-                      stroke={nivelColor[p.label]} strokeWidth="2.5"/>
-                    <circle cx={cx} cy={cy} r="3" fill={nivelColor[p.label]}/>
-                    <text x={cx} y={132} textAnchor="middle"
-                      fontSize="10" fill="#6b8070" fontWeight="500">{p.mes}</text>
-                    <text x={cx} y={145} textAnchor="middle"
-                      fontSize="9" fill="#9aaa9a">{p.hora}</text>
-                  </g>
-                )
-              })()}
-
-              {graficaNiveles.length > 1 && (() => {
-                const pts = graficaNiveles.map((p, i) => ({
-                  x: 60 + i * (480 / (graficaNiveles.length - 1)),
-                  y: 120 - nivelAltura[p.nivel] * 1.1
-                }))
-                const areaPath = `M${pts[0].x},115 ` +
-                  pts.map(p => `L${p.x},${p.y}`).join(' ') +
-                  ` L${pts[pts.length-1].x},115 Z`
-                const linePath = `M${pts[0].x},${pts[0].y} ` +
-                  pts.slice(1).map(p => `L${p.x},${p.y}`).join(' ')
-                return (
-                  <>
-                    <path d={areaPath} fill="url(#areaGrad)"/>
-                    <path d={linePath} fill="none" stroke="#3d7a5a" strokeWidth="2.5"
-                      strokeLinecap="round" strokeLinejoin="round"/>
-                    {pts.map((p, i) => (
-                      <g key={i}>
-                        <circle cx={p.x} cy={p.y} r="6" fill="white"
-                          stroke={nivelColor[graficaNiveles[i].label]} strokeWidth="2.5"/>
-                        <circle cx={p.x} cy={p.y} r="3"
-                          fill={nivelColor[graficaNiveles[i].label]}/>
-                        <text x={p.x} y={132} textAnchor="middle"
-                          fontSize="10" fill="#6b8070" fontWeight="500">
-                          {graficaNiveles[i].mes}
-                        </text>
-                        <text x={p.x} y={145} textAnchor="middle"
-                          fontSize="9" fill="#9aaa9a">
-                          {graficaNiveles[i].hora}
-                        </text>
-                      </g>
-                    ))}
-                  </>
-                )
-              })()}
-            </svg>
-
-            {/* Labels de nivel */}
-            <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', pointerEvents: 'none' }}>
-              {[
-                { label: 'Verde',    nivel: 0 },
-                { label: 'Amarillo', nivel: 1 },
-                { label: 'Naranja',  nivel: 2 },
-                { label: 'Rojo',     nivel: 3 },
-              ].map(({ label, nivel }) => (
-                <span key={label} style={{
-                  position: 'absolute',
-                  top: `${((120 - nivelAltura[nivel] * 1.1) / 160) * 100}%`,
-                  transform: 'translateY(-50%)',
-                  fontSize: '0.68rem', color: '#aabcb0', fontWeight: '500'
-                }}>{label}</span>
-              ))}
-            </div>
-          </div>
+          )}
         </div>
 
         {/* Lista de triajes */}
