@@ -97,8 +97,10 @@ CREATE TABLE IF NOT EXISTS citas (
     hora_solicitada  TEXT,
     fecha_confirmada TEXT,
     hora_confirmada  TEXT,
-    status           TEXT NOT NULL DEFAULT 'pendiente',
-    creado_en        TEXT NOT NULL
+    status           TEXT    NOT NULL DEFAULT 'pendiente',
+    creado_en        TEXT    NOT NULL,
+    en_llamada       INTEGER NOT NULL DEFAULT 0,
+    room_token       TEXT
 )
 """
 
@@ -106,6 +108,7 @@ _CREATE_NOTAS_CLINICAS = """
 CREATE TABLE IF NOT EXISTS notas_clinicas (
     id               INTEGER PRIMARY KEY AUTOINCREMENT,
     cedula_paciente  TEXT    NOT NULL,
+    paciente_email   TEXT,
     medico_email     TEXT    NOT NULL,
     medico_nombre    TEXT,
     titulo           TEXT    NOT NULL,

@@ -7,10 +7,15 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Al cargar la app, recupera sesión guardada
-    const saved = localStorage.getItem('stiga_user')
-    if (saved) setUser(JSON.parse(saved))
-    setLoading(false)
+    try {
+      const saved = localStorage.getItem('stiga_user')
+      if (saved) setUser(JSON.parse(saved))
+    } catch {
+      localStorage.removeItem('stiga_token')
+      localStorage.removeItem('stiga_user')
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
   const login = (userData, token) => {

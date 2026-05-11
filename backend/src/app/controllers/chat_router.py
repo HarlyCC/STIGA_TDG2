@@ -156,15 +156,20 @@ def close_session(
 ):
     session = gemma_service.sessions.get(session_id)
 
-    if not session:
-        raise HTTPException(status_code=404, detail="Sesión no encontrada.")
+    if session:
+        logger.info(
+            f"Cerrando sesión {session_id} | "
+            f"usuario: {current_user['email']} | "
+            f"completa: {session.is_complete} | "
+            f"turnos: {len(session.history)}"
+        )
+        gemma_service.close_session(session_id)
+    else:
+        # La sesión puede existir en DB aunque el servidor haya reiniciado
+        db_row = chat_session_repository.find_active_by_user(current_user["email"])
+        if not db_row or db_row["session_id"] != session_id:
+            raise HTTPException(status_code=404, detail="Sesión no encontrada.")
+        chat_session_repository.delete(session_id)
+        logger.info(f"Sesión {session_id} cerrada desde BD | usuario: {current_user['email']}")
 
-    logger.info(
-        f"Cerrando sesión {session_id} | "
-        f"usuario: {current_user['email']} | "
-        f"completa: {session.is_complete} | "
-        f"turnos: {len(session.history)}"
-    )
-
-    gemma_service.close_session(session_id)
     return {"status": "ok", "message": f"Sesión {session_id} cerrada correctamente."}
