@@ -95,7 +95,8 @@ def send_doctor_access_request_email(datos: dict):
 
 
 def send_critical_triage_alert(paciente_nombre: str, paciente_email: str,
-                               paciente_telefono: str, ciudad: str, triage_color: str):
+                               paciente_telefono: str, paciente_direccion: str,
+                               ciudad: str, triage_color: str):
     """Notifies the admin about a critical (Naranja/Rojo) triage result."""
     if not EMAIL_USER:
         logger.warning("EMAIL_USER not configured — critical alert not sent by email")
@@ -116,7 +117,8 @@ def send_critical_triage_alert(paciente_nombre: str, paciente_email: str,
           <tr><td style="padding:7px 0;color:#6b7280;width:40%;">Paciente</td><td style="padding:7px 0;font-weight:600;color:#06111f;">{paciente_nombre or '—'}</td></tr>
           <tr style="background:#f9fafb;"><td style="padding:7px 6px;color:#6b7280;">Correo</td><td style="padding:7px 6px;color:#2e8fc0;">{paciente_email}</td></tr>
           <tr><td style="padding:7px 0;color:#6b7280;">Teléfono</td><td style="padding:7px 0;font-weight:600;color:#06111f;">{paciente_telefono or '—'}</td></tr>
-          <tr style="background:#f9fafb;"><td style="padding:7px 6px;color:#6b7280;">Ciudad</td><td style="padding:7px 6px;font-weight:600;color:#06111f;">{ciudad or '—'}</td></tr>
+          <tr style="background:#f9fafb;"><td style="padding:7px 6px;color:#6b7280;">Dirección</td><td style="padding:7px 6px;font-weight:600;color:#06111f;">{paciente_direccion or '—'}</td></tr>
+          <tr><td style="padding:7px 0;color:#6b7280;">Ciudad</td><td style="padding:7px 0;font-weight:600;color:#06111f;">{ciudad or '—'}</td></tr>
         </table>
         <div style="margin-top:20px;padding:14px 16px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;">
           <p style="margin:0;color:#b91c1c;font-size:0.85rem;font-weight:600;">

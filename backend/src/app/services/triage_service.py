@@ -21,6 +21,7 @@ def sync_forward(session_id: str, user_email: str,
     triage_color      = triage_result.get("color")
     paciente_nombre   = patient_data.get("nombre")
     paciente_telefono = patient_data.get("telefono")
+    paciente_direccion = patient_data.get("direccion")
     ciudad            = patient_data.get("ciudad")
     timestamp         = datetime.now().isoformat()
 
@@ -41,6 +42,7 @@ def sync_forward(session_id: str, user_email: str,
                 paciente_nombre=paciente_nombre,
                 paciente_email=user_email,
                 paciente_telefono=paciente_telefono,
+                paciente_direccion=paciente_direccion,
                 ciudad=ciudad,
                 triage_color=triage_color,
             )
