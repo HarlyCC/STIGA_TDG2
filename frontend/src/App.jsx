@@ -21,7 +21,7 @@ function TerminosWrapper({ children }) {
     }
     const accepted = localStorage.getItem(TERMS_KEY)
     if (!accepted) setShowTerminos(true)
-  }, [user?.name])
+  }, [user])
 
   const handleAceptar = () => {
     localStorage.setItem(TERMS_KEY, 'true')

@@ -146,6 +146,11 @@ def set_horario_medico(email: str, dia_semana: int, hora_inicio: str,
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="dia_semana debe ser 0 (Lunes) a 6 (Domingo).",
         )
+    if hora_inicio >= hora_fin:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="hora_inicio debe ser anterior a hora_fin.",
+        )
     if not user_repository.is_medico(email):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail="Médico no encontrado.")

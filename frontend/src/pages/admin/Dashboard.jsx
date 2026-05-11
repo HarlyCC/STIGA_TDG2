@@ -191,12 +191,16 @@ export default function AdminDashboard() {
 
   /* ── Handlers alertas ── */
   const handleAtenderAlerta = async (id) => {
-    try { await client.put(`/admin/alertas/${id}/atender`) } catch {}
-    setAlertas(prev => prev.map(a => a.id === id ? { ...a, estado: 'atendida' } : a))
+    try {
+      await client.put(`/admin/alertas/${id}/atender`)
+      setAlertas(prev => prev.map(a => a.id === id ? { ...a, estado: 'atendida' } : a))
+    } catch { alert('No se pudo marcar la alerta como atendida.') }
   }
   const handleIgnorarAlerta = async (id) => {
-    try { await client.delete(`/admin/alertas/${id}`) } catch {}
-    setAlertas(prev => prev.filter(a => a.id !== id))
+    try {
+      await client.delete(`/admin/alertas/${id}`)
+      setAlertas(prev => prev.filter(a => a.id !== id))
+    } catch { alert('No se pudo eliminar la alerta.') }
   }
 
   /* ── Handlers usuarios ── */
@@ -451,8 +455,9 @@ export default function AdminDashboard() {
       const { data } = await client.get(`/admin/medicos/${encodeURIComponent(medicoSel.email)}/horarios`)
       setAllHorarios(prev => ({ ...prev, [medicoSel.email]: data }))
       setSlotForm(null)
-    } catch {}
-    finally { setSavingSlot(false) }
+    } catch (err) {
+      alert(err.response?.data?.detail || 'No se pudo guardar el horario.')
+    } finally { setSavingSlot(false) }
   }
 
   const eliminarHorario = async (dia) => {
