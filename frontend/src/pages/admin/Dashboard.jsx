@@ -137,6 +137,13 @@ export default function AdminDashboard() {
       .finally(() => setLoadingTriajes(false))
   }, [activeTab])
 
+  useEffect(() => {
+    if (activeTab !== 'mapa') return
+    client.get('/admin/estadisticas')
+      .then(({ data }) => setEstadisticas(data))
+      .catch((e) => { console.error('Error refrescando estadísticas del mapa:', e) })
+  }, [activeTab])
+
   const handleLogout = () => { logout(); navigate('/login') }
 
   /* ── Alertas separadas ── */
@@ -363,7 +370,7 @@ export default function AdminDashboard() {
         leafletMapRef.current = null
       }
     }
-  }, [activeTab, estadisticas?.triajes?.por_ciudad?.length ?? 0])
+  }, [activeTab, estadisticas?.triajes?.total ?? 0])
 
   /* ── Solicitudes: carga al abrir la pestaña ── */
   useEffect(() => {
