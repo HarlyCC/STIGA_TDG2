@@ -1,7 +1,9 @@
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from app.data.database import get_conn
+
+SESSION_TTL_HOURS = 24
 
 
 def _now() -> str:
@@ -30,13 +32,24 @@ def upsert(session_id: str, user_email: str, system_prompt: str,
 
 
 def find_active_by_user(user_email: str):
+    cutoff = (datetime.now(timezone.utc) - timedelta(hours=SESSION_TTL_HOURS)).isoformat()
     with get_conn() as conn:
         return conn.execute(
             """SELECT * FROM chat_sessions
                WHERE user_email = ? AND is_complete = 0
+                 AND updated_at > ?
                ORDER BY updated_at DESC LIMIT 1""",
-            (user_email,),
+            (user_email, cutoff),
         ).fetchone()
+
+
+def delete_expired(user_email: str):
+    cutoff = (datetime.now(timezone.utc) - timedelta(hours=SESSION_TTL_HOURS)).isoformat()
+    with get_conn() as conn:
+        conn.execute(
+            "DELETE FROM chat_sessions WHERE user_email = ? AND is_complete = 0 AND updated_at <= ?",
+            (user_email, cutoff),
+        )
 
 
 def delete(session_id: str):

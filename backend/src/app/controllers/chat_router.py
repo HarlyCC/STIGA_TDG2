@@ -108,6 +108,7 @@ def sync_forward_endpoint(
 
 @router.get("/chat/session/active")
 def get_active_session(current_user: dict = Depends(get_current_user)):
+    chat_session_repository.delete_expired(current_user["email"])
     row = chat_session_repository.find_active_by_user(current_user["email"])
     if not row:
         return None
