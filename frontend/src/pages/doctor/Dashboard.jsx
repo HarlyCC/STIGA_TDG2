@@ -113,9 +113,9 @@ export default function DoctorDashboard() {
     : pacientes.filter(p => p.nivel.label.toLowerCase() === filtro)
 
   const stats = [
-    { label: 'Total',          value: pacientes.length,                                          color: '#1a3a2e' },
-    { label: 'Críticos',       value: pacientes.filter(p => p.nivel.label === 'Rojo').length,    color: '#dc2626' },
-    { label: 'Sin transporte', value: pacientes.filter(p => !p.transporte).length,               color: '#d97706' },
+    { label: 'Total',          value: pacientes.length,                                                color: '#1a3a2e' },
+    { label: 'Urgentes',       value: pacientes.filter(p => p.nivel.label === 'Amarillo').length,      color: '#d97706' },
+    { label: 'Sin transporte', value: pacientes.filter(p => !p.transporte).length,                     color: '#b45309' },
     { label: 'Con ambulancia', value: pacientes.filter(p => !p.transporte && p.severidad >= 7).length, color: '#15803d' },
   ]
 
@@ -357,25 +357,6 @@ export default function DoctorDashboard() {
           ))}
         </div>
 
-        {/* Alerta críticos */}
-        {pacientes.filter(p => p.nivel.label === 'Rojo').length > 0 && (
-          <div style={{
-            background: '#fef2f2', border: '1.5px solid #fecaca',
-            borderRadius: '14px', padding: '1rem 1.5rem',
-            marginBottom: '1.5rem', display: 'flex',
-            alignItems: 'center', gap: '1rem',
-            animation: mounted ? 'fadeInUp 0.5s ease 0.15s both' : 'none'
-          }}>
-            <div style={{
-              width: '10px', height: '10px', flexShrink: 0,
-              background: '#ef4444', borderRadius: '50%',
-              animation: 'pulse 2s ease-in-out infinite'
-            }} />
-            <p style={{ margin: 0, color: '#991b1b', fontSize: '0.88rem', fontWeight: '600' }}>
-              Hay {pacientes.filter(p => p.nivel.label === 'Rojo').length} paciente(s) en estado crítico que requieren atención inmediata
-            </p>
-          </div>
-        )}
 
         {/* Filtros */}
         <div style={{
@@ -409,7 +390,7 @@ export default function DoctorDashboard() {
             </button>
           </div>
           <div style={{ display: 'flex', gap: '0.4rem' }}>
-            {['todos', 'rojo', 'naranja', 'amarillo', 'verde'].map(f => (
+            {['todos', 'amarillo', 'verde'].map(f => (
               <button
                 key={f}
                 className={`filtro-btn ${filtro === f ? 'active' : ''}`}
