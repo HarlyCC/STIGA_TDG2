@@ -113,12 +113,19 @@ def get_active_session(current_user: dict = Depends(get_current_user)):
         return None
 
     session_id = row["session_id"]
-    history    = json.loads(row["history_json"])
+
+    try:
+        history      = json.loads(row["history_json"])
+        patient_data = json.loads(row["patient_data_json"])
+    except (json.JSONDecodeError, TypeError) as e:
+        logger.error(f"Sesión {session_id} con JSON corrupto en BD: {e}")
+        chat_session_repository.delete(session_id)
+        return None
 
     # Reconstruir mensajes para la UI (excluye JSON internos de Gemma)
     ui_messages = []
     for i, msg in enumerate(history):
-        content = msg["content"]
+        content = msg.get("content", "")
         try:
             parsed = json.loads(content)
             text = parsed.get("message", content)
@@ -126,7 +133,7 @@ def get_active_session(current_user: dict = Depends(get_current_user)):
             text = content
         ui_messages.append({
             "id":   i,
-            "from": "stiga" if msg["role"] == "model" else "user",
+            "from": "stiga" if msg.get("role") == "model" else "user",
             "text": text,
         })
 
@@ -134,7 +141,7 @@ def get_active_session(current_user: dict = Depends(get_current_user)):
     if session_id not in gemma_service.sessions:
         session               = ConversationSession(session_id, row["system_prompt"], current_user["email"])
         session.history       = history
-        session.patient_data  = json.loads(row["patient_data_json"])
+        session.patient_data  = patient_data
         session.is_complete   = bool(row["is_complete"])
         gemma_service.sessions[session_id] = session
         logger.info(f"Sesión {session_id} restaurada desde BD")

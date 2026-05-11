@@ -17,6 +17,7 @@ export default function PatientChat() {
   const bottomRef = useRef(null)
   const sessionIdRef = useRef(null)
   const startedRef = useRef(false)
+  const sessionDoneRef = useRef(false)
 
   const levelConfig = {
     Verde:    { color: '#15803d', bg: '#f0fdf4', border: '#bbf7d0', dot: '#22c55e' },
@@ -34,7 +35,7 @@ export default function PatientChat() {
 
     getActiveSession()
       .then(({ data }) => {
-        if (data && data.session_id && data.messages?.length) {
+        if (data && data.session_id && Array.isArray(data.messages)) {
           // Restaurar sesión incompleta existente
           sessionIdRef.current = data.session_id
           setMessages(data.messages)
@@ -70,7 +71,7 @@ export default function PatientChat() {
       })
 
     return () => {
-      if (sessionIdRef.current) closeSession(sessionIdRef.current).catch(() => {})
+      if (sessionDoneRef.current && sessionIdRef.current) closeSession(sessionIdRef.current).catch(() => {})
     }
   }, [])
 
@@ -96,6 +97,7 @@ export default function PatientChat() {
           const tr = data.triage_result
           setResult(tr)
           setSessionDone(true)
+          sessionDoneRef.current = true
           syncForward(sessionIdRef.current, data.patient_data, tr).catch(() => {
             setApiError('No se pudo guardar el registro de triaje. Contacte al administrador.')
           })
@@ -104,6 +106,7 @@ export default function PatientChat() {
             .then(({ data: rd }) => {
               setResult(rd.triage_result)
               setSessionDone(true)
+              sessionDoneRef.current = true
               syncForward(sessionIdRef.current, rd.patient_data, rd.triage_result).catch(() => {
                 setApiError('No se pudo guardar el registro de triaje. Contacte al administrador.')
               })
