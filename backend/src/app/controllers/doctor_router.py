@@ -25,9 +25,9 @@ def require_medico(current_user: dict = Depends(get_current_user)) -> dict:
 # Modelos de solicitud
 
 class AppointmentRequest(BaseModel):
-    triaje_id:        Optional[int] = None
-    fecha_solicitada: Optional[str] = None
-    hora_solicitada:  Optional[str] = None
+    triaje_id:        int
+    fecha_solicitada: str
+    hora_solicitada:  str
 
 
 class AddNotaRequest(BaseModel):
@@ -57,19 +57,19 @@ def list_patients(
 
 @router.get("/pacientes/{cedula}")
 def patient_detail(cedula: str, medico: dict = Depends(require_medico)):
-    return doctor_service.patient_detail(cedula)
+    return doctor_service.patient_detail(cedula, medico["email"], medico["role"])
 
 
 @router.get("/historia/{cedula}")
 def get_historia(cedula: str, medico: dict = Depends(require_medico)):
-    return doctor_service.get_historia(cedula)
+    return doctor_service.get_historia(cedula, medico["email"], medico["role"])
 
 
 @router.post("/historia/{cedula}/nota", status_code=201)
 def add_nota(cedula: str, body: AddNotaRequest, medico: dict = Depends(require_medico)):
     return doctor_service.add_nota(
         cedula, medico["email"], medico.get("nombre", ""),
-        body.titulo, body.contenido,
+        body.titulo, body.contenido, medico["role"],
     )
 
 

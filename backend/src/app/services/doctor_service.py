@@ -27,7 +27,18 @@ def list_patients(role: str, medico_email: str, color, limit: int, offset: int) 
     return {"total": total, "items": [dict(r) for r in rows]}
 
 
-def patient_detail(cedula: str) -> dict:
+def _check_medico_access(medico_email: str, role: str, cedula: str):
+    if role == "admin":
+        return
+    if not cita_repository.medico_has_access(medico_email, cedula):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes una consulta asignada con este paciente.",
+        )
+
+
+def patient_detail(cedula: str, medico_email: str, role: str) -> dict:
+    _check_medico_access(medico_email, role, cedula)
     perfil = user_repository.find_by_cedula(cedula)
     if not perfil:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -36,7 +47,8 @@ def patient_detail(cedula: str) -> dict:
     return {"perfil": dict(perfil), "triajes": [dict(t) for t in triajes]}
 
 
-def get_historia(cedula: str) -> dict:
+def get_historia(cedula: str, medico_email: str, role: str) -> dict:
+    _check_medico_access(medico_email, role, cedula)
     perfil = user_repository.find_by_cedula(cedula)
     if not perfil:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -51,7 +63,8 @@ def get_historia(cedula: str) -> dict:
 
 
 def add_nota(cedula: str, medico_email: str, medico_nombre: str,
-             titulo: str, contenido: str) -> dict:
+             titulo: str, contenido: str, role: str) -> dict:
+    _check_medico_access(medico_email, role, cedula)
     perfil = user_repository.find_by_cedula(cedula)
     if not perfil:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -115,14 +128,29 @@ def get_availability(fecha: str) -> list:
 
 # Citas
 
-def create_appointment(user_email: str, triaje_id, fecha_solicitada, hora_solicitada) -> dict:
-    if triaje_id is not None:
-        duplicate = cita_repository.find_active_by_paciente_and_triaje(user_email, triaje_id)
-        if duplicate:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="Ya tienes una cita activa para este triaje.",
-            )
+COLORES_CRITICOS = ("Rojo", "Naranja")
+
+def create_appointment(user_email: str, triaje_id: int, fecha_solicitada: str, hora_solicitada: str) -> dict:
+    triaje = triage_repository.find_by_id_and_user(triaje_id, user_email)
+    if not triaje:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Triaje no encontrado o no pertenece a este paciente.",
+        )
+    if triaje["triage_color"] in COLORES_CRITICOS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f"El triaje tiene nivel {triaje['triage_color']}. "
+                "Requiere atención de emergencia presencial, no teleconsulta."
+            ),
+        )
+    duplicate = cita_repository.find_active_by_paciente_and_triaje(user_email, triaje_id)
+    if duplicate:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Ya tienes una cita activa para este triaje.",
+        )
     now        = datetime.now(timezone.utc).isoformat()
     room_token = uuid.uuid4().hex
     cita_id    = cita_repository.insert(

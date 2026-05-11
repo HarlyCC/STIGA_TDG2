@@ -67,6 +67,19 @@ def list_patients_for_medico(medico_email: str) -> list:
         ).fetchall()
 
 
+def medico_has_access(medico_email: str, cedula: str) -> bool:
+    with get_conn() as conn:
+        row = conn.execute(
+            """SELECT 1 FROM citas c
+               JOIN users u ON u.email = c.paciente_email
+               WHERE c.medico_email = ? AND u.cedula = ?
+                 AND c.status NOT IN ('rechazada', 'cancelada')
+               LIMIT 1""",
+            (medico_email, cedula),
+        ).fetchone()
+    return row is not None
+
+
 def find_by_id(cita_id: int):
     with get_conn() as conn:
         return conn.execute("SELECT * FROM citas WHERE id = ?", (cita_id,)).fetchone()

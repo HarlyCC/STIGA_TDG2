@@ -54,6 +54,14 @@ def list_by_user(user_email: str) -> list:
         ).fetchall()
 
 
+def find_by_id_and_user(triaje_id: int, user_email: str):
+    with get_conn() as conn:
+        return conn.execute(
+            "SELECT id, triage_color FROM triage_records WHERE id = ? AND user_email = ?",
+            (triaje_id, user_email),
+        ).fetchone()
+
+
 def list_by_cedula(cedula: str) -> list:
     with get_conn() as conn:
         return conn.execute(
