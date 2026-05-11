@@ -531,6 +531,9 @@ export default function AdminDashboard() {
     'Santa Bárbara':           [5.867, -75.567],
     'Tarso':                   [5.817, -75.817],
     'Hispania':                [5.833, -75.933],
+    'Amagá':                   [6.033, -75.700],
+    'Caramanta':               [5.550, -75.633],
+    'Titiribí':                [6.083, -75.783],
 
     // Oriente
     'Rionegro':                [6.154, -75.374],
@@ -567,6 +570,8 @@ export default function AdminDashboard() {
     'Cisneros':                [6.533, -74.983],
     'Yalí':                    [6.983, -75.017],
     'Yolombó':                 [6.600, -75.017],
+    'San Roque':               [6.483, -75.033],
+    'Santo Domingo':           [6.467, -75.117],
 
     // Bajo Cauca
     'Caucasia':                [7.983, -75.200],
