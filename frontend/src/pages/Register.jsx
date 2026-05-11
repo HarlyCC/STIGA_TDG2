@@ -590,14 +590,24 @@ export default function Register() {
               <p style={{ margin: '0 0 0.35rem', color: '#7a9080', fontSize: '0.9rem', lineHeight: 1.6 }}>
                 Enviamos un código de 6 dígitos a:
               </p>
-              <p style={{
-                margin: '0 0 2rem', fontWeight: '700', color: '#1a3a2e',
-                fontSize: '0.95rem', background: '#f0fdf4',
-                padding: '0.5rem 1rem', borderRadius: '8px',
-                border: '1px solid #bbf7d0', display: 'inline-block'
-              }}>
-                {form.email}
-              </p>
+              <div style={{ margin: '0 0 2rem', display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: '0.35rem' }}>
+                <p style={{
+                  margin: 0, fontWeight: '700', color: '#1a3a2e',
+                  fontSize: '0.95rem', background: '#f0fdf4',
+                  padding: '0.5rem 1rem', borderRadius: '8px',
+                  border: '1px solid #bbf7d0',
+                }}>
+                  {form.email}
+                </p>
+                <button
+                  type="button"
+                  className="link-btn"
+                  style={{ fontSize: '0.8rem', color: '#2e8fc0' }}
+                  onClick={() => setStep(1)}
+                >
+                  ¿Correo incorrecto? Corregirlo
+                </button>
+              </div>
 
               <form onSubmit={handleVerify}>
                 <div style={{ marginBottom: '0.5rem' }}>
