@@ -52,6 +52,14 @@ def delete_expired(user_email: str):
         )
 
 
+def find_by_id_and_user(session_id: str, user_email: str):
+    with get_conn() as conn:
+        return conn.execute(
+            "SELECT session_id FROM chat_sessions WHERE session_id = ? AND user_email = ?",
+            (session_id, user_email),
+        ).fetchone()
+
+
 def delete(session_id: str):
     with get_conn() as conn:
         conn.execute(
