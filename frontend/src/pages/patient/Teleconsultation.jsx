@@ -47,7 +47,7 @@ export default function PatientTeleconsultation() {
     try {
       const { data } = await client.post('/medico/mis-citas', {
         triaje_id:        selectedTriaje?.id ?? null,
-        fecha_solicitada: selectedDate?.toISOString().split('T')[0] ?? null,
+        fecha_solicitada: selectedDate ? `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}` : null,
         hora_solicitada:  selectedSlot,
       })
       setConfirmedId(data.id)
