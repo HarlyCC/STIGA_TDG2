@@ -89,6 +89,7 @@ export default function JitsiMeeting({ roomId, displayName, onClose, pacienteNom
   useEffect(() => {
     if (!isDoctor) return
     const handler = (e) => {
+      if (e.origin !== window.location.origin) return
       if (!e.data || e.data.type !== 'HSJD_RESULTADO') return
       setHospitalData(e.data.data || null)
       setHospitalLoading(false)
@@ -101,7 +102,8 @@ export default function JitsiMeeting({ roomId, displayName, onClose, pacienteNom
   const sendBuscar = useCallback(() => {
     if (!hospitalIframe.current?.contentWindow || !pacienteCedula) return
     hospitalIframe.current.contentWindow.postMessage(
-      { type: 'HSJD_BUSCAR', cedula: String(pacienteCedula) }, '*'
+      { type: 'HSJD_BUSCAR', cedula: String(pacienteCedula) },
+      window.location.origin
     )
   }, [pacienteCedula])
 

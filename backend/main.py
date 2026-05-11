@@ -1,3 +1,4 @@
+import os
 import sys
 from pathlib import Path
 
@@ -18,9 +19,10 @@ if __name__ == "__main__":
     if "--train" in sys.argv:
         TrainingManager().run_full_pipeline()
     else:
+        dev_mode = os.getenv("ENV", "dev").lower() == "dev"
         uvicorn.run(
             "app.controllers.application:app",
             host="0.0.0.0",
             port=8000,
-            reload=True
+            reload=dev_mode,
         )

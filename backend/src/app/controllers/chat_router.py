@@ -1,13 +1,15 @@
+import json
 import logging
 import os
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from app.services.gemma_service import GemmaService
+from app.services.gemma_service import GemmaService, ConversationSession
 from app.services.predictor import Predictor
 from app.services.triage_service import get_patient_profile, sync_forward
 from app.core.security import get_current_user
+from app.repositories import chat_session_repository
 
 logger = logging.getLogger("stiga.chat")
 
@@ -39,7 +41,9 @@ def start_conversation(
 ):
     prefilled = get_patient_profile(current_user["email"])
     logger.info(f"Iniciando conversación | sesión: {session_id} | paciente: {prefilled['nombre']}")
-    return gemma_service.start_conversation(session_id, prefilled_data=prefilled)
+    return gemma_service.start_conversation(
+        session_id, prefilled_data=prefilled, user_email=current_user["email"]
+    )
 
 
 @router.post("/chat/message")
@@ -100,6 +104,42 @@ def sync_forward_endpoint(
     except Exception as e:
         logger.error(f"Error en sync: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Error al sincronizar el registro.")
+
+
+@router.get("/chat/session/active")
+def get_active_session(current_user: dict = Depends(get_current_user)):
+    row = chat_session_repository.find_active_by_user(current_user["email"])
+    if not row:
+        return None
+
+    session_id = row["session_id"]
+    history    = json.loads(row["history_json"])
+
+    # Reconstruir mensajes para la UI (excluye JSON internos de Gemma)
+    ui_messages = []
+    for i, msg in enumerate(history):
+        content = msg["content"]
+        try:
+            parsed = json.loads(content)
+            text = parsed.get("message", content)
+        except (json.JSONDecodeError, TypeError):
+            text = content
+        ui_messages.append({
+            "id":   i,
+            "from": "stiga" if msg["role"] == "model" else "user",
+            "text": text,
+        })
+
+    # Cargar en memoria si el servidor fue reiniciado
+    if session_id not in gemma_service.sessions:
+        session               = ConversationSession(session_id, row["system_prompt"], current_user["email"])
+        session.history       = history
+        session.patient_data  = json.loads(row["patient_data_json"])
+        session.is_complete   = bool(row["is_complete"])
+        gemma_service.sessions[session_id] = session
+        logger.info(f"Sesión {session_id} restaurada desde BD")
+
+    return {"session_id": session_id, "messages": ui_messages}
 
 
 @router.delete("/chat/session/{session_id}")

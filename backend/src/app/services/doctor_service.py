@@ -54,7 +54,7 @@ def get_historia(cedula: str, medico_email: str, role: str) -> dict:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail="Paciente no encontrado.")
     triajes = triage_repository.list_by_cedula(cedula)
-    notas   = nota_repository.list_by_cedula(cedula)
+    notas   = nota_repository.list_by_paciente(perfil["email"])
     return {
         "perfil":  dict(perfil),
         "triajes": [dict(t) for t in triajes],
@@ -70,7 +70,9 @@ def add_nota(cedula: str, medico_email: str, medico_nombre: str,
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail="Paciente no encontrado.")
     now = datetime.now(timezone.utc).isoformat()
-    nota_id = nota_repository.insert(cedula, medico_email, medico_nombre, titulo, contenido, now)
+    nota_id = nota_repository.insert(
+        cedula, perfil["email"], medico_email, medico_nombre, titulo, contenido, now
+    )
     logger.info(f"Nota clínica guardada | paciente: {cedula} | médico: {medico_email}")
     return {"id": nota_id, "ok": True}
 

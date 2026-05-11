@@ -46,6 +46,9 @@ export const syncForward = (sessionId, patientData, triageResult) =>
 export const closeSession = (sessionId) =>
   client.delete(`/chat/session/${sessionId}`)
 
+export const getActiveSession = () =>
+  client.get('/chat/session/active')
+
 // Autenticación
 export const login = (email, password) =>
   client.post('/auth/login', { email, password })

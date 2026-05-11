@@ -114,6 +114,19 @@ CREATE TABLE IF NOT EXISTS notas_clinicas (
 )
 """
 
+_CREATE_CHAT_SESSIONS = """
+CREATE TABLE IF NOT EXISTS chat_sessions (
+    session_id        TEXT PRIMARY KEY,
+    user_email        TEXT NOT NULL,
+    system_prompt     TEXT NOT NULL,
+    history_json      TEXT NOT NULL DEFAULT '[]',
+    patient_data_json TEXT NOT NULL DEFAULT '{}',
+    is_complete       INTEGER NOT NULL DEFAULT 0,
+    created_at        TEXT NOT NULL,
+    updated_at        TEXT NOT NULL
+)
+"""
+
 _CREATE_ALERTAS_CRITICAS = """
 CREATE TABLE IF NOT EXISTS alertas_criticas (
     id                 INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -149,6 +162,7 @@ def init_db():
         conn.execute(_CREATE_CITAS)
         conn.execute(_CREATE_ALERTAS_CRITICAS)
         conn.execute(_CREATE_NOTAS_CLINICAS)
+        conn.execute(_CREATE_CHAT_SESSIONS)
 
         # Migraciones de columnas
         _migrations = [
@@ -165,6 +179,7 @@ def init_db():
             "ALTER TABLE triage_records ADD COLUMN medico_email TEXT",
             "ALTER TABLE citas ADD COLUMN en_llamada INTEGER DEFAULT 0",
             "ALTER TABLE citas ADD COLUMN room_token TEXT",
+            "ALTER TABLE notas_clinicas ADD COLUMN paciente_email TEXT",
         ]
         for sql in _migrations:
             try:
@@ -185,6 +200,7 @@ def init_db():
             "CREATE INDEX IF NOT EXISTS idx_alertas_leida      ON alertas_criticas(leida)",
             "CREATE INDEX IF NOT EXISTS idx_alertas_estado     ON alertas_criticas(estado)",
             "CREATE INDEX IF NOT EXISTS idx_users_role         ON users(role)",
+            "CREATE INDEX IF NOT EXISTS idx_chat_sessions_user ON chat_sessions(user_email, is_complete)",
         ]
         for sql in _indexes:
             conn.execute(sql)

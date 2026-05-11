@@ -5,6 +5,7 @@ from datetime import date
 from google import genai
 from google.genai import types
 from app.data.data_cleaner import DataCleaner
+from app.repositories import chat_session_repository
 
 logger = logging.getLogger("stiga.gemma_service")
 
@@ -146,8 +147,9 @@ def _build_personal_summary(prefilled: dict) -> str:
 
 
 class ConversationSession:
-    def __init__(self, session_id: str, system_prompt: str):
+    def __init__(self, session_id: str, system_prompt: str, user_email: str = ""):
         self.session_id    = session_id
+        self.user_email    = user_email
         self.system_prompt = system_prompt
         self.history       = []
         self.patient_data  = {}
@@ -188,11 +190,21 @@ class GemmaService:
 
     # Gestión de sesiones
 
-    def _create_session(self, session_id: str, system_prompt: str) -> ConversationSession:
-        session = ConversationSession(session_id, system_prompt)
+    def _create_session(self, session_id: str, system_prompt: str,
+                        user_email: str = "") -> ConversationSession:
+        session = ConversationSession(session_id, system_prompt, user_email)
         self.sessions[session_id] = session
         logger.info(f"Nueva sesión creada: {session_id}")
         return session
+
+    def _persist(self, session: ConversationSession):
+        try:
+            chat_session_repository.upsert(
+                session.session_id, session.user_email, session.system_prompt,
+                session.history, session.patient_data, session.is_complete,
+            )
+        except Exception as e:
+            logger.warning(f"No se pudo persistir sesión {session.session_id}: {e}")
 
     def get_or_create_session(self, session_id: str) -> ConversationSession:
         if session_id not in self.sessions:
@@ -205,11 +217,13 @@ class GemmaService:
     def close_session(self, session_id: str):
         if session_id in self.sessions:
             del self.sessions[session_id]
-            logger.info(f"Sesión cerrada: {session_id}")
+        chat_session_repository.delete(session_id)
+        logger.info(f"Sesión cerrada: {session_id}")
 
     # Conversación
 
-    def start_conversation(self, session_id: str, prefilled_data: dict | None = None) -> dict:
+    def start_conversation(self, session_id: str, prefilled_data: dict | None = None,
+                           user_email: str = "") -> dict:
         """
         Inicia la sesión de triaje.
 
@@ -230,7 +244,7 @@ class GemmaService:
 
         summary = _build_personal_summary(prefilled)
         prompt  = SYSTEM_PROMPT_BASE.format(personal_data_summary=summary)
-        session = self._create_session(session_id, prompt)
+        session = self._create_session(session_id, prompt, user_email)
 
         # Inyectar datos personales directamente en patient_data
         for field in PERSONAL_FIELDS:
@@ -252,6 +266,7 @@ class GemmaService:
             )
 
         session.add_message("model", opening)
+        self._persist(session)
         return self._build_response("collecting", opening, session)
 
     def chat(self, session_id: str, user_message: str) -> dict:
@@ -283,7 +298,9 @@ class GemmaService:
                 )
                 raw = response.text.strip()
                 session.add_message("model", raw)
-                return self._parse_response(session, raw)
+                result = self._parse_response(session, raw)
+                self._persist(session)
+                return result
 
             except Exception as e:
                 is_503 = "503" in str(e)

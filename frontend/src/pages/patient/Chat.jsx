@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import AccessibilityMenu from '../../components/shared/AccessibilityMenu'
-import { startChat, sendMessage, syncForward, closeSession, getTriageResult } from '../../api/api'
+import { startChat, sendMessage, syncForward, closeSession, getTriageResult, getActiveSession } from '../../api/api'
 
 export default function PatientChat() {
   const { user, logout } = useAuth()
@@ -30,23 +30,47 @@ export default function PatientChat() {
     if (startedRef.current) return
     startedRef.current = true
 
-    sessionIdRef.current = `${user.email}_${Date.now()}`
-    const sessionId = sessionIdRef.current
-
     setTimeout(() => setMounted(true), 100)
-    setTyping(true)
-    startChat(sessionId)
+
+    getActiveSession()
       .then(({ data }) => {
-        setTyping(false)
-        setMessages([{ id: Date.now(), from: 'stiga', text: data.message }])
+        if (data && data.session_id && data.messages?.length) {
+          // Restaurar sesión incompleta existente
+          sessionIdRef.current = data.session_id
+          setMessages(data.messages)
+          setTyping(false)
+        } else {
+          // Iniciar sesión nueva
+          sessionIdRef.current = `${user.email}_${Date.now()}`
+          setTyping(true)
+          startChat(sessionIdRef.current)
+            .then(({ data: d }) => {
+              setTyping(false)
+              setMessages([{ id: Date.now(), from: 'stiga', text: d.message }])
+            })
+            .catch(() => {
+              setTyping(false)
+              setApiError('No se pudo conectar con el servidor. Verifique su conexión.')
+            })
+        }
       })
       .catch(() => {
-        setTyping(false)
-        setApiError('No se pudo conectar con el servidor. Verifique su conexión.')
+        // Si falla la consulta de sesión activa, iniciamos nueva igual
+        sessionIdRef.current = `${user.email}_${Date.now()}`
+        setTyping(true)
+        startChat(sessionIdRef.current)
+          .then(({ data: d }) => {
+            setTyping(false)
+            setMessages([{ id: Date.now(), from: 'stiga', text: d.message }])
+          })
+          .catch(() => {
+            setTyping(false)
+            setApiError('No se pudo conectar con el servidor. Verifique su conexión.')
+          })
       })
 
     return () => {
-      closeSession(sessionId).catch(() => {})
+      if (sessionIdRef.current) closeSession(sessionIdRef.current).catch(() => {})
     }
   }, [])
 
