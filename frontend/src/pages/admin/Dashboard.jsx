@@ -1345,7 +1345,7 @@ export default function AdminDashboard() {
                   </div>
                   <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
                     <button className="btn-outline-admin" onClick={() => { setEditUsuario(u); setEditRol(u.roleRaw); setEditError('') }}>Editar</button>
-                    {u.estado === 'pendiente' ? (
+                    {u.estado === 'pendiente' && u.roleRaw !== 'paciente' ? (
                       <button className="btn-success" onClick={() => handleAccionEstado(u.id)}>Aprobar</button>
                     ) : u.estado === 'activo' ? (
                       <button className="btn-danger" onClick={() => handleAccionEstado(u.id)}>Desactivar</button>
