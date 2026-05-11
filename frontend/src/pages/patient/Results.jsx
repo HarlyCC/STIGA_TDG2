@@ -131,7 +131,7 @@ ${t.confianza!=null?`<p class="meta">Confianza del modelo: ${Math.round(t.confia
       .catch(() => showToast('No se pudo copiar'))
   }
 
-  const graficaNiveles = triajes.slice(-6).map(t => ({
+  const graficaNiveles = triajes.slice(0, 6).reverse().map(t => ({
     mes:   (() => { const p = t.fecha.split(' '); return p[0] + (p[2] ? ' ' + p[2].slice(0, 3) : '') })(),
     hora:  t.hora,
     nivel: ['Verde', 'Amarillo', 'Naranja', 'Rojo'].indexOf(t.nivel.label),
@@ -446,7 +446,7 @@ ${t.confianza!=null?`<p class="meta">Confianza del modelo: ${Math.round(t.confia
                 Evolución de urgencia
               </p>
               <p style={{ margin: 0, color: '#4a6a4a', fontSize: '0.82rem' }}>
-                Últimos 3 triajes registrados
+                Últimos triajes registrados
               </p>
             </div>
             <div style={{ display: 'flex', gap: '0.75rem' }}>
@@ -478,6 +478,28 @@ ${t.confianza!=null?`<p class="meta">Confianza del modelo: ${Math.round(t.confia
                   <stop offset="100%" stopColor="#3d7a5a" stopOpacity="0"/>
                 </linearGradient>
               </defs>
+
+              {graficaNiveles.length === 0 && (
+                <text x="300" y="75" textAnchor="middle" fontSize="12" fill="#aabcb0">
+                  Aún no hay triajes registrados
+                </text>
+              )}
+
+              {graficaNiveles.length === 1 && (() => {
+                const p = graficaNiveles[0]
+                const cx = 300, cy = 120 - nivelAltura[p.nivel] * 1.1
+                return (
+                  <g>
+                    <circle cx={cx} cy={cy} r="6" fill="white"
+                      stroke={nivelColor[p.label]} strokeWidth="2.5"/>
+                    <circle cx={cx} cy={cy} r="3" fill={nivelColor[p.label]}/>
+                    <text x={cx} y={132} textAnchor="middle"
+                      fontSize="10" fill="#6b8070" fontWeight="500">{p.mes}</text>
+                    <text x={cx} y={145} textAnchor="middle"
+                      fontSize="9" fill="#9aaa9a">{p.hora}</text>
+                  </g>
+                )
+              })()}
 
               {graficaNiveles.length > 1 && (() => {
                 const pts = graficaNiveles.map((p, i) => ({
