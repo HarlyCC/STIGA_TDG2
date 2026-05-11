@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 
 from app.data.database import get_conn
 
-SESSION_TTL_HOURS = 24
+SESSION_TTL_HOURS = 12
 
 
 def _now() -> str:
