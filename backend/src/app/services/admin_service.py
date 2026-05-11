@@ -73,6 +73,19 @@ def delete_user(email: str, admin_email: str) -> dict:
     return {"message": f"Usuario {email} eliminado correctamente."}
 
 
+def approve_user(email: str, admin_email: str) -> dict:
+    user = user_repository.get_by_email(email)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail="Usuario no encontrado.")
+    if user["is_verified"]:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT,
+                            detail="El usuario ya está verificado.")
+    user_repository.activate(email)
+    logger.info(f"Usuario aprobado manualmente | {email} | por: {admin_email}")
+    return {"message": f"Usuario {email} aprobado correctamente."}
+
+
 # Estadísticas
 
 def estadisticas() -> dict:

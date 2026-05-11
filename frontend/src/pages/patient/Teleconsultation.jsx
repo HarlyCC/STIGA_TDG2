@@ -64,7 +64,8 @@ export default function PatientTeleconsultation() {
     setLoadingSlots(true)
     setSlots([])
     setSelectedSlot(null)
-    const fecha = selectedDate.toISOString().split('T')[0]
+    const d = selectedDate
+    const fecha = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
     client.get(`/medico/disponibilidad?fecha=${fecha}`)
       .then(({ data }) => setSlots(data))
       .catch(() => setSlots([]))

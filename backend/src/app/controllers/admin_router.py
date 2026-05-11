@@ -109,6 +109,11 @@ def change_role(email: str, body: UpdateRoleRequest, admin: dict = Depends(requi
     return admin_service.change_role(email, body.role, admin["email"])
 
 
+@router.patch("/usuarios/{email}/aprobar")
+def approve_user(email: str, admin: dict = Depends(require_admin)):
+    return admin_service.approve_user(email, admin["email"])
+
+
 @router.delete("/usuarios/{email}")
 def delete_user(email: str, admin: dict = Depends(require_admin)):
     if email == admin["email"]:

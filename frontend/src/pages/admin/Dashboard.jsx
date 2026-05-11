@@ -200,12 +200,20 @@ export default function AdminDashboard() {
   }
 
   /* ── Handlers usuarios ── */
-  const handleAccionEstado = (id) => {
-    setUsuarios(prev => prev.map(u => {
-      if (u.id !== id) return u
+  const handleAccionEstado = async (id) => {
+    const u = usuarios.find(x => x.id === id)
+    if (!u) return
+    if (u.estado === 'pendiente') {
+      try {
+        await client.patch(`/admin/usuarios/${encodeURIComponent(u.correo)}/aprobar`)
+        setUsuarios(prev => prev.map(x => x.id === id ? { ...x, estado: 'activo' } : x))
+      } catch (err) {
+        alert(err.response?.data?.detail || 'Error al aprobar el usuario.')
+      }
+    } else {
       const next = u.estado === 'activo' ? 'inactivo' : 'activo'
-      return { ...u, estado: next }
-    }))
+      setUsuarios(prev => prev.map(x => x.id === id ? { ...x, estado: next } : x))
+    }
   }
   const handleGuardarEdit = async () => {
     if (!editRol) return
