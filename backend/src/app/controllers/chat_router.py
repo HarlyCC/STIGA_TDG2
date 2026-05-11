@@ -126,14 +126,22 @@ def get_active_session(current_user: dict = Depends(get_current_user)):
     ui_messages = []
     for i, msg in enumerate(history):
         content = msg.get("content", "")
-        try:
-            parsed = json.loads(content)
-            text = parsed.get("message", content)
-        except (json.JSONDecodeError, TypeError):
+        role    = msg.get("role")
+        if role == "model":
+            try:
+                clean  = content.replace("```json", "").replace("```", "").strip()
+                parsed = json.loads(clean)
+                text   = parsed.get("message", content)
+                # Omitir el mensaje interno "complete" — no tiene texto visible
+                if parsed.get("status") == "complete":
+                    continue
+            except (json.JSONDecodeError, TypeError):
+                text = content
+        else:
             text = content
         ui_messages.append({
             "id":   i,
-            "from": "stiga" if msg.get("role") == "model" else "user",
+            "from": "stiga" if role == "model" else "user",
             "text": text,
         })
 
