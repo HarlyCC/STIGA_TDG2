@@ -47,14 +47,6 @@ def list_users(role, limit: int, offset: int) -> dict:
     return {"total": total, "items": [dict(r) for r in rows]}
 
 
-def get_user(email: str) -> dict:
-    user = user_repository.get_full_profile(email)
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail="Usuario no encontrado.")
-    return dict(user)
-
-
 def change_role(email: str, role: str, admin_email: str) -> dict:
     affected = user_repository.update_role(email, role)
     if affected == 0:

@@ -99,11 +99,6 @@ def list_users(
     return admin_service.list_users(role, limit, offset)
 
 
-@router.get("/usuarios/{email}")
-def get_user(email: str, admin: dict = Depends(require_admin)):
-    return admin_service.get_user(email)
-
-
 @router.put("/usuarios/{email}/rol")
 def change_role(email: str, body: UpdateRoleRequest, admin: dict = Depends(require_admin)):
     return admin_service.change_role(email, body.role, admin["email"])

@@ -37,16 +37,6 @@ def _check_medico_access(medico_email: str, role: str, cedula: str):
         )
 
 
-def patient_detail(cedula: str, medico_email: str, role: str) -> dict:
-    _check_medico_access(medico_email, role, cedula)
-    perfil = user_repository.find_by_cedula(cedula)
-    if not perfil:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail="Paciente no encontrado.")
-    triajes = triage_repository.list_by_cedula(cedula)
-    return {"perfil": dict(perfil), "triajes": [dict(t) for t in triajes]}
-
-
 def get_historia(cedula: str, medico_email: str, role: str) -> dict:
     _check_medico_access(medico_email, role, cedula)
     perfil = user_repository.find_by_cedula(cedula)
@@ -82,10 +72,6 @@ def my_triages(user_email: str) -> list:
 
 
 # Horarios y disponibilidad
-
-def get_schedule(medico_email: str) -> list:
-    return [dict(r) for r in horario_repository.list_by_medico(medico_email)]
-
 
 def get_availability(fecha: str) -> list:
     try:

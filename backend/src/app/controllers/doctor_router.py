@@ -55,11 +55,6 @@ def list_patients(
     return doctor_service.list_patients(medico["role"], medico["email"], color, limit, offset)
 
 
-@router.get("/pacientes/{cedula}")
-def patient_detail(cedula: str, medico: dict = Depends(require_medico)):
-    return doctor_service.patient_detail(cedula, medico["email"], medico["role"])
-
-
 @router.get("/historia/{cedula}")
 def get_historia(cedula: str, medico: dict = Depends(require_medico)):
     return doctor_service.get_historia(cedula, medico["email"], medico["role"])
@@ -79,11 +74,6 @@ def my_triages(current_user: dict = Depends(get_current_user)):
 
 
 # Horarios y disponibilidad
-
-@router.get("/horarios")
-def get_schedule(medico: dict = Depends(require_medico)):
-    return doctor_service.get_schedule(medico["email"])
-
 
 @router.get("/disponibilidad")
 def get_availability(fecha: str, current_user: dict = Depends(get_current_user)):
