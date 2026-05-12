@@ -11,16 +11,6 @@ def list_by_paciente(paciente_email: str) -> list:
         ).fetchall()
 
 
-def list_by_cedula(cedula: str) -> list:
-    with get_conn() as conn:
-        return conn.execute(
-            """SELECT * FROM notas_clinicas
-               WHERE cedula_paciente = ?
-               ORDER BY created_at DESC""",
-            (cedula,),
-        ).fetchall()
-
-
 def insert(cedula: str, paciente_email: str, medico_email: str, medico_nombre: str,
            titulo: str, contenido: str, now: str) -> int:
     with get_conn() as conn:

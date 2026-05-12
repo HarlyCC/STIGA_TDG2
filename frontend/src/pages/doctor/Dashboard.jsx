@@ -523,9 +523,9 @@ export default function DoctorDashboard() {
                     Ver ficha
                   </button>
                   <button
-                    className={`btn-consulta${p.nivel.label === 'Rojo' && !loadingId ? ' btn-consulta-critico' : ''}`}
+                    className="btn-consulta"
                     onClick={(e) => handleIniciarConsulta(e, p)}
-                    disabled={!!loadingId}
+                    disabled={!!loadingId || !p.citaId}
                   >
                     {loadingId === p.id ? (
                       <>
