@@ -303,10 +303,10 @@ class GemmaService:
                 return result
 
             except Exception as e:
-                is_503 = "503" in str(e)
+                is_retryable = "503" in str(e) or "500" in str(e)
                 is_last = attempt == MAX_RETRIES - 1
 
-                if is_503 and not is_last:
+                if is_retryable and not is_last:
                     wait = (attempt + 1) * 10
                     logger.warning(
                         f"Servidor ocupado [{session_id}] | "
