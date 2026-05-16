@@ -106,6 +106,14 @@ def estadisticas() -> dict:
         {"ciudad": c, "total": d["total"], "peor_nivel": d["peor_nivel"]}
         for c, d in sorted(por_ciudad_agg.items(), key=lambda x: -x[1]["total"])
     ]
+    por_ciudad_detalle = sorted(
+        [
+            {"ciudad": row["ciudad"], "triage_color": row["triage_color"], "total": row["total"]}
+            for row in por_ciudad_raw
+            if row["triage_color"]
+        ],
+        key=lambda x: (x["ciudad"], SEVERITY.get(x["triage_color"], 0)),
+    )
 
     total_actual = sum(d["total"] for d in por_dia)
     cambio_pct   = None
@@ -120,7 +128,8 @@ def estadisticas() -> dict:
             "por_dia":        por_dia,
             "total_semana":   total_actual,
             "cambio_semanal": cambio_pct,
-            "por_ciudad":     por_ciudad,
+            "por_ciudad":        por_ciudad,
+            "por_ciudad_detalle": por_ciudad_detalle,
         },
     }
 

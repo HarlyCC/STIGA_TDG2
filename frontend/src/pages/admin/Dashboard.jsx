@@ -651,8 +651,8 @@ export default function AdminDashboard() {
   }
 
   const mapaPoints = (() => {
-    const porCiudad = estadisticas?.triajes?.por_ciudad || []
-    return porCiudad
+    const detalle = estadisticas?.triajes?.por_ciudad_detalle || []
+    return detalle
       .filter(d => MUNICIPIO_LATLNG[d.ciudad])
       .map((d, i) => {
         const [lat, lng] = MUNICIPIO_LATLNG[d.ciudad]
@@ -661,12 +661,14 @@ export default function AdminDashboard() {
           nombre:    d.ciudad,
           lat,
           lng,
-          nivel:     NIVEL_DOT[d.peor_nivel] || '#22c55e',
-          nivelLabel: d.peor_nivel,
+          nivel:     NIVEL_DOT[d.triage_color] || '#22c55e',
+          nivelLabel: d.triage_color,
           count:     d.total,
         }
       })
   })()
+
+  const municipiosActivos = new Set(mapaPoints.map(p => p.nombre)).size
 
   const rolColor = { Paciente: '#374151', Médico: '#1a5f8a' }
   const estadoBadge = {
@@ -1510,7 +1512,7 @@ export default function AdminDashboard() {
                   Ubicación de pacientes activos
                 </p>
                 <p style={{ margin: 0, color: '#4b5563', fontSize: '0.82rem' }}>
-                  Antioquia · {mapaPoints.length} municipios con actividad
+                  Antioquia · {municipiosActivos} municipios con actividad
                 </p>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.78rem', color: '#9ca3af' }}>
@@ -1539,7 +1541,7 @@ export default function AdminDashboard() {
                   </div>
                 ))}
                 <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: '#9ca3af' }}>
-                  {mapaPoints.length} municipio{mapaPoints.length !== 1 ? 's' : ''} · tamaño proporcional al volumen
+                  {municipiosActivos} municipio{municipiosActivos !== 1 ? 's' : ''} · tamaño proporcional al volumen
                 </span>
               </div>
 
